@@ -1,0 +1,27 @@
+{
+  "name": "beauty-parlour-saas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-Tenant White-Label Beauty Parlour, Salon, Spa and Beauty Training Institute SaaS",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "start": "npm run start --workspace=backend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build:frontend": "npm run build --workspace=frontend"
+  },
+  "keywords": [
+    "saas",
+    "multi-tenant",
+    "white-label",
+    "beauty-parlour",
+    "salon",
+    "spa",
+    "institute"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}

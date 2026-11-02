@@ -1,0 +1,364 @@
+openapi: 3.0.3
+info:
+  title: Beauty SaaS Super Admin Control Plane API
+  description: >
+    Comprehensive Super Admin REST APIs for multi-tenant white-label beauty parlour,
+    salon, spa, and beauty academy management with configurable multi-database architecture.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local Development Server
+  - url: https://api.beautysaas.com/api/v1
+    description: Production Control Plane
+paths:
+  /superadmin/dashboard/overview:
+    get:
+      summary: Get platform KPI overview metrics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Live platform statistics
+  /superadmin/dashboard/revenue:
+    get:
+      summary: Get revenue telemetry (MRR, ARR)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Revenue data
+  /superadmin/tenants:
+    get:
+      summary: List all tenants
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: databaseMode
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated tenant records
+    post:
+      summary: Create and provision new tenant
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug, email, databaseMode]
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                email:
+                  type: string
+                businessType:
+                  type: string
+                databaseMode:
+                  type: string
+                  enum: [SHARED, SEPARATE]
+                subdomain:
+                  type: string
+                customDomain:
+                  type: string
+      responses:
+        '201':
+          description: Tenant provisioned
+  /superadmin/tenants/{tenantId}:
+    get:
+      summary: Get tenant details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tenant profile
+    patch:
+      summary: Update tenant profile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tenant updated
+    delete:
+      summary: Archive tenant
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tenant archived
+  /superadmin/tenants/{tenantId}/activate:
+    post:
+      summary: Activate tenant
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tenant activated
+  /superadmin/tenants/{tenantId}/suspend:
+    post:
+      summary: Suspend tenant
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Tenant suspended
+  /superadmin/databases:
+    get:
+      summary: List registered database instances
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Database nodes
+    post:
+      summary: Register database node
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Database registered
+  /superadmin/databases/{databaseId}/test-connection:
+    post:
+      summary: Test database ping latency
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: databaseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Connection ping result
+  /superadmin/tenants/{tenantId}/database/migrate:
+    post:
+      summary: Execute safe data migration between Shared and Separate DB
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetMode]
+              properties:
+                targetMode:
+                  type: string
+                  enum: [SHARED, SEPARATE]
+                targetDatabaseName:
+                  type: string
+      responses:
+        '200':
+          description: Migration completed
+  /superadmin/domains:
+    get:
+      summary: List all domains
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Domain records
+  /superadmin/domains/{domainId}/verify:
+    post:
+      summary: Verify custom domain DNS ownership
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: domainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verification status
+  /superadmin/plans:
+    get:
+      summary: List subscription plans
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Plans
+    post:
+      summary: Create new subscription plan
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Plan created
+  /superadmin/subscriptions:
+    get:
+      summary: List subscriptions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Subscriptions
+  /superadmin/billing/invoices:
+    get:
+      summary: List billing invoices
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Invoices
+    post:
+      summary: Issue manual invoice
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Invoice issued
+  /superadmin/audit-logs:
+    get:
+      summary: Query immutable audit logs
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Audit log records
+  /superadmin/verticals:
+    get:
+      summary: List all beauty industry verticals (Salon, Spa, Parlour, Makeup, Academy)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Verticals list
+    post:
+      summary: Register new industry vertical
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Vertical registered
+  /superadmin/templates/services:
+    get:
+      summary: List pre-configured industry service templates
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Service templates
+    post:
+      summary: Add service template
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Template created
+  /superadmin/tenants/{tenantId}/seed-catalog:
+    post:
+      summary: Inject industry service catalog into tenant database
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Catalog seeded
+  /superadmin/themes:
+    get:
+      summary: List white-label theme presets
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Themes
+    post:
+      summary: Create theme preset
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Theme created
+  /superadmin/tenants/{tenantId}/theme:
+    post:
+      summary: Apply white-label theme to tenant portal
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Theme applied
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+logs/
+*.log
+uploads/*
+!uploads/.gitkeep
+!uploads/README.md
+coverage/
+.DS_Store
