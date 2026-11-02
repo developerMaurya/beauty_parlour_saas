@@ -50,11 +50,16 @@ export const parseDurationToMs = (duration) => {
  */
 export const generateAccessToken = (user, sessionId) => {
   const payload = {
-    sub: user._id.toString(),
+    sub: user._id ? user._id.toString() : user.sub,
     role: user.role,
     sessionId,
     tokenType: TOKEN_TYPES.ACCESS,
     jti: generateUUID(),
+    ...(user.tenantId ? { tenantId: user.tenantId.toString() } : {}),
+    ...(user.customerId ? { customerId: user.customerId.toString() } : {}),
+    ...(user.studentId ? { studentId: user.studentId.toString() } : {}),
+    ...(user.staffId ? { staffId: user.staffId.toString() } : {}),
+    ...(user.userType ? { userType: user.userType } : {}),
   };
 
   const options = {
@@ -74,10 +79,15 @@ export const generateAccessToken = (user, sessionId) => {
  */
 export const generateRefreshToken = (user, sessionId) => {
   const payload = {
-    sub: user._id.toString(),
+    sub: user._id ? user._id.toString() : (user.sub ? user.sub.toString() : ''),
     sessionId,
     tokenType: TOKEN_TYPES.REFRESH,
     jti: generateUUID(),
+    ...(user.tenantId ? { tenantId: user.tenantId.toString() } : {}),
+    ...(user.customerId ? { customerId: user.customerId.toString() } : {}),
+    ...(user.studentId ? { studentId: user.studentId.toString() } : {}),
+    ...(user.staffId ? { staffId: user.staffId.toString() } : {}),
+    ...(user.userType ? { userType: user.userType } : {}),
   };
 
   const options = {

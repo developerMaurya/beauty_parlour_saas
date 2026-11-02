@@ -7,9 +7,16 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { TenantAdminProvider } from './context/TenantAdminContext';
+import { StaffProvider } from './context/StaffContext';
+import { StudentProvider } from './context/StudentContext';
+import { CustomerProvider } from './context/CustomerContext';
 import { ToastProvider } from './context/ToastContext';
 import SuperAdminRoutes from './routes/superadmin.routes';
 import AdminRoutes from './routes/admin.routes';
+import StaffRoutes from './routes/staff.routes';
+import StudentRoutes from './routes/student.routes';
+import CustomerRoutes from './routes/customer.routes';
+import PublicRoutes from './routes/public.routes';
 import './styles/index.css';
 
 export function App() {
@@ -17,14 +24,24 @@ export function App() {
     <BrowserRouter>
       <AuthProvider>
         <TenantAdminProvider>
-          <ToastProvider>
-            <Routes>
-              {SuperAdminRoutes}
-              {AdminRoutes}
-              <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-            </Routes>
-          </ToastProvider>
+          <StaffProvider>
+            <StudentProvider>
+              <CustomerProvider>
+                <ToastProvider>
+                  <Routes>
+                    {SuperAdminRoutes}
+                    {AdminRoutes}
+                    {StaffRoutes}
+                    {StudentRoutes}
+                    {CustomerRoutes}
+                    {PublicRoutes}
+                    <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                  </Routes>
+                </ToastProvider>
+              </CustomerProvider>
+            </StudentProvider>
+          </StaffProvider>
         </TenantAdminProvider>
       </AuthProvider>
     </BrowserRouter>

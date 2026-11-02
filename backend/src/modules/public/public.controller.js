@@ -316,18 +316,110 @@ export const createPublicBooking = async (req, res) => {
   }
 };
 
+export const getPublicBranchById = async (req, res) => {
+  try {
+    const Branch = getTenantModel(req, 'Branch');
+    const branch = await Branch.findOne({ _id: req.params.id, tenantId: req.tenantId, status: 'active' });
+    if (!branch) return sendError(res, 'Branch not found', [], 404);
+    return sendSuccess(res, 'Branch details retrieved', branch);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const getPublicServiceById = async (req, res) => {
+  try {
+    const Service = getTenantModel(req, 'Service');
+    const service = await Service.findOne({ _id: req.params.id, tenantId: req.tenantId, status: 'active' })
+      .populate('categoryId', 'name icon slug')
+      .populate('subcategoryId', 'name slug');
+    if (!service) return sendError(res, 'Service not found', [], 404);
+    return sendSuccess(res, 'Service details retrieved', service);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const getPublicServiceCategoryById = async (req, res) => {
+  try {
+    const Category = getTenantModel(req, 'ServiceCategory');
+    const category = await Category.findOne({ _id: req.params.id, tenantId: req.tenantId, status: 'active' });
+    if (!category) return sendError(res, 'Category not found', [], 404);
+    return sendSuccess(res, 'Category details retrieved', category);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const getPublicPackageById = async (req, res) => {
+  try {
+    const Package = getTenantModel(req, 'Package');
+    const pkg = await Package.findOne({ _id: req.params.id, tenantId: req.tenantId, status: 'active' })
+      .populate('services.serviceId', 'name price durationMinutes');
+    if (!pkg) return sendError(res, 'Package not found', [], 404);
+    return sendSuccess(res, 'Package details retrieved', pkg);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const getPublicOfferById = async (req, res) => {
+  try {
+    const Offer = getTenantModel(req, 'Offer');
+    const offer = await Offer.findOne({ _id: req.params.id, tenantId: req.tenantId, status: 'active' })
+      .populate('services', 'name price')
+      .populate('packages', 'name price');
+    if (!offer) return sendError(res, 'Offer not found', [], 404);
+    return sendSuccess(res, 'Offer details retrieved', offer);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const getPublicStaffById = async (req, res) => {
+  try {
+    const Staff = getTenantModel(req, 'Staff');
+    const staff = await Staff.findOne({ _id: req.params.id, tenantId: req.tenantId, status: 'active' })
+      .populate('designationId', 'name')
+      .populate('departmentId', 'name')
+      .select('name photo designationId departmentId skills gender branchId bio');
+    if (!staff) return sendError(res, 'Staff member not found', [], 404);
+    return sendSuccess(res, 'Staff details retrieved', staff);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const getPublicHolidays = async (req, res) => {
+  try {
+    const Holiday = getTenantModel(req, 'Holiday');
+    const holidays = await Holiday.find({ tenantId: req.tenantId }).sort({ date: 1 });
+    return sendSuccess(res, 'Holidays retrieved', holidays);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
 export default {
   getPublicBusiness,
   getPublicBranches,
+  getPublicBranchById,
   getPublicServices,
+  getPublicServiceById,
   getPublicServiceCategories,
+  getPublicServiceCategoryById,
   getPublicPackages,
+  getPublicPackageById,
   getPublicOffers,
+  getPublicOfferById,
   getPublicStaff,
+  getPublicStaffById,
   getPublicWorkingHours,
+  getPublicHolidays,
   getPublicWebsite,
   getPublicGallery,
   getPublicTestimonials,
   getPublicFaqs,
   createPublicBooking,
 };
+

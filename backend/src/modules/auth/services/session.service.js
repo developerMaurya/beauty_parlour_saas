@@ -156,6 +156,30 @@ export const isSessionActive = async (sessionId) => {
   return Boolean(session);
 };
 
+/**
+ * Get active sessions for a user
+ * @param {string} userId
+ * @returns {Promise<Session[]>}
+ */
+export const getUserActiveSessions = async (userId) => {
+  return Session.find({
+    userId,
+    revokedAt: null,
+    expiresAt: { $gt: new Date() },
+  })
+    .sort({ lastUsedAt: -1, createdAt: -1 })
+    .lean();
+};
+
+/**
+ * Get session by sessionId
+ * @param {string} sessionId
+ * @returns {Promise<Session|null>}
+ */
+export const getSessionById = async (sessionId) => {
+  return Session.findOne({ sessionId }).lean();
+};
+
 export default {
   createSession,
   validateSessionAndCheckReuse,
@@ -163,4 +187,7 @@ export default {
   revokeSession,
   revokeAllUserSessions,
   isSessionActive,
+  getUserActiveSessions,
+  getSessionById,
 };
+

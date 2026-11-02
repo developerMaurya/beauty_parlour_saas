@@ -11,7 +11,27 @@
  * @param {object|null} data
  * @param {number} statusCode
  */
-export const sendSuccess = (res, message = 'Operation successful', data = null, statusCode = 200) => {
+export const sendSuccess = (res, arg2 = 'Operation successful', arg3 = null, statusCode = 200) => {
+  let message = 'Operation successful';
+  let data = null;
+  let code = statusCode;
+
+  if (typeof arg2 === 'string' && typeof arg3 !== 'string') {
+    message = arg2;
+    data = arg3;
+  } else if (typeof arg3 === 'string') {
+    data = arg2;
+    message = arg3;
+  } else if (typeof arg2 === 'string') {
+    message = arg2;
+    data = arg3;
+  } else {
+    data = arg2;
+    if (typeof arg3 === 'number') {
+      code = arg3;
+    }
+  }
+
   const payload = {
     success: true,
     message,
@@ -21,7 +41,7 @@ export const sendSuccess = (res, message = 'Operation successful', data = null, 
     payload.data = data;
   }
 
-  return res.status(statusCode).json(payload);
+  return res.status(code).json(payload);
 };
 
 /**

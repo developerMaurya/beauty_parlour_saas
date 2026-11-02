@@ -11,6 +11,8 @@ import adminRoutes from './admin.routes.js';
 import publicRoutes from './public.routes.js';
 import staffRoutes from './staff.routes.js';
 import customerRoutes from './customer.routes.js';
+import studentRoutes from './student.routes.js';
+import guestRoutes from './guest.routes.js';
 
 const router = Router();
 
@@ -26,10 +28,16 @@ router.use('/admin', adminRoutes);
 // Mount Customer Public portal & booking routes
 router.use('/public', publicRoutes);
 
+// Mount Guest portal & booking routes
+router.use('/guest', guestRoutes);
+
 // Mount Staff field & mobile routes
 router.use('/staff', staffRoutes);
 
 // Mount Customer live tracking routes
 router.use('/customer', customerRoutes);
+
+// Mount Student Academy portal routes
+router.use('/student', studentRoutes);
 
 export default router;
