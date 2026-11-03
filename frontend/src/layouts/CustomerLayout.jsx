@@ -66,6 +66,7 @@ export default function CustomerLayout() {
         { label: 'Notifications', path: '/customer/notifications', icon: '🔔', badge: unreadCount },
         { label: 'Helpdesk Tickets', path: '/customer/requests', icon: '🎫' },
         { label: 'Saved Addresses', path: '/customer/addresses', icon: '🏡' },
+        { label: 'Treatment Documents', path: '/customer/documents', icon: '📁' },
         { label: 'Calendar', path: '/customer/calendar', icon: '📆' },
         { label: 'Customer Dossier & Reports', path: '/customer/reports', icon: '📊' },
         { label: 'Journey Timeline', path: '/customer/timeline', icon: '🧭' },

@@ -190,6 +190,7 @@ router.post('/addresses/:id/default', addressCtrl.setDefaultAddress);
 router.get('/documents', reportCtrl.getDocuments);
 router.get('/documents/:id', reportCtrl.getDocumentById);
 router.post('/documents', reportCtrl.uploadDocument);
+router.put('/documents/:id', reportCtrl.updateDocument);
 router.delete('/documents/:id', reportCtrl.deleteDocument);
 router.get('/documents/:id/download', reportCtrl.downloadDocument);
 

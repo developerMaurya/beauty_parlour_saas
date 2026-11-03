@@ -183,7 +183,33 @@ Comprehensive API Reference for White-Label Multi-Tenant Beauty Parlour SaaS Cus
 
 ---
 
-## 9. Multi-Tenant Isolation Standard
+## 9. Customer Personal Document Vault
+
+### `GET /api/v1/customer/documents`
+- **Description:** Retrieve client treatment records, consent forms, patch test results, and skin consultation charts.
+- **Auth:** Bearer Token (`CUSTOMER`).
+
+### `POST /api/v1/customer/documents`
+- **Description:** Upload new treatment waiver or skin consultation document to vault.
+- **Request Body:**
+  ```json
+  {
+    "title": "Allergy Test Clearance",
+    "documentType": "PATCH_TEST_WAIVER",
+    "fileUrl": "https://storage.cloud.com/waivers/test-doc.pdf",
+    "notes": "Signed prior to treatment"
+  }
+  ```
+
+### `PUT /api/v1/customer/documents/:id`
+- **Description:** Update document metadata, category, or treatment notes.
+
+### `DELETE /api/v1/customer/documents/:id`
+- **Description:** Remove personal document record with cross-customer authorization check.
+
+---
+
+## 10. Multi-Tenant Isolation Standard
 
 Every request validates:
 1. `req.tenantId` matches domain resolution or header.

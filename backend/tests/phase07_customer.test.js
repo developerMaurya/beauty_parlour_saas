@@ -875,6 +875,63 @@ describe('Phase 07 — Complete Customer, Guest & Public Portal System', { concu
       assert.ok(res.body.data.ticketNumber);
       assert.strictEqual(res.body.data.status, 'OPEN');
     });
+
+    let uploadedDocId;
+
+    test('POST /api/v1/customer/documents - Upload personal customer document', async () => {
+      const res = await request(app)
+        .post('/api/v1/customer/documents')
+        .set('Authorization', `Bearer ${customerToken1}`)
+        .set('x-tenant-id', testTenant._id.toString())
+        .send({
+          title: 'Allergy Test Consent Form',
+          documentType: 'PATCH_TEST_WAIVER',
+          fileUrl: 'https://cloud.storage.com/waivers/test-doc.pdf',
+          notes: 'Signed prior to organic hair treatment',
+        });
+
+      assert.strictEqual(res.status, 201);
+      assert.strictEqual(res.body.success, true);
+      assert.strictEqual(res.body.data.title, 'Allergy Test Consent Form');
+      uploadedDocId = res.body.data._id;
+    });
+
+    test('GET /api/v1/customer/documents - Retrieve customer document vault', async () => {
+      const res = await request(app)
+        .get('/api/v1/customer/documents')
+        .set('Authorization', `Bearer ${customerToken1}`)
+        .set('x-tenant-id', testTenant._id.toString());
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.success, true);
+      assert.ok(Array.isArray(res.body.data));
+      assert.ok(res.body.data.length >= 1);
+    });
+
+    test('PUT /api/v1/customer/documents/:id - Update document details', async () => {
+      const res = await request(app)
+        .put(`/api/v1/customer/documents/${uploadedDocId}`)
+        .set('Authorization', `Bearer ${customerToken1}`)
+        .set('x-tenant-id', testTenant._id.toString())
+        .send({
+          title: 'Updated Allergy Test Clearance',
+          notes: 'Validated by senior dermatologist',
+        });
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.success, true);
+      assert.strictEqual(res.body.data.title, 'Updated Allergy Test Clearance');
+    });
+
+    test('DELETE /api/v1/customer/documents/:id - Delete customer document', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/customer/documents/${uploadedDocId}`)
+        .set('Authorization', `Bearer ${customerToken1}`)
+        .set('x-tenant-id', testTenant._id.toString());
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.success, true);
+    });
   });
 
   // ==========================================

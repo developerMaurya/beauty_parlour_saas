@@ -35,6 +35,7 @@ import CustomerCalendarPage from '../modules/customer/pages/CustomerCalendarPage
 import CustomerReportsPage from '../modules/customer/pages/CustomerReportsPage.jsx';
 import CustomerTimelinePage from '../modules/customer/pages/CustomerTimelinePage.jsx';
 import CustomerSettingsPage from '../modules/customer/pages/CustomerSettingsPage.jsx';
+import CustomerDocumentsPage from '../modules/customer/pages/CustomerDocumentsPage.jsx';
 
 export const CustomerRoutes = (
   <>
@@ -85,6 +86,11 @@ export const CustomerRoutes = (
       <Route path="payments/:id" element={<CustomerPaymentsPage />} />
       <Route path="payments/invoices" element={<CustomerInvoicesPage />} />
       <Route path="payments/invoices/:id" element={<CustomerInvoicesPage />} />
+      <Route path="refund-requests" element={<CustomerPaymentsPage />} />
+
+      {/* Vault Documents */}
+      <Route path="documents" element={<CustomerDocumentsPage />} />
+      <Route path="documents/:id" element={<CustomerDocumentsPage />} />
 
       {/* Service History & Visits */}
       <Route path="services/history" element={<CustomerHistoryPage />} />

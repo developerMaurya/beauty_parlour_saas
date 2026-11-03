@@ -637,6 +637,32 @@ export const deleteDocument = async (req, res) => {
   }
 };
 
+export const updateDocument = async (req, res) => {
+  try {
+    const { title, documentType, description, notes } = req.body;
+    const DocumentModel = getTenantModel(req, 'CustomerDocument');
+    const update = {};
+    if (title) update.title = title.trim();
+    if (documentType) update.documentType = documentType;
+    if (description !== undefined) update.description = description.trim();
+    if (notes !== undefined) update.description = notes.trim();
+
+    const doc = await DocumentModel.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.tenantId, customerId: req.customerId },
+      { $set: update },
+      { new: true }
+    );
+
+    if (!doc) {
+      return sendError(res, 'Document not found or unauthorized', [], 404);
+    }
+
+    return sendSuccess(res, 'Document updated successfully', doc);
+  } catch (error) {
+    return sendError(res, `Failed to update document: ${error.message}`, [], 500);
+  }
+};
+
 export const downloadDocument = async (req, res) => {
   return getDocumentById(req, res);
 };
@@ -664,6 +690,7 @@ export default {
   getDocuments,
   getDocumentById,
   uploadDocument,
+  updateDocument,
   deleteDocument,
   downloadDocument,
 };
