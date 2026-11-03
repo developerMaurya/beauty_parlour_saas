@@ -13,6 +13,8 @@ import { getPagination } from '../../../utils/query.utils.js';
 // 1. DYNAMIC TENANT SETTINGS
 // ==========================================
 
+import { Tenant } from '../../superadmin/tenants/models/tenant.model.js';
+
 export const getSettings = async (req, res) => {
   try {
     const TenantSettings = getTenantModel(req, 'TenantSettings');
@@ -37,6 +39,22 @@ export const getSettings = async (req, res) => {
         branding: req.tenant.branding,
         theme: req.tenant.theme,
         businessType: req.tenant.businessType,
+        storageConfig: {
+          allowCustomCloudflare: req.tenant.storageConfig?.allowCustomCloudflare ?? false,
+          provider: req.tenant.storageConfig?.provider || 'platform_default',
+          hasCustomCredentials: Boolean(req.tenant.storageConfig?.cloudflareApiToken),
+          cloudflareApiUrl: req.tenant.storageConfig?.cloudflareApiUrl || null,
+        },
+        domainAccess: {
+          customDomainAllowed: req.tenant.domainAccess?.customDomainAllowed ?? false,
+          isDomainActive: req.tenant.domainAccess?.isDomainActive ?? true,
+          primaryDomain: req.tenant.primaryDomain,
+        },
+        securityConfig: {
+          ipWhitelistEnabled: req.tenant.securityConfig?.ipWhitelistEnabled ?? false,
+          whitelistedIps: req.tenant.securityConfig?.whitelistedIps || [],
+          whiteLabelEnabled: req.tenant.securityConfig?.whiteLabelEnabled ?? true,
+        },
       },
     });
   } catch (error) {
@@ -47,11 +65,40 @@ export const getSettings = async (req, res) => {
 export const updateSettings = async (req, res) => {
   try {
     const TenantSettings = getTenantModel(req, 'TenantSettings');
+    const { customStorage, branding, securityConfig, ...otherSettings } = req.body;
+
     const settings = await TenantSettings.findOneAndUpdate(
       { tenantId: req.tenantId },
-      { $set: req.body },
+      { $set: otherSettings },
       { upsert: true, returnDocument: 'after' }
     );
+
+    // Sync Tenant Central record if branding, storageConfig, or securityConfig was sent
+    if (customStorage || branding || securityConfig) {
+      const centralTenant = await Tenant.findById(req.tenantId);
+      if (centralTenant) {
+        if (customStorage) {
+          if (!centralTenant.storageConfig?.allowCustomCloudflare) {
+            return sendError(res, 'Custom Cloudflare storage is restricted by SuperAdmin. Please contact support.', [], 403);
+          }
+          centralTenant.storageConfig = centralTenant.storageConfig || {};
+          if (customStorage.cloudflareApiToken) {
+            centralTenant.storageConfig.cloudflareApiToken = customStorage.cloudflareApiToken;
+            centralTenant.storageConfig.provider = 'custom_cloudflare';
+          }
+          if (customStorage.cloudflareApiUrl) {
+            centralTenant.storageConfig.cloudflareApiUrl = customStorage.cloudflareApiUrl;
+          }
+        }
+        if (branding) {
+          centralTenant.branding = { ...centralTenant.branding, ...branding };
+        }
+        if (securityConfig) {
+          centralTenant.securityConfig = { ...centralTenant.securityConfig, ...securityConfig };
+        }
+        await centralTenant.save();
+      }
+    }
 
     return sendSuccess(res, 'Tenant settings updated successfully', settings);
   } catch (error) {

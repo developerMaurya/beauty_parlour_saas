@@ -11,7 +11,7 @@ const PlatformSettingSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['general', 'branding', 'email', 'payment', 'notifications', 'security', 'domains', 'databases'],
+      enum: ['general', 'branding', 'email', 'payment', 'notifications', 'security', 'domains', 'databases', 'storage'],
       unique: true,
       index: true,
     },

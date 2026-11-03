@@ -17,6 +17,7 @@ import StaffRoutes from './routes/staff.routes';
 import StudentRoutes from './routes/student.routes';
 import CustomerRoutes from './routes/customer.routes';
 import PublicRoutes from './routes/public.routes';
+import DomainSuspendedPage from './pages/DomainSuspendedPage';
 import './styles/index.css';
 
 export function App() {
@@ -35,6 +36,7 @@ export function App() {
                     {StudentRoutes}
                     {CustomerRoutes}
                     {PublicRoutes}
+                    <Route path="/portal-suspended" element={<DomainSuspendedPage />} />
                     <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                   </Routes>

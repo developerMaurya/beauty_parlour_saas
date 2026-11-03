@@ -55,10 +55,10 @@ export const BillingView = () => {
       ]);
 
       setOverview(overRes.data || {});
-      setInvoices(invRes.data?.invoices || []);
-      setTransactions(txRes.data?.transactions || []);
-      setRefunds(refRes.data?.refunds || []);
-      setTenants(tenRes.data?.tenants || []);
+      setInvoices(invRes.data?.invoices || invRes.data?.items || (Array.isArray(invRes.data) ? invRes.data : []));
+      setTransactions(txRes.data?.transactions || txRes.data?.items || (Array.isArray(txRes.data) ? txRes.data : []));
+      setRefunds(refRes.data?.refunds || refRes.data?.items || (Array.isArray(refRes.data) ? refRes.data : []));
+      setTenants(Array.isArray(tenRes.data) ? tenRes.data : (tenRes.data?.tenants || tenRes.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to load billing records');
     } finally {
@@ -275,24 +275,6 @@ export const BillingView = () => {
         />
       </div>
 
-      {/* Tabs */}
-      <div className="tabs-nav">
-        {[
-          { id: 'invoices', label: 'Invoices' },
-          { id: 'transactions', label: 'Transactions' },
-          { id: 'refunds', label: 'Refunds' },
-          { id: 'reports', label: 'Revenue Reports' },
-          { id: 'tax', label: 'Tax Settings' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setSearchParams({ tab: tab.id })}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {activeTab === 'invoices' && (
         <DataTable

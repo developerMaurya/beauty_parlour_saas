@@ -59,6 +59,10 @@ const SuperAdminSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    avatarUrl: {
+      type: String,
+      default: null,
+    },
     lastLoginAt: {
       type: Date,
       default: null,

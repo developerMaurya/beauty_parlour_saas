@@ -62,6 +62,21 @@ router.get(
   superAdminAuthController.getMe
 );
 
+// Update Current Super Admin Profile
+router.put(
+  '/me',
+  authenticateAccessToken,
+  requireSuperAdmin,
+  superAdminAuthController.updateProfile
+);
+
+router.patch(
+  '/me',
+  authenticateAccessToken,
+  requireSuperAdmin,
+  superAdminAuthController.updateProfile
+);
+
 // 6. Change Password
 router.post(
   '/change-password',

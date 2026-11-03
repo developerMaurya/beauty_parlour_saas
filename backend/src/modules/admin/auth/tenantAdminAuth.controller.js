@@ -15,7 +15,8 @@ import { recordActivity } from '../../../utils/activity.utils.js';
 
 export const tenantLogin = async (req, res) => {
   try {
-    const { identifier, password, branchId } = req.body;
+    const identifier = req.body.identifier || req.body.email || req.body.username || req.body.phone;
+    const { password, branchId } = req.body;
 
     if (!identifier || !password) {
       return sendError(res, 'Email, phone, or username and password are required', [], 400);

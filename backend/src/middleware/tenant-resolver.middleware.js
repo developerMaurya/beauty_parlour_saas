@@ -91,6 +91,39 @@ export const tenantResolverMiddleware = async (req, res, next) => {
       });
     }
 
+    // Domain Access Check (Controlled by Super Admin)
+    const hostHeader = (req.headers.host || '').split(':')[0].toLowerCase();
+    const isCustomDomainRequest = tenant.primaryDomain && hostHeader === tenant.primaryDomain.toLowerCase();
+
+    if (isCustomDomainRequest && (!tenant.domainAccess?.customDomainAllowed || tenant.domainAccess?.isDomainActive === false)) {
+      return res.status(403).json({
+        success: false,
+        code: 'DOMAIN_ACCESS_SUSPENDED',
+        message: tenant.domainAccess?.restrictedMessage || 'Connect to Super Admin for access to your website portal.',
+        details: {
+          tenantName: tenant.name,
+          domain: tenant.primaryDomain,
+          contactAdmin: true,
+        },
+      });
+    }
+
+    // IP Whitelisting Check (Controlled by Tenant / Super Admin)
+    if (tenant.securityConfig?.ipWhitelistEnabled && tenant.securityConfig?.whitelistedIps?.length > 0) {
+      const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || req.ip || '').trim();
+      const isAllowed = tenant.securityConfig.whitelistedIps.some(
+        (allowedIp) => allowedIp === clientIp || allowedIp === '127.0.0.1' || allowedIp === '::1' || clientIp.includes(allowedIp)
+      );
+
+      if (!isAllowed) {
+        return res.status(403).json({
+          success: false,
+          code: 'IP_NOT_WHITELISTED',
+          message: `Access denied. Your IP address (${clientIp}) is not authorized to access this portal. Please contact your administrator.`,
+        });
+      }
+    }
+
     // Resolve isolated or shared database connection
     const dbContext = await tenantDatabaseResolver.resolveDatabaseContext(tenant);
 

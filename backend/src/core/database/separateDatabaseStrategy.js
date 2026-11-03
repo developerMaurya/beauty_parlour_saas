@@ -24,7 +24,10 @@ export const separateDatabaseStrategy = {
       tenant.databaseName ||
       `beauty_tenant_${tenant.code || tenant._id || tenant.id}`;
 
-    const customUri = tenant.databaseConfig?.uri || null;
+    const customUri =
+      (tenant.databaseConfig?.allowCustomDatabase && tenant.databaseConfig?.customUri) ||
+      tenant.databaseConfig?.uri ||
+      null;
 
     return tenantConnectionManager.getConnection(dbName, customUri);
   },

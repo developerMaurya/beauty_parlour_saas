@@ -7,16 +7,39 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
-import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck, Database, Layers } from 'lucide-react';
+import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck, Database, Layers, Eye, EyeOff, Check } from 'lucide-react';
 
 export const Login = () => {
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [demoCreds, setDemoCreds] = useState(null);
+  const [isCopied, setIsCopied] = useState(false);
+
   const { login } = useAuth();
   const { success } = useToast();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchCreds = async () => {
+      try {
+        const res = await fetch('/api/v1/common/demo-credentials');
+        const data = await res.json();
+        if (isMounted && data?.success && data?.data) {
+          setDemoCreds(data.data.credentials?.superadmin);
+        }
+      } catch (e) {
+        console.warn('Could not fetch demo credentials:', e);
+      }
+    };
+    fetchCreds();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,8 +62,31 @@ export const Login = () => {
   };
 
   const handleQuickFill = () => {
-    setEmailOrUsername('superadmin@beautysaas.local');
-    setPassword('SuperAdmin@Secure2026!');
+    const email = demoCreds?.email || 'superadmin@beautysaas.local';
+    const pwd = demoCreds?.password || 'SuperAdmin@Secure2026!';
+    setEmailOrUsername(email);
+    setPassword(pwd);
+    setErrorMsg('');
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2500);
+  };
+
+  const handleInstantLogin = async () => {
+    const email = demoCreds?.email || 'superadmin@beautysaas.local';
+    const pwd = demoCreds?.password || 'SuperAdmin@Secure2026!';
+    setEmailOrUsername(email);
+    setPassword(pwd);
+    setErrorMsg('');
+    setIsLoading(true);
+    try {
+      await login(email, pwd);
+      success('Master Super Admin authenticated! Opening Dashboard...', 'Welcome');
+      navigate('/superadmin/dashboard');
+    } catch (err) {
+      setErrorMsg(err.message || 'Invalid credentials or unauthorized role');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -208,7 +254,7 @@ export const Login = () => {
 
             <div className="form-group">
               <label className="form-label">Master Password</label>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <Lock
                   className="w-4 h-4"
                   style={{
@@ -220,15 +266,32 @@ export const Login = () => {
                   }}
                 />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   className="form-input"
-                  style={{ paddingLeft: '2.5rem' }}
+                  style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '0.85rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -249,28 +312,66 @@ export const Login = () => {
             </button>
           </form>
 
-          {/* Quick Demo Pre-fill */}
+          {/* Quick Demo Pre-fill & 1-Click Instant Login */}
           <div
             style={{
               marginTop: '1.75rem',
-              padding: '1rem',
-              borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-subtle)',
+              padding: '1.15rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(99, 102, 241, 0.05)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-              Bootstrap Super Admin Credentials
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.5rem' }}>
+              <Database className="w-3.5 h-3.5" />
+              <span>Database Master Admin Credentials</span>
             </div>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleQuickFill}
-              style={{ width: '100%' }}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.85rem',
+                fontFamily: 'var(--font-mono)',
+              }}
             >
-              Auto-fill Master Credentials
-            </button>
+              <span style={{ padding: '2px 6px', background: 'var(--bg-card)', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
+                superadmin@beautysaas.local
+              </span>
+              <span>•</span>
+              <span style={{ padding: '2px 6px', background: 'var(--bg-card)', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
+                SuperAdmin@Secure2026!
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+              <button
+                type="button"
+                id="btn-autofill-creds"
+                className="btn btn-secondary btn-sm"
+                onClick={handleQuickFill}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.78rem' }}
+              >
+                {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Sparkles className="w-3.5 h-3.5 text-indigo-400" />}
+                <span>{isCopied ? 'Filled!' : '⚡ Auto-Fill'}</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-instant-login"
+                className="btn btn-primary btn-sm"
+                onClick={handleInstantLogin}
+                disabled={isLoading}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.78rem' }}
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                <span>🚀 1-Click Login</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

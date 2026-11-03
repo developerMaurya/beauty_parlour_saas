@@ -245,7 +245,22 @@ export const tenantController = {
    */
   async updateTenant(req, res, next) {
     try {
-      const { name, ownerName, email, phone, businessType, address, limits, branding } = req.body;
+      const {
+        name,
+        ownerName,
+        email,
+        phone,
+        businessType,
+        address,
+        limits,
+        branding,
+        storageConfig,
+        databaseConfig,
+        databaseMode,
+        domainAccess,
+        securityConfig,
+        status,
+      } = req.body;
 
       const tenant = await Tenant.findById(req.params.tenantId);
       if (!tenant) {
@@ -260,6 +275,12 @@ export const tenantController = {
       if (address) tenant.address = { ...tenant.address, ...address };
       if (limits) tenant.limits = { ...tenant.limits, ...limits };
       if (branding) tenant.branding = { ...tenant.branding, ...branding };
+      if (storageConfig) tenant.storageConfig = { ...tenant.storageConfig, ...storageConfig };
+      if (databaseConfig) tenant.databaseConfig = { ...tenant.databaseConfig, ...databaseConfig };
+      if (databaseMode) tenant.databaseMode = databaseMode;
+      if (domainAccess) tenant.domainAccess = { ...tenant.domainAccess, ...domainAccess };
+      if (securityConfig) tenant.securityConfig = { ...tenant.securityConfig, ...securityConfig };
+      if (status) tenant.status = status;
 
       await tenant.save();
 
@@ -272,6 +293,105 @@ export const tenantController = {
       });
 
       return sendSuccess(res, 'Tenant updated successfully', tenant);
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  /**
+   * PATCH /api/v1/superadmin/tenants/:tenantId/governance
+   * Dedicated SuperAdmin endpoint to toggle storage, database, domain & security permissions
+   */
+  async updateGovernance(req, res, next) {
+    try {
+      const tenant = await Tenant.findById(req.params.tenantId);
+      if (!tenant) {
+        return sendError(res, 'Tenant not found', [], 404);
+      }
+
+      const {
+        allowCustomCloudflare,
+        cloudflareApiToken,
+        cloudflareApiUrl,
+        allowCustomDatabase,
+        customDatabaseUri,
+        databaseMode,
+        customDomainAllowed,
+        isDomainActive,
+        restrictedMessage,
+        ipWhitelistEnabled,
+        whitelistedIps,
+        whiteLabelEnabled,
+      } = req.body;
+
+      // Storage
+      if (allowCustomCloudflare !== undefined) {
+        tenant.storageConfig = tenant.storageConfig || {};
+        tenant.storageConfig.allowCustomCloudflare = Boolean(allowCustomCloudflare);
+      }
+      if (cloudflareApiToken !== undefined) {
+        tenant.storageConfig = tenant.storageConfig || {};
+        tenant.storageConfig.cloudflareApiToken = cloudflareApiToken;
+      }
+      if (cloudflareApiUrl !== undefined) {
+        tenant.storageConfig = tenant.storageConfig || {};
+        tenant.storageConfig.cloudflareApiUrl = cloudflareApiUrl;
+      }
+
+      // Database
+      if (allowCustomDatabase !== undefined) {
+        tenant.databaseConfig = tenant.databaseConfig || {};
+        tenant.databaseConfig.allowCustomDatabase = Boolean(allowCustomDatabase);
+      }
+      if (customDatabaseUri !== undefined) {
+        tenant.databaseConfig = tenant.databaseConfig || {};
+        tenant.databaseConfig.customUri = customDatabaseUri;
+      }
+      if (databaseMode !== undefined) {
+        tenant.databaseMode = databaseMode;
+      }
+
+      // Domain
+      if (customDomainAllowed !== undefined) {
+        tenant.domainAccess = tenant.domainAccess || {};
+        tenant.domainAccess.customDomainAllowed = Boolean(customDomainAllowed);
+      }
+      if (isDomainActive !== undefined) {
+        tenant.domainAccess = tenant.domainAccess || {};
+        tenant.domainAccess.isDomainActive = Boolean(isDomainActive);
+      }
+      if (restrictedMessage !== undefined) {
+        tenant.domainAccess = tenant.domainAccess || {};
+        tenant.domainAccess.restrictedMessage = restrictedMessage;
+      }
+
+      // Security
+      if (ipWhitelistEnabled !== undefined) {
+        tenant.securityConfig = tenant.securityConfig || {};
+        tenant.securityConfig.ipWhitelistEnabled = Boolean(ipWhitelistEnabled);
+      }
+      if (whitelistedIps !== undefined) {
+        tenant.securityConfig = tenant.securityConfig || {};
+        tenant.securityConfig.whitelistedIps = Array.isArray(whitelistedIps)
+          ? whitelistedIps
+          : String(whitelistedIps).split(',').map((ip) => ip.trim()).filter(Boolean);
+      }
+      if (whiteLabelEnabled !== undefined) {
+        tenant.securityConfig = tenant.securityConfig || {};
+        tenant.securityConfig.whiteLabelEnabled = Boolean(whiteLabelEnabled);
+      }
+
+      await tenant.save();
+
+      await recordAuditLog({
+        req,
+        action: 'TENANT_GOVERNANCE_UPDATED',
+        resourceType: 'Tenant',
+        resourceId: tenant._id,
+        details: { updatedGovernance: req.body },
+      });
+
+      return sendSuccess(res, 'Tenant governance controls updated successfully', tenant);
     } catch (error) {
       return next(error);
     }

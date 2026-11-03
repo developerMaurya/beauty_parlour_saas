@@ -57,10 +57,14 @@ export const AuthProvider = ({ children }) => {
       const res = await authApi.login({ emailOrUsername, password });
       const { accessToken: newAccessToken, refreshToken: newRefreshToken, user: userData } = res.data;
 
-      // Verify that user is Super Admin
-      if (userData.role !== 'SUPER_ADMIN') {
+      // Verify that user is Super Admin (support both 'superadmin' and 'SUPER_ADMIN')
+      const roleStr = (userData?.role || '').toLowerCase();
+      if (roleStr !== 'superadmin' && roleStr !== 'super_admin') {
         throw new Error('Access denied: You do not possess Super Admin privileges.');
       }
+
+      // Ensure normalized role
+      userData.role = 'SUPER_ADMIN';
 
       localStorage.setItem('sa_access_token', newAccessToken);
       if (newRefreshToken) {
@@ -118,4 +122,4 @@ export const useAuth = () => {
   return context;
 };
 
-export default AuthContext;
+export { AuthContext };

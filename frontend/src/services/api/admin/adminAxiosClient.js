@@ -60,6 +60,14 @@ adminAxiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    if (error.response?.data?.code === 'DOMAIN_ACCESS_SUSPENDED') {
+      const msg = encodeURIComponent(error.response?.data?.message || 'Connect to Super Admin for access to your website portal.');
+      if (window.location.pathname !== '/portal-suspended') {
+        window.location.href = `/portal-suspended?msg=${msg}`;
+      }
+      return Promise.reject(error.response?.data || error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (
         originalRequest.url?.includes('/admin/auth/login') ||

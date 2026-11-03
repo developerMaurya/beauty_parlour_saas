@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   tenantsApi,
   databasesApi,
@@ -33,10 +33,23 @@ import {
   Download,
   Upload,
   Check,
+  Cloud,
+  Sliders,
+  ShieldCheck,
+  Save,
+  Edit2,
+  User,
+  Phone,
+  Mail,
+  Sparkles,
 } from 'lucide-react';
 
 export const TenantDetail = () => {
   const { tenantId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+  const setActiveTab = (tab) => setSearchParams(tab === 'overview' ? {} : { tab });
+
   const { success, error, warning } = useToast();
 
   const [tenant, setTenant] = useState(null);
@@ -46,7 +59,35 @@ export const TenantDetail = () => {
   const [subscription, setSubscription] = useState(null);
   const [activity, setActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+
+  // Profile Edit Form State
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    ownerName: '',
+    email: '',
+    phone: '',
+    businessType: 'salon',
+    status: 'active',
+    databaseMode: 'shared',
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Governance Form State
+  const [governanceForm, setGovernanceForm] = useState({
+    allowCustomCloudflare: false,
+    cloudflareApiToken: '',
+    cloudflareApiUrl: '',
+    allowCustomDatabase: false,
+    customDatabaseUri: '',
+    databaseMode: 'shared',
+    customDomainAllowed: false,
+    isDomainActive: true,
+    restrictedMessage: 'Connect to Super Admin for access to your website portal.',
+    ipWhitelistEnabled: false,
+    whitelistedIps: '',
+    whiteLabelEnabled: true,
+  });
+  const [isSavingGovernance, setIsSavingGovernance] = useState(false);
 
   // Modals
   const [addDomainModal, setAddDomainModal] = useState({ isOpen: false, domain: '', isPrimary: false });
@@ -72,15 +113,70 @@ export const TenantDetail = () => {
       const tData = tRes.data?.tenant || tRes.data;
       setTenant(tData);
       setDbInfo(dbRes.data);
-      setDomains(dRes.data?.domains || []);
-      setSubscription(sRes.data?.subscriptions?.[0] || null);
-      setActivity(actRes.data?.activity || []);
+      setDomains(Array.isArray(dRes.data) ? dRes.data : (dRes.data?.domains || []));
+      setSubscription((Array.isArray(sRes.data) ? sRes.data[0] : sRes.data?.subscriptions?.[0]) || null);
+      setActivity(Array.isArray(actRes.data) ? actRes.data : (actRes.data?.activity || []));
+
+      if (tData) {
+        setProfileForm({
+          name: tData.name || '',
+          ownerName: tData.ownerName || '',
+          email: tData.email || '',
+          phone: tData.phone || '',
+          businessType: tData.businessType || 'salon',
+          status: tData.status || 'active',
+          databaseMode: tData.databaseMode || 'shared',
+        });
+
+        setGovernanceForm({
+          allowCustomCloudflare: tData.storageConfig?.allowCustomCloudflare ?? false,
+          cloudflareApiToken: tData.storageConfig?.cloudflareApiToken || '',
+          cloudflareApiUrl: tData.storageConfig?.cloudflareApiUrl || '',
+          allowCustomDatabase: tData.databaseConfig?.allowCustomDatabase ?? false,
+          customDatabaseUri: tData.databaseConfig?.customUri || '',
+          databaseMode: tData.databaseMode || 'shared',
+          customDomainAllowed: tData.domainAccess?.customDomainAllowed ?? false,
+          isDomainActive: tData.domainAccess?.isDomainActive ?? true,
+          restrictedMessage: tData.domainAccess?.restrictedMessage || 'Connect to Super Admin for access to your website portal.',
+          ipWhitelistEnabled: tData.securityConfig?.ipWhitelistEnabled ?? false,
+          whitelistedIps: (tData.securityConfig?.whitelistedIps || []).join(', '),
+          whiteLabelEnabled: tData.securityConfig?.whiteLabelEnabled ?? true,
+        });
+      }
     } catch (err) {
       error(err.message || 'Failed to load tenant details');
     } finally {
       setIsLoading(false);
     }
   }, [tenantId, error]);
+
+  const handleSaveProfile = async (e) => {
+    e?.preventDefault();
+    setIsSavingProfile(true);
+    try {
+      await tenantsApi.update(tenantId, profileForm);
+      success('Tenant profile updated successfully in database!');
+      fetchTenantData();
+    } catch (err) {
+      error(err.message || 'Failed to update tenant profile');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSaveGovernance = async (e) => {
+    e?.preventDefault();
+    setIsSavingGovernance(true);
+    try {
+      await tenantsApi.updateGovernance(tenantId, governanceForm);
+      success('Governance permissions & cloud controls updated successfully!');
+      fetchTenantData();
+    } catch (err) {
+      error(err.message || 'Failed to update governance controls');
+    } finally {
+      setIsSavingGovernance(false);
+    }
+  };
 
   useEffect(() => {
     fetchTenantData();
@@ -253,6 +349,8 @@ export const TenantDetail = () => {
       <div className="tabs-nav">
         {[
           { id: 'overview', label: 'Overview & Profile' },
+          { id: 'settings', label: '⚙️ Edit Profile' },
+          { id: 'governance', label: '🛡️ Governance & Cloud Controls' },
           { id: 'database', label: 'Multi-Database Architecture' },
           { id: 'domains', label: 'White-Label Domains' },
           { id: 'subscription', label: 'Subscription & Billing' },
@@ -586,6 +684,338 @@ export const TenantDetail = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Tab 5.5: Settings / Edit Profile */}
+      {activeTab === 'settings' && (
+        <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px' }}>
+                Edit Tenant Profile & Administrative Configuration
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: 0 }}>
+                Update business name, owner details, contact email, phone, business vertical, and lifecycle status.
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={isSavingProfile}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem' }}
+            >
+              <Save className="w-4 h-4" />
+              {isSavingProfile ? 'Saving to Database...' : 'Save Profile Changes'}
+            </button>
+          </div>
+
+          <div className="card">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+              <div className="form-group">
+                <label className="form-label">Business Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Owner / Managing Director</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileForm.ownerName}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, ownerName: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Primary Contact Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Contact Phone</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileForm.phone}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Industry Vertical</label>
+                <select
+                  className="form-select"
+                  value={profileForm.businessType}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, businessType: e.target.value }))}
+                >
+                  <option value="salon">Luxury Salon & Hair Parlour</option>
+                  <option value="spa">Spa & Wellness Sanctuary</option>
+                  <option value="bridal">Bridal Makeup & Styling Studio</option>
+                  <option value="academy">Cosmetology & Academy Institute</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Lifecycle Status</label>
+                <select
+                  className="form-select"
+                  value={profileForm.status}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, status: e.target.value }))}
+                >
+                  <option value="active">Active (Full Operation)</option>
+                  <option value="trial">Trial (Evaluation Period)</option>
+                  <option value="suspended">Suspended (Access Disabled)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* Tab 6: Governance & Cloud Controls */}
+      {activeTab === 'governance' && (
+        <form onSubmit={handleSaveGovernance} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Header Action Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px', color: '#fff' }}>
+                Tenant Governance & Cloud Infrastructure Controls
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: 0 }}>
+                SuperAdmin permission matrix controlling Cloudflare Images, MongoDB access, custom domains, and zero-trust IP restrictions.
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={isSavingGovernance}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem' }}
+            >
+              <Save className="w-4 h-4" />
+              {isSavingGovernance ? 'Saving Controls...' : 'Save Governance Controls'}
+            </button>
+          </div>
+
+          <div className="grid-cols-2">
+            {/* 1. Cloudflare Images & Storage */}
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Cloud className="w-5 h-5 text-pink-400" />
+                  <span>Cloudflare Images & Media Storage</span>
+                </h3>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={governanceForm.allowCustomCloudflare}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, allowCustomCloudflare: e.target.checked }))}
+                    style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: governanceForm.allowCustomCloudflare ? '#10b981' : 'var(--text-muted)' }}>
+                    {governanceForm.allowCustomCloudflare ? 'Custom Allowed' : 'Platform Default'}
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.875rem' }}>
+                <div style={{ padding: '0.75rem', background: 'rgba(236, 72, 153, 0.08)', border: '1px solid rgba(236, 72, 153, 0.2)', borderRadius: '8px', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                  {governanceForm.allowCustomCloudflare ? (
+                    <span><strong>Custom Cloudflare Permitted:</strong> Tenant can specify their own Cloudflare API Token & Account URL below or in their tenant settings.</span>
+                  ) : (
+                    <span><strong>Platform Cloudflare Active:</strong> Tenant uploads stream directly to SuperAdmin Cloudflare Images account. Local uploads folder is completely disabled.</span>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Cloudflare Images API Token (Optional Tenant Override)</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="Enter custom token if tenant brings own Cloudflare"
+                    value={governanceForm.cloudflareApiToken}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, cloudflareApiToken: e.target.value }))}
+                    disabled={!governanceForm.allowCustomCloudflare}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Cloudflare Images API Endpoint URL</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="https://api.cloudflare.com/client/v4/accounts/{account_id}/images/v1"
+                    value={governanceForm.cloudflareApiUrl}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, cloudflareApiUrl: e.target.value }))}
+                    disabled={!governanceForm.allowCustomCloudflare}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Database Multi-Tenant Isolation */}
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Database className="w-5 h-5 text-indigo-400" />
+                  <span>Database Isolation & MongoDB Cluster</span>
+                </h3>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={governanceForm.allowCustomDatabase}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, allowCustomDatabase: e.target.checked }))}
+                    style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: governanceForm.allowCustomDatabase ? '#10b981' : 'var(--text-muted)' }}>
+                    {governanceForm.allowCustomDatabase ? 'Custom DB Allowed' : 'Platform DB Only'}
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.875rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Architecture Database Mode</label>
+                  <select
+                    className="form-select"
+                    value={governanceForm.databaseMode}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, databaseMode: e.target.value }))}
+                  >
+                    <option value="shared">Shared Partition (beauty_saas_shared)</option>
+                    <option value="separate">Mode B: Dedicated Physical Database</option>
+                    <option value="custom_uri">Mode C: Custom External Tenant MongoDB URI</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Custom Tenant MongoDB Connection URI</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="mongodb+srv://user:pass@cluster.mongodb.net/tenant_db"
+                    value={governanceForm.customDatabaseUri}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, customDatabaseUri: e.target.value }))}
+                    disabled={!governanceForm.allowCustomDatabase && governanceForm.databaseMode !== 'custom_uri'}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    When permitted, tenant queries connect directly to this dedicated database.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Custom Domain Access & Public Routing */}
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Globe className="w-5 h-5 text-emerald-400" />
+                  <span>Custom Domain Access & Portal Gateway</span>
+                </h3>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.4rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={governanceForm.customDomainAllowed}
+                      onChange={(e) => setGovernanceForm((prev) => ({ ...prev, customDomainAllowed: e.target.checked }))}
+                      style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Domain Allowed</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.4rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={governanceForm.isDomainActive}
+                      onChange={(e) => setGovernanceForm((prev) => ({ ...prev, isDomainActive: e.target.checked }))}
+                      style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: governanceForm.isDomainActive ? '#10b981' : '#ef4444' }}>
+                      {governanceForm.isDomainActive ? 'Routing Active' : 'Suspended'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.875rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Domain Suspension / Restriction Screen Message</label>
+                  <textarea
+                    rows={3}
+                    className="form-input"
+                    style={{ resize: 'vertical' }}
+                    value={governanceForm.restrictedMessage}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, restrictedMessage: e.target.value }))}
+                    placeholder="Message shown when domain routing is suspended by SuperAdmin"
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    When Routing is OFF, users hitting tenant domain will see this message.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Security, IP Whitelisting & White-Label */}
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShieldCheck className="w-5 h-5 text-purple-400" />
+                  <span>IP Whitelisting & White-Label Security</span>
+                </h3>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.4rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={governanceForm.whiteLabelEnabled}
+                      onChange={(e) => setGovernanceForm((prev) => ({ ...prev, whiteLabelEnabled: e.target.checked }))}
+                      style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>White-Label</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.4rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={governanceForm.ipWhitelistEnabled}
+                      onChange={(e) => setGovernanceForm((prev) => ({ ...prev, ipWhitelistEnabled: e.target.checked }))}
+                      style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: governanceForm.ipWhitelistEnabled ? '#f59e0b' : 'var(--text-muted)' }}>
+                      {governanceForm.ipWhitelistEnabled ? 'IP Filter ON' : 'IP Filter OFF'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.875rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Authorized IP Addresses (Comma-Separated)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 103.21.244.0, 192.168.1.1, 127.0.0.1"
+                    value={governanceForm.whitelistedIps}
+                    onChange={(e) => setGovernanceForm((prev) => ({ ...prev, whitelistedIps: e.target.value }))}
+                    disabled={!governanceForm.ipWhitelistEnabled}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Zero-trust: Only incoming traffic from these IP addresses can access this tenant's workspace and APIs.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
       )}
 
       {/* Add Domain Modal */}

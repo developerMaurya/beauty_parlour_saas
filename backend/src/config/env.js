@@ -15,12 +15,12 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const env = Object.freeze({
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: parseInt(process.env.PORT || '5000', 10),
-  APP_NAME: process.env.APP_NAME || 'BeautySaaS',
-  API_PREFIX: process.env.API_PREFIX || '/api/v1',
-  APP_URL: process.env.APP_URL || 'http://localhost:5000',
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  APP_NAME: process.env.APP_NAME,
+  API_PREFIX: process.env.API_PREFIX,
+  APP_URL: process.env.APP_URL,
+  FRONTEND_URL: process.env.FRONTEND_URL,
 
   // Database
   MONGODB_URI: process.env.MONGODB_URI || process.env.CENTRAL_MONGODB_URI || 'mongodb://127.0.0.1:27017/beauty_saas_central',
@@ -57,6 +57,10 @@ export const env = Object.freeze({
   AUTH_RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || '10', 10),
 
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+
+  // Cloudflare Images
+  CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN || '',
+  CLOUDFLARE_API_URL: process.env.CLOUDFLARE_API_URL || '',
 });
 
 export default env;

@@ -143,25 +143,18 @@ export const AuditLogsView = () => {
         </button>
       </div>
 
-      <div className="tabs-nav">
-        {[
-          { id: 'audit', label: 'All Audit Records' },
-          { id: 'login_history', label: 'Login Sessions' },
-          { id: 'security_events', label: 'Security Alerts' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setSearchParams({ tab: tab.id })}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       <DataTable
         columns={columns}
-        data={logs}
+        data={logs.filter((l) => {
+          if (activeTab === 'login_history') {
+            return /LOGIN|AUTH|SESSION|LOGOUT/i.test(l.action || '') || /auth/i.test(l.resource || '');
+          }
+          if (activeTab === 'security_events') {
+            return /SECURITY|SUSPEND|DELETE|DENIED|GOVERNANCE|ALERT/i.test(l.action || '');
+          }
+          return true;
+        })}
         isLoading={isLoading}
         searchValue={search}
         onSearchChange={(val) => {

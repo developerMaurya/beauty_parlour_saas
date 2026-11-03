@@ -132,6 +132,31 @@ export const superAdminAuthController = {
   },
 
   /**
+   * PUT /api/v1/superadmin/auth/me
+   */
+  async updateProfile(req, res, next) {
+    try {
+      const userId = req.user._id;
+      const { name, email, avatarUrl } = req.body;
+
+      const result = await superAdminAuthService.updateProfile({
+        userId,
+        name,
+        email,
+        avatarUrl,
+      });
+
+      if (!result.success) {
+        return sendError(res, result.message, [], result.statusCode);
+      }
+
+      return sendSuccess(res, result.message, result.data, result.statusCode);
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  /**
    * POST /api/v1/superadmin/auth/change-password
    */
   async changePassword(req, res, next) {

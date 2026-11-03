@@ -72,7 +72,7 @@ const TenantSchema = new mongoose.Schema(
     },
     databaseMode: {
       type: String,
-      enum: ['shared', 'separate'],
+      enum: ['shared', 'separate', 'custom_uri'],
       default: 'shared',
       required: true,
     },
@@ -80,8 +80,30 @@ const TenantSchema = new mongoose.Schema(
       databaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'DatabaseRegistry', default: null },
       databaseName: { type: String, default: 'beauty_saas_shared' },
       uri: { type: String, default: null },
+      allowCustomDatabase: { type: Boolean, default: false },
+      customUri: { type: String, default: null },
       connectionStatus: { type: String, default: 'connected' },
       lastProvisionedAt: { type: Date, default: null },
+    },
+    storageConfig: {
+      allowCustomCloudflare: { type: Boolean, default: false }, // Controlled by SuperAdmin
+      provider: { type: String, enum: ['platform_default', 'custom_cloudflare'], default: 'platform_default' },
+      cloudflareApiToken: { type: String, default: null },
+      cloudflareApiUrl: { type: String, default: null },
+    },
+    domainAccess: {
+      customDomainAllowed: { type: Boolean, default: false }, // Controlled by SuperAdmin
+      isDomainActive: { type: Boolean, default: true },       // Controlled by SuperAdmin
+      restrictedMessage: {
+        type: String,
+        default: 'Connect to Super Admin for access to your website portal.',
+      },
+    },
+    securityConfig: {
+      ipWhitelistEnabled: { type: Boolean, default: false },
+      whitelistedIps: [{ type: String, trim: true }],
+      allowedOrigins: [{ type: String, trim: true }],
+      whiteLabelEnabled: { type: Boolean, default: true },
     },
     planId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -116,10 +138,14 @@ const TenantSchema = new mongoose.Schema(
       default: null,
     },
     branding: {
+      companyName: { type: String, default: '' },
+      portalTitle: { type: String, default: '' },
       logoUrl: { type: String, default: '' },
       faviconUrl: { type: String, default: '' },
       primaryColor: { type: String, default: '#e11d48' },
       secondaryColor: { type: String, default: '#4f46e5' },
+      supportEmail: { type: String, default: '' },
+      supportPhone: { type: String, default: '' },
     },
     limits: {
       maxStaff: { type: Number, default: 5 },

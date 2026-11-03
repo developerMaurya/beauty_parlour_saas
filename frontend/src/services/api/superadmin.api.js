@@ -31,6 +31,7 @@ export const tenantsApi = {
   update: (tenantId, data) => axiosClient.patch(`/superadmin/tenants/${tenantId}`, data),
   delete: (tenantId) => axiosClient.delete(`/superadmin/tenants/${tenantId}`),
   updateStatus: (tenantId, status) => axiosClient.patch(`/superadmin/tenants/${tenantId}/status`, { status }),
+  updateGovernance: (tenantId, data) => axiosClient.patch(`/superadmin/tenants/${tenantId}/governance`, data),
   activate: (tenantId) => axiosClient.post(`/superadmin/tenants/${tenantId}/activate`),
   suspend: (tenantId, reason) => axiosClient.post(`/superadmin/tenants/${tenantId}/suspend`, { reason }),
   getActivity: (tenantId) => axiosClient.get(`/superadmin/tenants/${tenantId}/activity`),

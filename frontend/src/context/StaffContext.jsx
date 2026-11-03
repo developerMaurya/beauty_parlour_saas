@@ -222,4 +222,4 @@ export const useStaff = () => {
   return context;
 };
 
-export default StaffContext;
+export { StaffContext };

@@ -13,11 +13,15 @@ import staffRoutes from './staff.routes.js';
 import customerRoutes from './customer.routes.js';
 import studentRoutes from './student.routes.js';
 import guestRoutes from './guest.routes.js';
+import uploadRoutes from './upload.routes.js';
 
 const router = Router();
 
 // Mount common utility and health check routes
 router.use('/common', commonRoutes);
+
+// Mount Cloudflare Images Upload routes (/api/v1/upload/image, /api/v1/upload/images)
+router.use('/upload', uploadRoutes);
 
 // Mount SuperAdmin portal routes
 router.use('/superadmin', superadminRoutes);

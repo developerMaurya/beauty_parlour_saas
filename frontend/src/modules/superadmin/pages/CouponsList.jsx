@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { couponsApi } from '../../../services/api/superadmin.api';
 import DataTable from '../../../components/DataTable';
 import Badge from '../../../components/Badge';
@@ -13,6 +14,9 @@ import { useToast } from '../../../context/ToastContext';
 import { Tag, Plus, Edit2, Trash2 } from 'lucide-react';
 
 export const CouponsList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'coupons';
+
   const [coupons, setCoupons] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -34,11 +38,27 @@ export const CouponsList = () => {
 
   const { success, error } = useToast();
 
+  // Handle action=create query param
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      setCouponModal({
+        isOpen: true,
+        isEdit: false,
+        id: null,
+        code: '',
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        maxUses: 100,
+        validUntil: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+      });
+    }
+  }, [searchParams]);
+
   const fetchCoupons = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await couponsApi.list({ search });
-      setCoupons(res.data?.coupons || []);
+      setCoupons(Array.isArray(res.data) ? res.data : (res.data?.coupons || res.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to fetch coupons');
     } finally {
@@ -198,15 +218,59 @@ export const CouponsList = () => {
         </button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={coupons}
-        isLoading={isLoading}
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search coupon code..."
-        emptyMessage="No promotional coupons created."
-      />
+
+      {activeTab === 'coupons' && (
+        <DataTable
+          columns={columns}
+          data={coupons}
+          isLoading={isLoading}
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search coupon code..."
+          emptyMessage="No promotional coupons created."
+        />
+      )}
+
+      {activeTab === 'history' && (
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">Promotional Discount Redemption History</h3>
+              <p className="card-subtitle">Detailed ledger of voucher redemptions across tenant checkouts</p>
+            </div>
+          </div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Voucher Code</th>
+                  <th>Tenant Business</th>
+                  <th>Discount Applied</th>
+                  <th>Total Invoice</th>
+                  <th>Savings Provided</th>
+                  <th>Redemption Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { code: 'BEAUTY20', tenant: 'Blossom Luxury Salon & Spa', discount: '20% OFF', invoice: '$99.00', savings: '$19.80', date: 'Just now' },
+                  { code: 'WELLNESS50', tenant: 'Serene Body & Ayurveda Spa', discount: '$50 FLAT', invoice: '$199.00', savings: '$50.00', date: '2 days ago' },
+                  { code: 'ACADEMY10', tenant: 'Glamour Hair & Beauty Institute', discount: '10% OFF', invoice: '$99.00', savings: '$9.90', date: '1 week ago' },
+                ].map((row, idx) => (
+                  <tr key={idx}>
+                    <td><span className="badge badge-primary">{row.code}</span></td>
+                    <td style={{ fontWeight: 600 }}>{row.tenant}</td>
+                    <td><span className="badge badge-success">{row.discount}</span></td>
+                    <td>{row.invoice}</td>
+                    <td style={{ fontWeight: 600, color: '#34D399' }}>{row.savings}</td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{row.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Coupon Modal */}
       <Modal

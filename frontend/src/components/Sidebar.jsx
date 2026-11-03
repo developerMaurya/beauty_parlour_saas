@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Building2,
@@ -91,7 +91,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    title: 'Subscription Management',
+    title: 'Subscription',
     icon: CreditCard,
     basePath: '/superadmin/subscriptions',
     items: [
@@ -151,7 +151,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    title: 'Coupons and Discounts',
+    title: 'Coupons / Discounts',
     icon: Tag,
     basePath: '/superadmin/coupons',
     items: [
@@ -244,10 +244,11 @@ const NAV_GROUPS = [
 
 export const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const currentPathWithSearch = `${location.pathname}${location.search}`;
 
-  // Keep groups expanded if the current path falls under it
+  // Keep groups expanded if the current path falls under it, with full toggle capability
   const [expanded, setExpanded] = useState(() => {
     const initial = {};
     NAV_GROUPS.forEach((group) => {
@@ -259,7 +260,22 @@ export const Sidebar = ({ isOpen, onClose }) => {
   });
 
   const toggleGroup = (title) => {
-    setExpanded((prev) => ({ ...prev, [title]: !prev[title] }));
+    setExpanded((prev) => {
+      const isCurrentlyExpanded = prev[title] !== undefined
+        ? prev[title]
+        : location.pathname.startsWith(NAV_GROUPS.find((g) => g.title === title)?.basePath || '');
+      return { ...prev, [title]: !isCurrentlyExpanded };
+    });
+  };
+
+  const handleGroupClick = (group, e) => {
+    const isAlreadyOnBase = location.pathname === group.basePath && !location.search;
+    if (isAlreadyOnBase) {
+      toggleGroup(group.title);
+    } else {
+      navigate(group.basePath);
+      setExpanded((prev) => ({ ...prev, [group.title]: true }));
+    }
   };
 
   return (
@@ -288,37 +304,58 @@ export const Sidebar = ({ isOpen, onClose }) => {
       <div className="sidebar-scroll">
         {NAV_GROUPS.map((group) => {
           const isGroupActive = location.pathname.startsWith(group.basePath);
-          const isExpanded = expanded[group.title] || isGroupActive;
+          const isExpanded = expanded[group.title] !== undefined
+            ? !!expanded[group.title]
+            : isGroupActive;
           const GroupIcon = group.icon;
 
           return (
             <div key={group.title} style={{ marginBottom: '0.4rem' }}>
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.title)}
+              <div
+                onClick={(e) => handleGroupClick(group, e)}
                 className={`sidebar-link ${isGroupActive ? 'active' : ''}`}
                 style={{
                   width: '100%',
                   justifyContent: 'space-between',
                   cursor: 'pointer',
-                  border: 'none',
                   background: isGroupActive ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
                   color: isGroupActive ? 'var(--primary)' : 'var(--text-secondary)',
+                  userSelect: 'none',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
                   <GroupIcon className="link-icon" />
                   <span style={{ fontWeight: 600 }}>{group.title}</span>
                 </div>
-                <ChevronDown
-                  className="w-4 h-4"
-                  style={{
-                    transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s ease',
-                    opacity: 0.6,
+                <button
+                  type="button"
+                  className="chevron-toggle-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleGroup(group.title);
                   }}
-                />
-              </button>
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'inherit',
+                  }}
+                  title={isExpanded ? 'Collapse' : 'Expand'}
+                >
+                  <ChevronDown
+                    className="w-4 h-4"
+                    style={{
+                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                      opacity: 0.6,
+                    }}
+                  />
+                </button>
+              </div>
 
               {isExpanded && (
                 <div style={{ paddingLeft: '2.1rem', marginTop: '0.2rem', display: 'flex', flexDirection: 'column' }}>

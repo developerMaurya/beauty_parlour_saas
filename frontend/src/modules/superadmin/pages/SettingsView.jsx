@@ -90,23 +90,6 @@ export const SettingsView = () => {
         </p>
       </div>
 
-      <div className="tabs-nav">
-        {[
-          { id: 'general', label: 'General' },
-          { id: 'branding', label: 'White-Label Branding' },
-          { id: 'email', label: 'Email SMTP' },
-          { id: 'payment', label: 'Payment Gateways' },
-          { id: 'security', label: 'Security & Access' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setSearchParams({ tab: tab.id })}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {/* General Settings */}
       {activeTab === 'general' && (
@@ -365,6 +348,171 @@ export const SettingsView = () => {
             disabled={isSaving}
           >
             <Save className="w-4 h-4" /> Save Security Policies
+          </button>
+        </div>
+      )}
+
+      {/* Website Settings */}
+      {activeTab === 'website' && (
+        <div className="card" style={{ maxWidth: '800px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Default Public Website & Landing Page</h3>
+          </div>
+          <div className="grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Default Landing Page Title</label>
+              <input
+                type="text"
+                className="form-input"
+                defaultValue="Luxury Salon & Spa Booking Experience"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Call-to-Action Text</label>
+              <input
+                type="text"
+                className="form-input"
+                defaultValue="Book Your Appointment Online"
+              />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Platform Demo Website Slug</label>
+            <input
+              type="text"
+              className="form-input"
+              defaultValue="blossom-salon"
+            />
+            <div className="form-helper">Preview at http://localhost:3000/customer/booking?tenant=blossom-salon</div>
+          </div>
+          <button className="btn btn-primary" onClick={() => success('Website settings updated')}>
+            <Save className="w-4 h-4" /> Save Website Settings
+          </button>
+        </div>
+      )}
+
+      {/* Email Branding */}
+      {activeTab === 'email_branding' && (
+        <div className="card" style={{ maxWidth: '800px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Transactional Email Branding</h3>
+          </div>
+          <div className="grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Email Header Logo URL</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="https://imagedelivery.net/..."
+                defaultValue=""
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email Footer Copyright Note</label>
+              <input
+                type="text"
+                className="form-input"
+                defaultValue="© 2026 Beauty SaaS Platform. All rights reserved."
+              />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={() => success('Email branding updated')}>
+            <Save className="w-4 h-4" /> Save Email Branding
+          </button>
+        </div>
+      )}
+
+      {/* Tenant Branding */}
+      {activeTab === 'tenant_branding' && (
+        <div className="card" style={{ maxWidth: '800px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Tenant White-Label Permission Matrix</h3>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            Allow tenants to apply custom CSS stylesheets, custom logo assets, and custom favicon icons.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked />
+              <span>Allow tenants to upload custom salon logos and staff banners</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked />
+              <span>Allow tenants to configure custom brand accent colors</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked />
+              <span>Enable Cloudflare direct image upload for tenant accounts</span>
+            </label>
+          </div>
+          <button className="btn btn-primary" onClick={() => success('Tenant white-label permissions saved')}>
+            <Save className="w-4 h-4" /> Save White-Label Policies
+          </button>
+        </div>
+      )}
+
+      {/* Notifications Settings */}
+      {activeTab === 'notifications' && (
+        <div className="card" style={{ maxWidth: '800px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Global Notification Gateway Settings</h3>
+          </div>
+          <div className="grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Twilio / SMS Provider API Key</label>
+              <input type="password" className="form-input" defaultValue="mock_twilio_key_configured" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">WhatsApp Business Gateway Webhook</label>
+              <input type="text" className="form-input" defaultValue="https://api.beautysaas.com/v1/webhooks/whatsapp" />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={() => success('Notification gateway settings saved')}>
+            <Save className="w-4 h-4" /> Save Gateway Settings
+          </button>
+        </div>
+      )}
+
+      {/* Domain Settings */}
+      {activeTab === 'domain' && (
+        <div className="card" style={{ maxWidth: '800px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Apex Domain & DNS Routing Policy</h3>
+          </div>
+          <div className="grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Master Apex Domain</label>
+              <input type="text" className="form-input" defaultValue="beautysaas.local" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">CNAME Target for Custom Domains</label>
+              <input type="text" className="form-input" defaultValue="cname.beautysaas.local" />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={() => success('Domain routing policy updated')}>
+            <Save className="w-4 h-4" /> Save Domain Settings
+          </button>
+        </div>
+      )}
+
+      {/* Database Settings */}
+      {activeTab === 'database' && (
+        <div className="card" style={{ maxWidth: '800px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Central MongoDB Atlas Connection Pool</h3>
+          </div>
+          <div className="grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Max Connection Pool Size</label>
+              <input type="number" className="form-input" defaultValue="10" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Connection Timeout (ms)</label>
+              <input type="number" className="form-input" defaultValue="10000" />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={() => success('Database connection policies updated')}>
+            <Save className="w-4 h-4" /> Save Database Policies
           </button>
         </div>
       )}

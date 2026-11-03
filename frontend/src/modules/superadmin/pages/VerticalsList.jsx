@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { verticalsApi, serviceTemplatesApi, tenantsApi } from '../../../services/api/superadmin.api';
 import DataTable from '../../../components/DataTable';
 import Badge from '../../../components/Badge';
@@ -32,12 +33,20 @@ const ICON_MAP = {
 };
 
 export const VerticalsList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') || 'verticals';
+
   const [verticals, setVerticals] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [selectedVertical, setSelectedVertical] = useState('ALL');
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('verticals');
+  const [activeTab, setActiveTab] = useState(tabParam);
+
+  // Sync activeTab when URL param changes
+  useEffect(() => {
+    setActiveTab(tabParam);
+  }, [tabParam]);
 
   // Modals
   const [verticalModal, setVerticalModal] = useState({
@@ -243,21 +252,6 @@ export const VerticalsList = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs-nav">
-        {[
-          { id: 'verticals', label: 'Business Verticals' },
-          { id: 'templates', label: 'Pre-Seeded Catalogues' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {/* Tab 1: Verticals Grid */}
       {activeTab === 'verticals' && (

@@ -11,10 +11,12 @@ import Badge from '../../../components/Badge';
 import Modal from '../../../components/Modal';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useToast } from '../../../context/ToastContext';
-import { Sliders, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Sliders, Plus, Edit2, Trash2, Eye } from 'lucide-react';
 
 export const FeaturesList = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'features';
+
   const [features, setFeatures] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,6 +24,7 @@ export const FeaturesList = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
 
   // Modals
+  const [viewModal, setViewModal] = useState({ isOpen: false, feature: null });
   const [featureModal, setFeatureModal] = useState({
     isOpen: false,
     isEdit: false,
@@ -44,6 +47,22 @@ export const FeaturesList = () => {
 
   const { success, error } = useToast();
 
+  // Listen for action=create in URL
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      setFeatureModal({
+        isOpen: true,
+        isEdit: false,
+        id: null,
+        name: '',
+        key: '',
+        category: categories[0]?.name || 'Core Operations',
+        description: '',
+        isDefault: false,
+      });
+    }
+  }, [searchParams, categories]);
+
   const fetchFeatures = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -52,8 +71,8 @@ export const FeaturesList = () => {
         featuresApi.listCategories().catch(() => ({ data: { categories: [] } })),
       ]);
 
-      setFeatures(featRes.data?.features || []);
-      setCategories(catRes.data?.categories || []);
+      setFeatures(Array.isArray(featRes.data) ? featRes.data : (featRes.data?.features || featRes.data?.items || []));
+      setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data?.categories || catRes.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to fetch features');
     } finally {
@@ -69,20 +88,24 @@ export const FeaturesList = () => {
     e.preventDefault();
     setActionLoading(true);
     try {
+      const generatedSlug = (featureModal.key || featureModal.name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const catObj = categories.find((c) => c.name === featureModal.category || c._id === featureModal.category);
       const payload = {
         name: featureModal.name,
-        key: featureModal.key || featureModal.name.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-        category: featureModal.category || categories[0]?.name || 'Core Operations',
-        description: featureModal.description,
-        isDefault: featureModal.isDefault,
+        slug: generatedSlug,
+        key: generatedSlug,
+        categoryId: catObj?._id || (featureModal.category?.match(/^[0-9a-fA-F]{24}$/) ? featureModal.category : null),
+        category: featureModal.category,
+        description: featureModal.description || '',
+        isDefault: Boolean(featureModal.isDefault),
       };
 
       if (featureModal.isEdit && featureModal.id) {
         await featuresApi.update(featureModal.id, payload);
-        success('Feature updated successfully');
+        success('Feature updated successfully in database');
       } else {
         await featuresApi.create(payload);
-        success('New feature registered');
+        success('New feature registered in database');
       }
 
       setFeatureModal({ isOpen: false, isEdit: false, id: null });
@@ -179,7 +202,14 @@ export const FeaturesList = () => {
       header: 'Actions',
       align: 'right',
       render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+          <button
+            onClick={() => setViewModal({ isOpen: true, feature: row })}
+            className="btn btn-secondary btn-sm"
+            title="View Feature"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={() =>
               setFeatureModal({
@@ -187,19 +217,21 @@ export const FeaturesList = () => {
                 isEdit: true,
                 id: row._id || row.id,
                 name: row.name,
-                key: row.key,
-                category: row.category || '',
+                key: row.slug || row.key,
+                category: row.categoryId?.name || row.category || '',
                 description: row.description || '',
                 isDefault: !!row.isDefault,
               })
             }
             className="btn btn-secondary btn-sm"
+            title="Edit Feature"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setDeleteModal({ isOpen: true, item: row, isCategory: false })}
             className="btn btn-outline-danger btn-sm"
+            title="Delete Feature"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -245,32 +277,138 @@ export const FeaturesList = () => {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={features}
-        isLoading={isLoading}
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search features by name or key..."
-        filters={
-          categories.length > 0 && (
-            <select
-              className="form-select"
-              style={{ width: '180px' }}
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+
+      {/* VIEW 1: FEATURES LIST */}
+      {activeTab === 'features' && (
+        <DataTable
+          columns={columns}
+          data={features}
+          isLoading={isLoading}
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search features by name or key..."
+          filters={
+            categories.length > 0 && (
+              <select
+                className="form-select"
+                style={{ width: '180px' }}
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c._id || c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )
+          }
+          emptyMessage="No features registered in catalog."
+        />
+      )}
+
+      {/* VIEW 2: CATEGORIES */}
+      {activeTab === 'categories' && (
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">Feature Categories</h3>
+              <p className="card-subtitle">Organize capabilities into modular functional domains</p>
+            </div>
+            <button
+              onClick={() => setCategoryModal({ isOpen: true, name: '', description: '' })}
+              className="btn btn-primary btn-sm"
             >
-              <option value="">All Categories</option>
-              {categories.map((c) => (
-                <option key={c._id || c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )
-        }
-        emptyMessage="No features registered in catalog."
-      />
+              <Plus className="w-4 h-4" /> Add Category
+            </button>
+          </div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Category Name</th>
+                  <th>Description</th>
+                  <th>Features Included</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <tr key={cat._id || cat.name}>
+                      <td style={{ fontWeight: 600 }}>{cat.name}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{cat.description || 'Core capability domain'}</td>
+                      <td>
+                        <span className="badge badge-primary">
+                          {features.filter((f) => f.category === cat.name).length} features
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          onClick={() => setDeleteModal({ isOpen: true, item: cat, isCategory: true })}
+                          className="btn btn-outline-danger btn-sm"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      No categories created yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: PLAN FEATURE ASSIGNMENT MATRIX */}
+      {activeTab === 'assignment' && (
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">Plan Feature Assignment Matrix</h3>
+              <p className="card-subtitle">Toggle availability of catalog features across commercial plans</p>
+            </div>
+          </div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Feature Name</th>
+                  <th>Category</th>
+                  <th>Starter Studio</th>
+                  <th>Growth Salon Pro</th>
+                  <th>Enterprise Multi-Chain</th>
+                </tr>
+              </thead>
+              <tbody>
+                {features.map((feat) => (
+                  <tr key={feat._id || feat.key}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{feat.name}</div>
+                      <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{feat.key}</div>
+                    </td>
+                    <td><span className="badge badge-secondary">{feat.category || 'General'}</span></td>
+                    <td>
+                      <span className={feat.isDefault ? 'badge badge-success' : 'badge badge-secondary'}>
+                        {feat.isDefault ? 'Included' : 'Optional'}
+                      </span>
+                    </td>
+                    <td><span className="badge badge-success">Included</span></td>
+                    <td><span className="badge badge-success">Included</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Feature Modal */}
       <Modal
@@ -383,6 +521,60 @@ export const FeaturesList = () => {
             />
           </div>
         </form>
+      </Modal>
+
+      {/* View Feature Modal */}
+      <Modal
+        isOpen={viewModal.isOpen}
+        onClose={() => setViewModal({ isOpen: false, feature: null })}
+        title={`Feature Details: ${viewModal.feature?.name || ''}`}
+        footer={
+          <button className="btn btn-secondary btn-sm" onClick={() => setViewModal({ isOpen: false, feature: null })}>
+            Close
+          </button>
+        }
+      >
+        {viewModal.feature && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ padding: '1rem', background: 'rgba(99, 102, 241, 0.06)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', marginBottom: '0.2rem' }}>{viewModal.feature.name}</h3>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  Identifier: {viewModal.feature.slug || viewModal.feature.key}
+                </div>
+              </div>
+              <div>
+                <Badge
+                  status={viewModal.feature.status || 'ACTIVE'}
+                  text={viewModal.feature.isDefault ? 'Core Default' : 'Optional Module'}
+                />
+              </div>
+            </div>
+
+            <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Description</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {viewModal.feature.description || 'Core SaaS capability integrated into salon scheduling and billing workflows.'}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+              <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Assigned Category</div>
+                <div style={{ fontWeight: 600, marginTop: '0.2rem' }}>
+                  {viewModal.feature.categoryId?.name || viewModal.feature.category || 'Core Operations'}
+                </div>
+              </div>
+
+              <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Registered At</div>
+                <div style={{ fontWeight: 600, marginTop: '0.2rem' }}>
+                  {viewModal.feature.createdAt ? new Date(viewModal.feature.createdAt).toLocaleDateString() : 'Active System Feature'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation */}

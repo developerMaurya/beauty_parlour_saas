@@ -291,6 +291,49 @@ export const superAdminAuthService = {
           name: user.name,
           email: user.email,
           username: user.username,
+          avatarUrl: user.avatarUrl,
+          role: user.role,
+          status: user.status,
+          isEmailVerified: user.isEmailVerified,
+          lastLoginAt: user.lastLoginAt,
+          lastLoginIp: user.lastLoginIp,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      },
+    };
+  },
+
+  /**
+   * Update safe profile of authenticated Super Admin
+   */
+  async updateProfile({ userId, name, email, avatarUrl }) {
+    const user = await SuperAdmin.findById(userId);
+    if (!user) {
+      return {
+        success: false,
+        statusCode: 404,
+        message: 'Super Admin not found',
+      };
+    }
+
+    if (name) user.name = name.trim();
+    if (email) user.email = email.toLowerCase().trim();
+    if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+
+    await user.save();
+
+    return {
+      success: true,
+      statusCode: 200,
+      message: 'Master profile updated successfully',
+      data: {
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          username: user.username,
+          avatarUrl: user.avatarUrl,
           role: user.role,
           status: user.status,
           isEmailVerified: user.isEmailVerified,

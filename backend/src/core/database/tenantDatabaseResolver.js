@@ -13,7 +13,7 @@ export const tenantDatabaseResolver = {
    * @param {string} [databaseMode='shared']
    */
   getStrategy(databaseMode = 'shared') {
-    if (databaseMode === 'separate') {
+    if (databaseMode === 'separate' || databaseMode === 'custom_uri') {
       return separateDatabaseStrategy;
     }
     return sharedDatabaseStrategy;

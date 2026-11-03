@@ -43,6 +43,19 @@ export const NotificationsView = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const { success, error } = useToast();
 
+  // Listen for action=send in URL
+  useEffect(() => {
+    if (searchParams.get('action') === 'send') {
+      setSendModal({
+        isOpen: true,
+        templateId: templates[0]?._id || '',
+        targetType: 'ALL_TENANTS',
+        recipientEmail: '',
+        message: '',
+      });
+    }
+  }, [searchParams, templates]);
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -245,23 +258,6 @@ export const NotificationsView = () => {
         </div>
       </div>
 
-      <div className="tabs-nav">
-        {[
-          { id: 'templates', label: 'Notification Templates' },
-          { id: 'logs', label: 'Delivery Logs' },
-          { id: 'email_logs', label: 'Email Dispatch' },
-          { id: 'sms_logs', label: 'SMS Logs' },
-          { id: 'whatsapp_logs', label: 'WhatsApp Logs' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setSearchParams({ tab: tab.id })}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {activeTab === 'templates' && (
         <DataTable
@@ -275,9 +271,16 @@ export const NotificationsView = () => {
       {activeTab !== 'templates' && (
         <DataTable
           columns={logColumns}
-          data={logs}
+          data={
+            logs.filter((log) => {
+              if (activeTab === 'email_logs') return (log.type || '').toUpperCase() === 'EMAIL';
+              if (activeTab === 'sms_logs') return (log.type || '').toUpperCase() === 'SMS';
+              if (activeTab === 'whatsapp_logs') return (log.type || '').toUpperCase() === 'WHATSAPP';
+              return true;
+            })
+          }
           isLoading={isLoading}
-          emptyMessage="No delivery logs found."
+          emptyMessage={`No ${activeTab.replace('_', ' ')} found.`}
         />
       )}
 

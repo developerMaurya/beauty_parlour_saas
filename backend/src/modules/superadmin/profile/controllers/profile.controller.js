@@ -12,14 +12,16 @@ export const profileController = {
 
   async updateProfile(req, res, next) {
     try {
-      const { name, phone } = req.body;
+      const { name, email, avatarUrl } = req.body;
       const admin = await SuperAdmin.findById(req.user._id);
       if (!admin) return sendError(res, 'Profile not found', [], 404);
 
-      if (name) admin.name = name;
+      if (name) admin.name = name.trim();
+      if (email) admin.email = email.toLowerCase().trim();
+      if (avatarUrl !== undefined) admin.avatarUrl = avatarUrl;
       await admin.save();
 
-      return sendSuccess(res, 'Profile updated', admin);
+      return sendSuccess(res, 'Profile updated successfully', admin);
     } catch (e) { next(e); }
   },
 };

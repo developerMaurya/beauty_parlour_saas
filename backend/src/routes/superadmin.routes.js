@@ -55,6 +55,7 @@ router.get('/tenants/:tenantId', tenantController.getTenantById);
 router.patch('/tenants/:tenantId', tenantController.updateTenant);
 router.delete('/tenants/:tenantId', tenantController.deleteTenant);
 router.patch('/tenants/:tenantId/status', tenantController.updateStatus);
+router.patch('/tenants/:tenantId/governance', tenantController.updateGovernance);
 router.post('/tenants/:tenantId/activate', tenantController.activateTenant);
 router.post('/tenants/:tenantId/suspend', tenantController.suspendTenant);
 router.get('/tenants/:tenantId/activity', tenantController.getTenantActivity);

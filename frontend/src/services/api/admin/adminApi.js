@@ -20,7 +20,11 @@ const buildParams = (params = {}) => {
 
 // 1. Auth Fetcher
 export const authFetcher = {
-  login: (data) => adminAxiosClient.post('/admin/auth/login', data),
+  login: (data) =>
+    adminAxiosClient.post('/admin/auth/login', {
+      identifier: data.email || data.identifier || data.username,
+      ...data,
+    }),
   logout: () => adminAxiosClient.post('/admin/auth/logout'),
   refresh: (data) => adminAxiosClient.post('/admin/auth/refresh', data),
   me: () => adminAxiosClient.get('/admin/auth/me'),

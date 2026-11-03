@@ -1,10 +1,18 @@
 /**
  * @file DataTable.jsx
- * @description Reusable Data Table with Search, Filter Slots, Sorting, and Pagination
+ * @description Advanced Reusable Data Table with Interactive Sorting (ASC / DESC), Search, Filters, and Pagination
  */
 
-import React from 'react';
-import { Search, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 
 export const DataTable = ({
   columns = [],
@@ -17,7 +25,78 @@ export const DataTable = ({
   actions,
   pagination,
   emptyMessage = 'No records found.',
+  defaultSortColumn = null,
+  defaultSortDirection = 'asc',
+  onSortChange,
 }) => {
+  const [sortColumn, setSortColumn] = useState(defaultSortColumn);
+  const [sortDirection, setSortDirection] = useState(defaultSortDirection);
+
+  // Handle header click to toggle sort: asc -> desc -> reset
+  const handleHeaderClick = (col) => {
+    if (col.sortable === false || !col.accessor) return;
+
+    let nextCol = col.accessor;
+    let nextDir = 'asc';
+
+    if (sortColumn === col.accessor) {
+      if (sortDirection === 'asc') {
+        nextDir = 'desc';
+      } else if (sortDirection === 'desc') {
+        nextCol = null;
+        nextDir = 'asc';
+      }
+    }
+
+    setSortColumn(nextCol);
+    setSortDirection(nextDir);
+
+    if (onSortChange) {
+      onSortChange(nextCol, nextDir);
+    }
+  };
+
+  // Sort data array client-side if sortColumn is active
+  const processedData = useMemo(() => {
+    if (!sortColumn || !data || data.length === 0) return data;
+
+    return [...data].sort((a, b) => {
+      let valA = a[sortColumn];
+      let valB = b[sortColumn];
+
+      // Handle null/undefined values
+      if (valA === undefined || valA === null) valA = '';
+      if (valB === undefined || valB === null) valB = '';
+
+      // Date sorting
+      if (valA instanceof Date || (typeof valA === 'string' && !isNaN(Date.parse(valA)) && (valA.includes('T') || valA.includes('-')))) {
+        const timeA = new Date(valA).getTime();
+        const timeB = new Date(valB).getTime();
+        if (!isNaN(timeA) && !isNaN(timeB)) {
+          return sortDirection === 'asc' ? timeA - timeB : timeB - timeA;
+        }
+      }
+
+      // String sorting
+      if (typeof valA === 'string' || typeof valB === 'string') {
+        const cmp = String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' });
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+
+      // Number sorting
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      // Boolean sorting
+      if (typeof valA === 'boolean' && typeof valB === 'boolean') {
+        return sortDirection === 'asc' ? (valA === valB ? 0 : valA ? 1 : -1) : (valA === valB ? 0 : valA ? -1 : 1);
+      }
+
+      return 0;
+    });
+  }, [data, sortColumn, sortDirection]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* Table Toolbar */}
@@ -63,11 +142,57 @@ export const DataTable = ({
         <table className="data-table">
           <thead>
             <tr>
-              {columns.map((col, idx) => (
-                <th key={idx} style={{ textAlign: col.align || 'left', width: col.width || 'auto' }}>
-                  {col.header}
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                const isSortable = col.sortable !== false && !!col.accessor;
+                const isCurrentSort = sortColumn === col.accessor;
+
+                return (
+                  <th
+                    key={idx}
+                    style={{
+                      textAlign: col.align || 'left',
+                      width: col.width || 'auto',
+                      cursor: isSortable ? 'pointer' : 'default',
+                      userSelect: 'none',
+                    }}
+                    onClick={() => isSortable && handleHeaderClick(col)}
+                    title={isSortable ? `Click to sort by ${col.header} (${isCurrentSort ? (sortDirection === 'asc' ? 'Descending' : 'Reset') : 'Ascending'})` : undefined}
+                  >
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start',
+                        width: '100%',
+                      }}
+                    >
+                      <span>{col.header}</span>
+                      {isSortable && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            opacity: isCurrentSort ? 1 : 0.35,
+                            color: isCurrentSort ? 'var(--primary)' : 'inherit',
+                            transition: 'opacity 0.15s ease',
+                          }}
+                        >
+                          {isCurrentSort ? (
+                            sortDirection === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3.5 h-3.5" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -79,7 +204,7 @@ export const DataTable = ({
                   </div>
                 </td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : processedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} style={{ textAlign: 'center', padding: '3.5rem' }}>
                   <div
@@ -97,7 +222,7 @@ export const DataTable = ({
                 </td>
               </tr>
             ) : (
-              data.map((row, rowIdx) => (
+              processedData.map((row, rowIdx) => (
                 <tr key={row._id || row.id || rowIdx}>
                   {columns.map((col, colIdx) => (
                     <td key={colIdx} style={{ textAlign: col.align || 'left' }}>
@@ -121,6 +246,8 @@ export const DataTable = ({
             padding: '0.5rem 0.25rem',
             fontSize: '0.825rem',
             color: 'var(--text-secondary)',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div>
@@ -137,6 +264,11 @@ export const DataTable = ({
               {pagination.total || 0}
             </span>{' '}
             entries
+            {sortColumn && (
+              <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 500 }}>
+                (Sorted by {sortColumn} {sortDirection.toUpperCase()})
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
