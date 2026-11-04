@@ -27,6 +27,10 @@ import {
   Loader2,
   Check,
   Link2,
+  Eye,
+  EyeOff,
+  Key,
+  Copy,
 } from 'lucide-react';
 
 const STEPS = [
@@ -46,6 +50,7 @@ export const TenantCreateWizard = () => {
   const [availablePlans, setAvailablePlans] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [provisionResult, setProvisionResult] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -80,6 +85,8 @@ export const TenantCreateWizard = () => {
     adminName: '',
     adminEmail: '',
     adminPhone: '',
+    adminPassword: 'Password@123',
+    confirmPassword: 'Password@123',
     initialStatus: 'ACTIVE',
 
     // Step 6: Permissions
@@ -157,6 +164,18 @@ export const TenantCreateWizard = () => {
         error('Admin Email is required');
         return false;
       }
+      if (!formData.adminPassword || !formData.adminPassword.trim()) {
+        error('Administrator Password is required');
+        return false;
+      }
+      if (formData.adminPassword.length < 6) {
+        error('Password must be at least 6 characters long');
+        return false;
+      }
+      if (formData.adminPassword !== formData.confirmPassword) {
+        error('Passwords do not match. Please verify both password fields.');
+        return false;
+      }
     }
     return true;
   };
@@ -198,7 +217,9 @@ export const TenantCreateWizard = () => {
           name: formData.adminName || formData.ownerName || 'Tenant Administrator',
           email: formData.adminEmail || formData.email,
           phone: formData.adminPhone || formData.phone,
+          password: formData.adminPassword,
         },
+        adminPassword: formData.adminPassword,
         status: formData.initialStatus,
         permissions: formData.permissions,
         allowCustomCloudflare: Boolean(formData.permissions?.customCloudflare),
@@ -604,25 +625,33 @@ export const TenantCreateWizard = () => {
 
             {formData.domainMode !== 'custom' ? (
               <div className="form-group">
-                <label className="form-label">Platform Subdomain Prefix *</label>
+                <label className="form-label">Kashi Service Subdomain Prefix *</label>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. blossom-salon"
+                    placeholder="e.g. glamour"
                     value={formData.subdomain || formData.slug}
                     onChange={(e) => setFormData((p) => ({ ...p, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                     required
                   />
                   <span style={{ padding: '0 0.75rem', color: 'var(--text-muted)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                    .yourplatform.com
+                    .kashiservice.com
                   </span>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#38BDF8', marginTop: '6px' }}>
-                  Resolved Route:{' '}
-                  {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-                    ? `http://localhost:${window.location.port || 3000}/public?tenant=${formData.subdomain || formData.slug || 'salon'} (Localhost Development)`
-                    : `https://${formData.subdomain || formData.slug || 'salon'}.yourplatform.com (Production SaaS)`}
+                  Live Resolved URL:{' '}
+                  {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.endsWith('.localhost'))
+                    ? `http://${formData.subdomain || formData.slug || 'glamour'}.localhost:${window.location.port || 3000}/ (Clean Localhost Subdomain)`
+                    : `https://${formData.subdomain || formData.slug || 'glamour'}.kashiservice.com/ (Production SaaS)`}
+                </div>
+                <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '8px', fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+                  <strong>Auto-Configured Subdomain Portals:</strong><br />
+                  🌐 Website / Store: <code>{(formData.subdomain || 'glamour')}.kashiservice.com/</code><br />
+                  📅 Online Booking: <code>{(formData.subdomain || 'glamour')}.kashiservice.com/book</code><br />
+                  🏢 Salon Admin: <code>{(formData.subdomain || 'glamour')}.kashiservice.com/admin</code><br />
+                  👥 Customer Portal: <code>{(formData.subdomain || 'glamour')}.kashiservice.com/customer</code><br />
+                  ✂️ Staff Member Portal: <code>{(formData.subdomain || 'glamour')}.kashiservice.com/staff</code>
                 </div>
               </div>
             ) : (
@@ -632,14 +661,23 @@ export const TenantCreateWizard = () => {
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. glamouracademy.in or blossomsalon.com"
+                    placeholder="e.g. www.glamourbeauty.com or glamourbeauty.com"
                     value={formData.customDomain}
                     onChange={(e) => setFormData((p) => ({ ...p, customDomain: e.target.value }))}
                     required
                   />
                   <div style={{ fontSize: '0.75rem', color: '#38BDF8', marginTop: '6px' }}>
-                    Live Target URL: https://{formData.customDomain || 'yourdomain.com'}
+                    Live Target URL: https://{formData.customDomain || 'www.glamourbeauty.com'}/
                   </div>
+                </div>
+
+                <div style={{ marginTop: '8px', marginBottom: '14px', padding: '10px 14px', background: 'rgba(139, 92, 246, 0.08)', borderRadius: '8px', fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+                  <strong>White-Label Multi-Portal Support on Same Domain:</strong><br />
+                  🌐 Store: <code>https://{formData.customDomain || 'www.glamourbeauty.com'}/</code><br />
+                  📅 Booking: <code>https://{formData.customDomain || 'www.glamourbeauty.com'}/book</code><br />
+                  🏢 Admin: <code>https://{formData.customDomain || 'www.glamourbeauty.com'}/admin</code><br />
+                  👥 Customer: <code>https://{formData.customDomain || 'www.glamourbeauty.com'}/customer</code><br />
+                  ✂️ Staff: <code>https://{formData.customDomain || 'www.glamourbeauty.com'}/staff</code>
                 </div>
 
                 {formData.customDomain && (
@@ -657,9 +695,9 @@ export const TenantCreateWizard = () => {
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       1. CNAME Record: <code style={{ color: 'var(--primary)' }}>@ / www</code> pointing to{' '}
-                      <code style={{ color: 'var(--primary)' }}>cname.yourplatform.com</code>
+                      <code style={{ color: 'var(--primary)' }}>cname.kashiservice.com</code>
                       <br />
-                      2. Fallback Subdomain: <code style={{ color: 'var(--primary)' }}>{formData.subdomain || formData.slug || 'salon'}.yourplatform.com</code>
+                      2. Fallback Subdomain: <code style={{ color: 'var(--primary)' }}>{formData.subdomain || formData.slug || 'glamour'}.kashiservice.com</code>
                     </div>
                   </div>
                 )}
@@ -718,6 +756,113 @@ export const TenantCreateWizard = () => {
                   <option value="TRIAL">Trial Period</option>
                   <option value="SUSPENDED">Suspended (Pending Onboarding)</option>
                 </select>
+              </div>
+
+              {/* Password Fields with Eye toggle and Auto-generator */}
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label className="form-label" style={{ margin: 0 }}>
+                    Administrator Login Password *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const gen = `Admin@${Math.floor(1000 + Math.random() * 9000)}`;
+                      setFormData((p) => ({ ...p, adminPassword: gen, confirmPassword: gen }));
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--primary)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: 0,
+                    }}
+                  >
+                    <Key className="w-3 h-3" /> Auto-Generate
+                  </button>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-input"
+                    placeholder="Enter secure password"
+                    value={formData.adminPassword}
+                    onChange={(e) => setFormData((p) => ({ ...p, adminPassword: e.target.value }))}
+                    style={{ paddingRight: '2.5rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '4px',
+                    }}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Confirm Password *</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-input"
+                    placeholder="Confirm administrator password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData((p) => ({ ...p, confirmPassword: e.target.value }))}
+                    style={{
+                      borderColor:
+                        formData.confirmPassword && formData.adminPassword !== formData.confirmPassword
+                          ? '#ef4444'
+                          : undefined,
+                    }}
+                    required
+                  />
+                  {formData.confirmPassword && formData.adminPassword !== formData.confirmPassword && (
+                    <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px' }}>
+                      Passwords do not match
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: '1.25rem',
+                padding: '1rem 1.25rem',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+              }}
+            >
+              <Key className="w-5 h-5 text-sky-400 shrink-0" style={{ marginTop: '2px' }} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#e0f2fe' }}>
+                  Salon Owner Administrator Credentials
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                  This administrator email and password will be seeded directly into the tenant's database with <strong>ADMIN</strong> role.
+                  The salon owner can instantly log into the Salon Admin Panel at <code>/admin/login</code> or their custom domain's <code>/admin</code> path.
+                </div>
               </div>
             </div>
           </div>
@@ -887,11 +1032,23 @@ export const TenantCreateWizard = () => {
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Assigned Domain:</span>
-                <div style={{ fontWeight: 600 }}>{formData.subdomain}.beautysaas.local</div>
+                <div style={{ fontWeight: 600 }}>{formData.subdomain || formData.slug}.kashiservice.com</div>
               </div>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tenant Admin:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tenant Admin Email:</span>
                 <div style={{ fontWeight: 600 }}>{formData.adminEmail}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Administrator Password:</span>
+                <div style={{ fontWeight: 600, color: '#38BDF8', fontFamily: 'monospace' }}>
+                  {formData.adminPassword}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Admin Login URL:</span>
+                <div style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                  /admin/login
+                </div>
               </div>
             </div>
 
@@ -976,10 +1133,50 @@ export const TenantCreateWizard = () => {
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
                   Database collections created, domain routing established, permissions configured, and admin user initialized.
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                  <Link
-                    to={`/superadmin/tenants/${provisionResult.tenant?._id || provisionResult.tenant?.id || ''}`}
+
+                {/* Ready Credentials Box */}
+                <div
+                  style={{
+                    maxWidth: '440px',
+                    margin: '0 auto 1.5rem auto',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#34D399', marginBottom: '0.5rem' }}>
+                    Salon Admin Login Credentials
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Admin Email: <strong style={{ color: '#fff' }}>{formData.adminEmail}</strong>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Admin Password: <code style={{ color: '#38BDF8' }}>{formData.adminPassword}</code>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Admin Portal: <code style={{ color: 'var(--primary)' }}>/admin/login</code>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <a
+                    href={
+                      typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+                        ? `http://${formData.subdomain || formData.slug}.localhost:${window.location.port || 3000}/admin/login`
+                        : `/admin/login`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="btn btn-primary"
+                    style={{ background: 'var(--primary-gradient)', textDecoration: 'none' }}
+                  >
+                    Open Salon Admin Login ↗
+                  </a>
+                  <Link
+                    to={`/superadmin/tenants?tenantId=${provisionResult.tenant?._id || provisionResult.tenant?.id || ''}`}
+                    className="btn btn-secondary"
                   >
                     Open Tenant Control Panel
                   </Link>

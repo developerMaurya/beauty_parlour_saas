@@ -149,8 +149,16 @@ export const tenantController = {
       tenant.provisioningJobId = jobId;
       await tenant.save();
 
+      // Ensure admin password is valid and passed to provisioning
+      const finalAdminUser = {
+        name: adminUser?.name || ownerName || 'Tenant Administrator',
+        email: adminUser?.email || email,
+        phone: adminUser?.phone || phone || '',
+        password: adminUser?.password || req.body.adminPassword || req.body.password || 'Password@123',
+      };
+
       // Execute Provisioning
-      const provResult = await databaseProvisioningService.provisionTenantDatabase(tenant, adminUser);
+      const provResult = await databaseProvisioningService.provisionTenantDatabase(tenant, finalAdminUser);
 
       job.steps = provResult.steps;
       job.status = provResult.success ? 'completed' : 'failed';
@@ -707,7 +715,42 @@ export const tenantController = {
    */
   async getTenantDomains(req, res, next) {
     try {
-      const domains = await Domain.find({ tenantId: req.params.tenantId });
+      const tenant = await Tenant.findById(req.params.tenantId);
+      if (!tenant) return sendError(res, 'Tenant not found', [], 404);
+
+      let domains = await Domain.find({ tenantId: req.params.tenantId }).lean();
+
+      // If no domain document exists yet, initialize the single active domain as a real MongoDB document
+      if (domains.length === 0) {
+        const subSlug = tenant.subdomain || tenant.slug;
+        const activeDomainName = tenant.primaryDomain || `${subSlug}.kashiservice.com`;
+        const isPlatform = activeDomainName.endsWith('.kashiservice.com') || activeDomainName.endsWith('.yourplatform.com') || activeDomainName.endsWith('.localhost');
+
+        const initialDoc = await Domain.create({
+          tenantId: tenant._id,
+          domain: activeDomainName,
+          isCustom: !isPlatform,
+          isPrimary: true,
+          status: 'active',
+          sslStatus: 'active',
+          dnsRecords: [
+            { type: 'CNAME', name: activeDomainName, expectedValue: 'cname.kashiservice.com', isVerified: true },
+            { type: 'A', name: activeDomainName, expectedValue: '76.76.21.21', isVerified: true },
+          ],
+        });
+        domains = [initialDoc.toObject()];
+      }
+
+      // If multiple domains existed in legacy data, filter down to the 1 active primary domain matching tenant.primaryDomain
+      if (domains.length > 1 && tenant.primaryDomain) {
+        const primaryMatches = domains.filter((d) => d.domain === tenant.primaryDomain);
+        if (primaryMatches.length > 0) {
+          domains = primaryMatches;
+        } else {
+          domains = [domains[0]];
+        }
+      }
+
       return sendSuccess(res, 'Tenant domains retrieved', domains);
     } catch (error) {
       return next(error);
@@ -879,6 +922,117 @@ export const tenantController = {
       await tenant.save();
 
       return sendSuccess(res, 'Device session and FCM token revoked successfully');
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  /**
+   * POST /api/v1/superadmin/tenants/:tenantId/reset-admin-password
+   */
+  async resetAdminPassword(req, res, next) {
+    try {
+      const { tenantId } = req.params;
+      const { newPassword, adminEmail } = req.body;
+
+      if (!newPassword || newPassword.length < 6) {
+        return sendError(res, 'New password must be at least 6 characters long', [], 400);
+      }
+
+      const tenant = await Tenant.findById(tenantId);
+      if (!tenant) return sendError(res, 'Tenant not found', [], 404);
+
+      const emailToTarget = (adminEmail || tenant.email).toLowerCase().trim();
+      const bcrypt = (await import('bcrypt')).default;
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      const tenantIdStr = String(tenant._id);
+
+      // 1. In Central / Shared DB
+      const { getCentralDatabase } = await import('../../../../core/database/centralDatabase.js');
+      const centralConn = getCentralDatabase();
+      if (centralConn && centralConn.db) {
+        // Upsert/Update primary TenantUser record
+        await centralConn.db.collection('tenantusers').updateOne(
+          { tenantId: tenantIdStr, role: 'ADMIN' },
+          {
+            $set: {
+              tenantId: tenantIdStr,
+              email: emailToTarget,
+              passwordHash,
+              role: 'ADMIN',
+              status: 'active',
+              isBlocked: false,
+              failedLoginAttempts: 0,
+              lockUntil: null,
+              updatedAt: new Date(),
+            },
+            $setOnInsert: {
+              username: emailToTarget.split('@')[0],
+              createdAt: new Date(),
+            },
+          },
+          { upsert: true }
+        );
+
+        // Also update legacy collection
+        await centralConn.db.collection('tenant_users').updateOne(
+          { tenantId: tenantIdStr, role: 'admin' },
+          {
+            $set: {
+              passwordHash,
+              status: 'active',
+              updatedAt: new Date(),
+            },
+          }
+        );
+      }
+
+      // 2. In Separate DB if tenant uses separate mode
+      if (tenant.databaseMode === 'separate') {
+        const { tenantConnectionManager } = await import('../../../../core/database/tenantConnectionManager.js');
+        const sepConn = await tenantConnectionManager.getTenantConnection(tenant);
+        if (sepConn && sepConn.db) {
+          await sepConn.db.collection('tenantusers').updateOne(
+            { tenantId: tenantIdStr, role: 'ADMIN' },
+            {
+              $set: {
+                tenantId: tenantIdStr,
+                email: emailToTarget,
+                passwordHash,
+                role: 'ADMIN',
+                status: 'active',
+                isBlocked: false,
+                failedLoginAttempts: 0,
+                lockUntil: null,
+                updatedAt: new Date(),
+              },
+              $setOnInsert: {
+                username: emailToTarget.split('@')[0],
+                createdAt: new Date(),
+              },
+            },
+            { upsert: true }
+          );
+
+          await sepConn.db.collection('users').updateOne(
+            { email: emailToTarget },
+            { $set: { passwordHash, status: 'active', updatedAt: new Date() } }
+          );
+        }
+      }
+
+      await recordAuditLog({
+        tenantId: tenant._id,
+        action: 'TENANT_ADMIN_PASSWORD_RESET',
+        entity: 'Tenant',
+        entityId: tenant._id,
+        metadata: { adminEmail: emailToTarget },
+      });
+
+      return sendSuccess(res, `Administrator password for "${tenant.name}" (${emailToTarget}) updated successfully!`, {
+        adminEmail: emailToTarget,
+        updatedAt: new Date(),
+      });
     } catch (error) {
       return next(error);
     }

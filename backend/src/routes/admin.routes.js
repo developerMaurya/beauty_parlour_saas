@@ -56,6 +56,11 @@ router.use(branchContextMiddleware);
 // 2. DASHBOARD
 // ==========================================
 router.get('/dashboard', requirePermission('dashboard.view'), dashCtrl.getDashboardOverview);
+router.get('/dashboard/overview', requirePermission('dashboard.view'), dashCtrl.getDashboardOverview);
+router.get('/dashboard/operations-queue', requirePermission('dashboard.view'), dashCtrl.getOperationsQueue);
+router.post('/dashboard/assign-product', requirePermission('inventory.update'), dashCtrl.assignProductToStaff);
+router.patch('/dashboard/home-services/:appointmentId/status', requirePermission('appointments.update'), dashCtrl.updateHomeServiceStatus);
+router.post('/dashboard/attendance/punch', requirePermission('attendance.create'), dashCtrl.punchAttendance);
 
 // ==========================================
 // 3. DYNAMIC STRUCTURE: DEPARTMENTS, DESIGNATIONS, SKILLS

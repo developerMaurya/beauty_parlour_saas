@@ -66,6 +66,7 @@ router.get('/tenants/:tenantId/domains', tenantController.getTenantDomains);
 router.get('/tenants/:tenantId/subscriptions', tenantController.getTenantSubscriptions);
 router.post('/tenants/:tenantId/block-security', tenantController.updateBlockSecurity);
 router.post('/tenants/:tenantId/master-assignment', tenantController.updateMasterAssignment);
+router.post('/tenants/:tenantId/reset-admin-password', tenantController.resetAdminPassword);
 router.get('/tenants/:tenantId/devices', tenantController.getTenantDevices);
 router.post('/tenants/:tenantId/devices/:deviceId/test-push', tenantController.sendTestPushToDevice);
 router.delete('/tenants/:tenantId/devices/:deviceId', tenantController.revokeDevice);

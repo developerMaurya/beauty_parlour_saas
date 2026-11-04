@@ -18,6 +18,7 @@ export default function PublicHomePage() {
   const [offers, setOffers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,17 +31,21 @@ export default function PublicHomePage() {
           offApi.getOffers({ limit: 3 }),
           brApi.getBranches()
         ]);
-        if (bRes.status === 'fulfilled' && bRes.value.data?.success) {
-          setBusiness(bRes.value.data.data);
+        if (bRes.status === 'fulfilled') {
+          const bData = bRes.value?.data?.data || bRes.value?.data || bRes.value;
+          if (bData && typeof bData === 'object') setBusiness(bData);
         }
-        if (sRes.status === 'fulfilled' && sRes.value.data?.success) {
-          setFeaturedServices(sRes.value.data.data?.services || sRes.value.data.data || []);
+        if (sRes.status === 'fulfilled') {
+          const sData = sRes.value?.data?.data || sRes.value?.data || sRes.value;
+          setFeaturedServices(sData?.services || (Array.isArray(sData) ? sData : []));
         }
-        if (oRes.status === 'fulfilled' && oRes.value.data?.success) {
-          setOffers(oRes.value.data.data?.offers || oRes.value.data.data || []);
+        if (oRes.status === 'fulfilled') {
+          const oData = oRes.value?.data?.data || oRes.value?.data || oRes.value;
+          setOffers(oData?.offers || (Array.isArray(oData) ? oData : []));
         }
-        if (brRes.status === 'fulfilled' && brRes.value.data?.success) {
-          setBranches(brRes.value.data.data?.branches || brRes.value.data.data || []);
+        if (brRes.status === 'fulfilled') {
+          const brData = brRes.value?.data?.data || brRes.value?.data || brRes.value;
+          setBranches(brData?.branches || (Array.isArray(brData) ? brData : []));
         }
       } catch (err) {
         console.error('Failed to load public portal info', err);
@@ -51,21 +56,38 @@ export default function PublicHomePage() {
     loadData();
   }, []);
 
+  const banners = business?.websiteConfig?.banners?.filter((b) => b.isActive !== false) || [];
+  const activeSlide = banners.length > 0 ? banners[currentSlide % banners.length] : null;
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners.length]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingBottom: '3rem' }}>
-      {/* Hero Banner */}
+      {/* Multi-Banner Hero Slider */}
       <section style={{
-        background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))',
+        background: activeSlide?.imageUrl
+          ? `linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.9)), url(${activeSlide.imageUrl}) center/cover no-repeat`
+          : 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '24px',
-        padding: '4rem 2rem',
+        padding: '5rem 2rem',
         textAlign: 'center',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '1.5rem',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minHeight: '380px',
+        justifyContent: 'center',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+        transition: 'background 0.5s ease',
       }}>
         <div style={{
           display: 'inline-flex',
@@ -73,8 +95,8 @@ export default function PublicHomePage() {
           gap: '0.5rem',
           padding: '0.375rem 0.875rem',
           borderRadius: '20px',
-          background: 'rgba(236, 72, 153, 0.15)',
-          border: '1px solid rgba(236, 72, 153, 0.3)',
+          background: 'rgba(236, 72, 153, 0.2)',
+          border: '1px solid rgba(236, 72, 153, 0.4)',
           color: '#f472b6',
           fontSize: '0.8125rem',
           fontWeight: 700,
@@ -93,16 +115,16 @@ export default function PublicHomePage() {
           maxWidth: '850px',
           letterSpacing: '-0.03em'
         }}>
-          Artisanal Beauty Care & Doorstep Luxury Treatments
+          {activeSlide?.title || business?.websiteConfig?.heroHeading || 'Artisanal Beauty Care & Doorstep Luxury Treatments'}
         </h1>
 
-        <p style={{ color: '#94a3b8', fontSize: '1.125rem', maxWidth: '640px', margin: 0, lineHeight: '1.6' }}>
-          Experience couture bridal makeovers, customized organic facials, and doorstep home services performed by certified master artists.
+        <p style={{ color: '#cbd5e1', fontSize: '1.125rem', maxWidth: '660px', margin: 0, lineHeight: '1.6' }}>
+          {activeSlide?.subtitle || business?.websiteConfig?.heroSubheading || 'Experience couture bridal makeovers, customized organic facials, and doorstep home services performed by certified master artists.'}
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.5rem' }}>
           <button
-            onClick={() => navigate('/public/book')}
+            onClick={() => navigate(activeSlide?.buttonUrl || '/book')}
             style={{
               padding: '0.875rem 2rem',
               borderRadius: '14px',
@@ -116,15 +138,15 @@ export default function PublicHomePage() {
               transition: 'transform 0.2s'
             }}
           >
-            Book Appointment Now
+            {activeSlide?.buttonText || 'Book Appointment Now'}
           </button>
           <button
-            onClick={() => navigate('/public/services')}
+            onClick={() => navigate('/services')}
             style={{
               padding: '0.875rem 1.75rem',
               borderRadius: '14px',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              background: 'rgba(30, 41, 59, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              background: 'rgba(30, 41, 59, 0.7)',
               color: '#f8fafc',
               fontSize: '1rem',
               fontWeight: 600,
@@ -134,6 +156,30 @@ export default function PublicHomePage() {
             Browse Treatment Menu
           </button>
         </div>
+
+        {/* Slide Indicator Dots */}
+        {banners.length > 1 && (
+          <div style={{ display: 'flex', gap: '8px', marginTop: '1.5rem', zIndex: 10 }}>
+            {banners.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setCurrentSlide(i)}
+                style={{
+                  width: (currentSlide % banners.length) === i ? '24px' : '8px',
+                  height: '8px',
+                  borderRadius: '999px',
+                  background: (currentSlide % banners.length) === i ? '#ec4899' : 'rgba(255, 255, 255, 0.3)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  padding: 0,
+                }}
+                title={`Slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Feature Highlights Grid */}
@@ -167,7 +213,7 @@ export default function PublicHomePage() {
             <span style={{ color: '#ec4899', fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase' }}>Signature Catalog</span>
             <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#f8fafc', margin: '0.25rem 0 0 0' }}>Popular Treatments</h2>
           </div>
-          <NavLink to="/public/services" style={{ color: '#ec4899', fontWeight: 600, textDecoration: 'none', fontSize: '0.9375rem' }}>
+          <NavLink to="/services" style={{ color: '#ec4899', fontWeight: 600, textDecoration: 'none', fontSize: '0.9375rem' }}>
             View Full Menu ({featuredServices.length}+) →
           </NavLink>
         </div>
@@ -199,7 +245,7 @@ export default function PublicHomePage() {
                 </div>
               </div>
               <button
-                onClick={() => navigate(`/public/book?serviceId=${s._id || s.id}`)}
+                onClick={() => navigate(`/book?serviceId=${s._id || s.id}`)}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -242,7 +288,7 @@ export default function PublicHomePage() {
             </p>
           </div>
           <button
-            onClick={() => navigate('/public/offers')}
+            onClick={() => navigate('/offers')}
             style={{
               padding: '0.875rem 1.75rem',
               borderRadius: '12px',
@@ -280,7 +326,9 @@ export default function PublicHomePage() {
                 <h3 style={{ margin: 0, fontSize: '1.125rem', color: '#f8fafc', fontWeight: 700 }}>{b.name || 'Prime Salon'}</h3>
               </div>
               <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.4' }}>
-                {b.address || 'High Street Luxury Arcade, Metro Hub'}
+                {typeof b.address === 'object' && b.address
+                  ? [b.address.street, b.address.city, b.address.state].filter(Boolean).join(', ') || 'High Street Luxury Arcade, Metro Hub'
+                  : String(b.address || 'High Street Luxury Arcade, Metro Hub')}
               </p>
               <div style={{ color: '#cbd5e1', fontSize: '0.8125rem' }}>
                 📞 {b.phone || '+91 98765 43210'}

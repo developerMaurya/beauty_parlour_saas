@@ -25,6 +25,7 @@ import {
   billingApi,
   subscriptionsApi,
 } from '../../../services/api/superadmin.api';
+import { buildTenantUrl, PLATFORM_DOMAIN } from '../../../utils/tenantDomain';
 import { useToast } from '../../../context/ToastContext';
 import Badge from '../../../components/Badge';
 import Modal from '../../../components/Modal';
@@ -67,6 +68,9 @@ import {
   Server,
   Receipt,
   Download,
+  Eye,
+  EyeOff,
+  Loader2,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -155,7 +159,9 @@ export const UnifiedAccessManagementCenter = () => {
   });
 
   // 5. Domain / Subdomain State
+  const [domainRoutingMode, setDomainRoutingMode] = useState('platform'); // 'platform' | 'custom'
   const [subdomainInput, setSubdomainInput] = useState('');
+  const [basePlatformDomain, setBasePlatformDomain] = useState(PLATFORM_DOMAIN || 'kashiservice.com');
   const [customDomainInput, setCustomDomainInput] = useState('');
   const [domainEditModal, setDomainEditModal] = useState({
     isOpen: false,
@@ -180,6 +186,11 @@ export const UnifiedAccessManagementCenter = () => {
   const [availablePlans, setAvailablePlans] = useState([]);
   const [selectedPlanToAssign, setSelectedPlanToAssign] = useState('');
   const [assignCycle, setAssignCycle] = useState('monthly');
+
+  // 8. Admin Password Reset State
+  const [adminResetPassword, setAdminResetPassword] = useState('Password@123');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // Load all tenants & plans on mount
   useEffect(() => {
@@ -243,8 +254,16 @@ export const UnifiedAccessManagementCenter = () => {
 
       // Populate forms
       if (tData) {
+        const hasCustom = Boolean(
+          tData.primaryDomain &&
+          !tData.primaryDomain.includes('kashiservice.com') &&
+          !tData.primaryDomain.includes('yourplatform.com') &&
+          !tData.primaryDomain.includes('localhost') &&
+          !tData.primaryDomain.includes('127.0.0.1')
+        );
+        setDomainRoutingMode(hasCustom ? 'custom' : 'platform');
         setSubdomainInput(tData.subdomain || tData.slug || '');
-        setCustomDomainInput(tData.primaryDomain && !tData.primaryDomain.includes('yourplatform.com') ? tData.primaryDomain : '');
+        setCustomDomainInput(hasCustom ? tData.primaryDomain : '');
 
         setSecurityForm({
           isBlocked: Boolean(tData.blockSecurity?.isBlocked || tData.status === 'suspended'),
@@ -347,6 +366,29 @@ export const UnifiedAccessManagementCenter = () => {
       error(err.message || 'Failed to update master assignment');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // 3b. Reset Salon Admin Password
+  const handleResetAdminPassword = async (e) => {
+    e?.preventDefault();
+    if (!adminResetPassword || adminResetPassword.length < 6) {
+      error('Password must be at least 6 characters long');
+      return;
+    }
+    setIsResettingPassword(true);
+    try {
+      const adminEmail = tenant?.email || '';
+      await tenantsApi.resetAdminPassword(selectedTenantId, {
+        newPassword: adminResetPassword,
+        adminEmail,
+      });
+      success(`Admin login password updated successfully for ${adminEmail}!`);
+      loadTenantDetails(selectedTenantId);
+    } catch (err) {
+      error(err.message || 'Failed to update administrator password');
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -486,16 +528,30 @@ export const UnifiedAccessManagementCenter = () => {
   };
 
   // 12. Save Platform Subdomain
+  // 12. Save Platform Subdomain
   const handleSaveSubdomain = async () => {
     if (!subdomainInput.trim()) return;
     setIsSaving(true);
     try {
       const cleanSub = subdomainInput.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+      const cleanBase = (basePlatformDomain || PLATFORM_DOMAIN || 'kashiservice.com').trim().toLowerCase().replace(/^\./, '');
+      const fullDomain = `${cleanSub}.${cleanBase}`;
+
+      await domainsApi.addTenantDomain(selectedTenantId, {
+        domain: fullDomain,
+        isPrimary: true,
+        isCustom: false,
+      });
+
       await tenantsApi.update(selectedTenantId, {
         subdomain: cleanSub,
+        primaryDomain: fullDomain,
+        'domainAccess.customDomainAllowed': false,
+        'domainAccess.isDomainActive': true,
       });
-      success(`Platform subdomain updated to: ${cleanSub}.yourplatform.com`);
-      loadTenantDetails(selectedTenantId);
+
+      success(`Platform subdomain activated as active routing target: ${fullDomain}`);
+      await loadTenantDetails(selectedTenantId);
     } catch (err) {
       error(err.message || 'Failed to update subdomain');
     } finally {
@@ -508,14 +564,21 @@ export const UnifiedAccessManagementCenter = () => {
     if (!customDomainInput.trim()) return;
     setIsSaving(true);
     try {
-      const cleanDom = customDomainInput.trim().toLowerCase();
+      const cleanDom = customDomainInput.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
       await domainsApi.addTenantDomain(selectedTenantId, {
         domain: cleanDom,
         isPrimary: true,
+        isCustom: true,
       });
-      success(`Custom domain "${cleanDom}" added and set as primary!`);
-      setCustomDomainInput('');
-      loadTenantDetails(selectedTenantId);
+
+      await tenantsApi.update(selectedTenantId, {
+        primaryDomain: cleanDom,
+        'domainAccess.customDomainAllowed': true,
+        'domainAccess.isDomainActive': true,
+      });
+
+      success(`Custom domain "${cleanDom}" registered & activated as active tenant website domain!`);
+      await loadTenantDetails(selectedTenantId);
     } catch (err) {
       error(err.message || 'Failed to register domain');
     } finally {
@@ -546,13 +609,19 @@ export const UnifiedAccessManagementCenter = () => {
   };
 
   // 16. Delete Domain
-  const handleDeleteDomain = async (domainId) => {
+  const handleDeleteDomain = async (domainId, domainName) => {
+    if (!window.confirm(`Are you sure you want to remove domain "${domainName || domainId}"? The tenant will revert to the default platform subdomain.`)) {
+      return;
+    }
     try {
-      await domainsApi.delete(domainId);
-      success('Domain removed from tenant routing');
-      loadTenantDetails(selectedTenantId);
+      setIsSaving(true);
+      await domainsApi.delete(domainId || domainName);
+      success('Domain removed successfully. Reverted to platform default subdomain.');
+      await loadTenantDetails(selectedTenantId);
     } catch (err) {
       error(err.message || 'Failed to delete domain');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -847,7 +916,7 @@ export const UnifiedAccessManagementCenter = () => {
                 <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Primary Routing Target</div>
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '4px', color: 'var(--primary)' }}>
-                    https://{tenant?.primaryDomain || `${tenant?.slug}.yourplatform.com`}
+                    https://{tenant?.primaryDomain || `${tenant?.slug}.kashiservice.com`}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                     Subdomain slug: <code>{tenant?.subdomain || tenant?.slug}</code>
@@ -889,6 +958,99 @@ export const UnifiedAccessManagementCenter = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Salon Administrator Credentials & Direct Launch Control */}
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  padding: '1.25rem',
+                  borderRadius: '12px',
+                  background: 'rgba(99, 102, 241, 0.05)',
+                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <Key className="w-5 h-5 text-indigo-400" />
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>Salon Administrator Login & Security Control</h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                        Manage administrator password and launch direct salon workspace
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <a
+                      href={
+                        typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+                          ? `http://${tenant?.subdomain || tenant?.slug}.localhost:${window.location.port || 3000}/admin/login`
+                          : `/admin/login`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-primary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'none' }}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Launch Salon Admin Portal (/admin/login) ↗</span>
+                    </a>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      Administrator Login Email
+                    </label>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f8fafc', padding: '0.55rem 0.75rem', background: 'rgba(0,0,0,0.25)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                      {tenant?.email || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Reset Admin Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setAdminResetPassword(`Admin@${Math.floor(1000 + Math.random() * 9000)}`)}
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.72rem', cursor: 'pointer', padding: 0 }}
+                      >
+                        Generate Random
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <input
+                          type={showAdminPassword ? 'text' : 'password'}
+                          className="form-input"
+                          value={adminResetPassword}
+                          onChange={(e) => setAdminResetPassword(e.target.value)}
+                          placeholder="New admin password"
+                          style={{ paddingRight: '2.5rem', height: '38px', fontSize: '0.85rem' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPassword(!showAdminPassword)}
+                          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        >
+                          {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetAdminPassword}
+                        disabled={isResettingPassword}
+                        className="btn btn-sm btn-primary"
+                        style={{ height: '38px', whiteSpace: 'nowrap' }}
+                      >
+                        {isResettingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Password'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -901,180 +1063,437 @@ export const UnifiedAccessManagementCenter = () => {
                 <div>
                   <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Globe className="w-5 h-5 text-indigo-400" />
-                    <span>Domain & Platform Subdomain Router</span>
+                    <span>Domain & Platform Routing Center</span>
                   </h3>
                   <p className="card-subtitle">
-                    Configure custom domains, edit hostname names, verify DNS, or grant zero-config platform testing subdomains.
+                    Select domain strategy: Deploy on instant Platform Subdomain or connect Salon's Custom Branded Domain.
                   </p>
                 </div>
               </div>
 
-              {/* Subdomain Allocation Box */}
-              <div style={{ padding: '1.25rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)', marginTop: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Platform Pre-Verified Subdomain (Zero-Config)</span>
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      If tenant has no custom domain, they can run and test instantly on your platform wildcard domain.
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        className="form-input form-input-sm"
-                        style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, minWidth: '160px' }}
-                        value={subdomainInput}
-                        onChange={(e) => setSubdomainInput(e.target.value)}
-                        placeholder="subdomain"
-                      />
-                      <span
+              {/* ── Domain Strategy Toggle Switcher (Option A vs Option B) ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1.25rem' }}>
+                {/* Option A Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setDomainRoutingMode('platform')}
+                  style={{
+                    padding: '1.15rem 1.25rem',
+                    borderRadius: '12px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: domainRoutingMode === 'platform' ? '2px solid #10b981' : '1px solid var(--border-subtle)',
+                    background: domainRoutingMode === 'platform' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid var(--border-subtle)',
-                          borderLeft: 'none',
-                          padding: '0.35rem 0.65rem',
-                          fontSize: '0.78rem',
-                          color: 'var(--text-muted)',
-                          borderTopRightRadius: 'var(--radius-md)',
-                          borderBottomRightRadius: 'var(--radius-md)',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: domainRoutingMode === 'platform' ? '#10b981' : 'rgba(255,255,255,0.06)',
+                          color: domainRoutingMode === 'platform' ? '#fff' : 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '0.9rem',
                         }}
                       >
-                        .yourplatform.com
-                      </span>
+                        A
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: domainRoutingMode === 'platform' ? '#34d399' : 'var(--text-main)' }}>
+                          Platform Subdomain
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Wildcard Host (.kashiservice.com)</div>
+                      </div>
                     </div>
-
-                    <button onClick={handleSaveSubdomain} disabled={isSaving} className="btn btn-primary btn-sm">
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Apply</span>
-                    </button>
+                    {domainRoutingMode === 'platform' ? (
+                      <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: '#10b981', color: '#fff', fontWeight: 800, letterSpacing: '0.04em' }}>
+                        SELECTED
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                        SWITCH
+                      </span>
+                    )}
                   </div>
-                </div>
-              </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.65rem', lineHeight: '1.4' }}>
+                    Instant zero-config routing. Ideal for rapid onboarding, trial testing, or platform-hosted salons.
+                  </div>
+                </button>
 
-              {/* Add Custom Domain Form */}
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Add custom white-label domain e.g. blossom-salon.com"
-                  value={customDomainInput}
-                  onChange={(e) => setCustomDomainInput(e.target.value)}
-                />
-                <button onClick={handleAddCustomDomain} disabled={isSaving || !customDomainInput.trim()} className="btn btn-primary">
-                  <Plus className="w-4 h-4" />
-                  <span>Add Domain</span>
+                {/* Option B Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setDomainRoutingMode('custom')}
+                  style={{
+                    padding: '1.15rem 1.25rem',
+                    borderRadius: '12px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: domainRoutingMode === 'custom' ? '2px solid #6366f1' : '1px solid var(--border-subtle)',
+                    background: domainRoutingMode === 'custom' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: domainRoutingMode === 'custom' ? '#6366f1' : 'rgba(255,255,255,0.06)',
+                          color: domainRoutingMode === 'custom' ? '#fff' : 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        B
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: domainRoutingMode === 'custom' ? '#818cf8' : 'var(--text-main)' }}>
+                          Custom Salon Domain
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Own White-Label (.com / .in)</div>
+                      </div>
+                    </div>
+                    {domainRoutingMode === 'custom' ? (
+                      <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: '#6366f1', color: '#fff', fontWeight: 800, letterSpacing: '0.04em' }}>
+                        SELECTED
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                        SWITCH
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.65rem', lineHeight: '1.4' }}>
+                    Connect parlour's own private web domain (e.g. <code>www.glamourbeauty.com</code>) with automated TLS/SSL.
+                  </div>
                 </button>
               </div>
 
-              {/* Active Domains Table */}
-              <div style={{ marginTop: '1.5rem' }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-                  Registered Domains ({tenantDomains.length})
-                </h4>
+              {/* ── PANEL 1: PLATFORM SUBDOMAIN CONFIGURATION (When Mode === 'platform') ── */}
+              {domainRoutingMode === 'platform' && (
+                <div style={{ padding: '1.35rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.25)', marginTop: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '1rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Platform Subdomain (Option A - Zero-Config)</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                        Enter the parlour subdomain prefix. Super Admin can also modify the base platform domain if required.
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 700 }}>
+                      ⚡ Wildcard Ready
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                    {/* Subdomain Input */}
+                    <div style={{ flex: '1 1 200px' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                        Tenant Subdomain Slug
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={subdomainInput}
+                        onChange={(e) => setSubdomainInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                        placeholder="e.g. glamour-academy"
+                      />
+                    </div>
+
+                    {/* Base Domain Input (Editable by Super Admin) */}
+                    <div style={{ flex: '1 1 200px' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                        Platform Base Domain (Editable)
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ padding: '0.5rem 0.65rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-subtle)', borderRight: 'none', borderTopLeftRadius: '6px', borderBottomLeftRadius: '6px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                          .
+                        </span>
+                        <input
+                          type="text"
+                          className="form-input"
+                          style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                          value={basePlatformDomain}
+                          onChange={(e) => setBasePlatformDomain(e.target.value.toLowerCase().replace(/^\./, ''))}
+                          placeholder="kashiservice.com"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Apply Button */}
+                    <div style={{ alignSelf: 'flex-end' }}>
+                      <button
+                        onClick={handleSaveSubdomain}
+                        disabled={isSaving || !subdomainInput.trim()}
+                        className="btn btn-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', height: '42px', padding: '0 1.25rem' }}
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>{isSaving ? 'Applying...' : 'Apply Subdomain'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Live Resolved URL Banner */}
+                  <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, color: '#34d399', letterSpacing: '0.05em' }}>
+                        Resolved Target Endpoint (Click to Open)
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '4px', flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.92rem', color: '#f8fafc', fontWeight: 600 }}>
+                          {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.localhost'))
+                            ? `http://${subdomainInput || tenant?.slug || 'glamour-academy'}.localhost:${window.location.port || '3002'}/`
+                            : `https://${subdomainInput || tenant?.slug || 'glamour-academy'}.${(basePlatformDomain || 'kashiservice.com').replace(/^\./, '')}/`}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontWeight: 700 }}>
+                          Direct Clean Root (No /public)
+                        </span>
+                      </div>
+                    </div>
+
+                    <a
+                      href={buildTenantUrl({ ...tenant, slug: subdomainInput || tenant?.slug, subdomain: subdomainInput || tenant?.slug }, 'public')}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-sm"
+                      style={{ background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Visit Live Website</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* ── PANEL 2: CUSTOM WHITE-LABEL DOMAIN CONFIGURATION (When Mode === 'custom') ── */}
+              {domainRoutingMode === 'custom' && (
+                <div style={{ padding: '1.35rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.25)', marginTop: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '1rem', color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Globe className="w-4 h-4" />
+                        <span>Custom White-Label Domain (Option B - Branded Domain)</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                        Enter parlour's official domain. All client portals and the public storefront will serve directly on this host.
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: '6px', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', fontWeight: 700 }}>
+                      👑 100% White-Label
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 300px' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                        Custom Domain Hostname (e.g. www.glamourbeauty.com)
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. www.glamourbeauty.com or glamourbeauty.com"
+                        value={customDomainInput}
+                        onChange={(e) => setCustomDomainInput(e.target.value.toLowerCase().trim())}
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddCustomDomain}
+                      disabled={isSaving || !customDomainInput.trim()}
+                      className="btn btn-primary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', height: '42px', padding: '0 1.25rem' }}
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{isSaving ? 'Registering...' : 'Save & Activate Domain'}</span>
+                    </button>
+                  </div>
+
+                  {/* DNS Instructions Card */}
+                  <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(99, 102, 241, 0.04)', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                      Required DNS Configuration for Tenant Domain Registrar
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                      <div style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.7)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>CNAME Record</div>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-primary, #0f172a)', fontWeight: 700, marginTop: '2px' }}>
+                          www ➔ cname.kashiservice.com
+                        </div>
+                      </div>
+                      <div style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.7)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>A Record (Apex Host)</div>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-primary, #0f172a)', fontWeight: 700, marginTop: '2px' }}>
+                          @ ➔ 76.76.21.21
+                        </div>
+                      </div>
+                      <div style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.7)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SSL / TLS Encryption</div>
+                        <div style={{ fontSize: '0.82rem', color: '#10b981', fontWeight: 700, marginTop: '2px' }}>
+                          ● Automated Let's Encrypt TLS 1.3
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Active Domains Table (Single Active Domain per Tenant) ── */}
+              <div style={{ marginTop: '1.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                    Active Portal Routing Target ({tenantDomains.length})
+                  </h4>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Only 1 active domain strategy allowed per tenant
+                  </span>
+                </div>
 
                 {tenantDomains.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.01)', borderRadius: '8px' }}>
-                    No custom domains added yet. Use the field above to register a domain or apply a platform subdomain.
+                  <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface, #ffffff)', borderRadius: '10px', border: '1px dashed var(--border-subtle)' }}>
+                    No custom domains added yet. Use the toggle above to configure a Platform Subdomain or connect a Custom White-Label Domain.
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {tenantDomains.map((dom) => (
-                      <div
-                        key={dom._id || dom.domain}
-                        style={{
-                          padding: '1rem',
-                          background: 'rgba(255,255,255,0.02)',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-subtle)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: '1rem',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <Globe className={`w-5 h-5 ${dom.isCustom ? 'text-indigo-400' : 'text-emerald-400'}`} />
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{dom.domain}</span>
-                              {dom.isPrimary && (
-                                <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(99,102,241,0.2)', color: 'var(--primary)', fontWeight: 700 }}>
-                                  PRIMARY
-                                </span>
-                              )}
-                              <Badge status={dom.status === 'verified' || dom.status === 'active' ? 'ACTIVE' : 'WARNING'} text={dom.status?.toUpperCase()} />
-                              <Badge status={dom.sslStatus === 'active' ? 'ACTIVE' : 'WARNING'} text={dom.sslStatus === 'active' ? 'TLS 1.3 Active' : 'SSL Pending'} />
+                    {tenantDomains.map((dom) => {
+                      const isLocalDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.localhost'));
+                      const visitUrl = isLocalDev
+                        ? buildTenantUrl({ ...tenant, slug: tenant?.slug || dom.domain.split('.')[0] }, 'public')
+                        : `https://${dom.domain}/`;
+
+                      return (
+                        <div
+                          key={dom._id || dom.domain}
+                          style={{
+                            padding: '1.15rem 1.25rem',
+                            background: 'var(--bg-surface, #ffffff)',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-subtle, #e2e8f0)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '1rem',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                            <div
+                              style={{
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '10px',
+                                background: dom.isCustom ? 'rgba(99, 102, 241, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Globe className={`w-5 h-5 ${dom.isCustom ? 'text-indigo-600' : 'text-emerald-600'}`} />
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              Type: {dom.isCustom ? 'Custom White-Label' : 'Platform Subdomain'}
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary, #0f172a)', fontFamily: 'monospace' }}>
+                                  {dom.domain}
+                                </span>
+                                {dom.isPrimary && (
+                                  <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(99,102,241,0.15)', color: '#4f46e5', fontWeight: 800 }}>
+                                    ★ ACTIVE PRIMARY
+                                  </span>
+                                )}
+                                <Badge status={dom.status === 'verified' || dom.status === 'active' ? 'ACTIVE' : 'WARNING'} text={dom.status?.toUpperCase() || 'ACTIVE'} />
+                                <Badge status={dom.sslStatus === 'active' ? 'ACTIVE' : 'WARNING'} text={dom.sslStatus === 'active' ? 'TLS 1.3 Active' : 'SSL Provisioning'} />
+                              </div>
+                              <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                Strategy: <strong style={{ color: dom.isCustom ? '#4f46e5' : '#059669' }}>{dom.isCustom ? 'Custom White-Label' : 'Platform Subdomain'}</strong>
+                                {isLocalDev && <span> &bull; Local route: <code style={{ color: 'var(--text-main, #334155)', fontWeight: 600 }}>{tenant?.slug}.localhost:3002</code></span>}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          {dom.status !== 'verified' && dom.status !== 'active' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {dom.status !== 'verified' && dom.status !== 'active' && (
+                              <button
+                                onClick={() => handleVerifyDomain(dom._id || dom.id)}
+                                className="btn btn-primary btn-sm"
+                                title="Verify DNS ownership"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Verify DNS</span>
+                              </button>
+                            )}
+
                             <button
-                              onClick={() => handleVerifyDomain(dom._id || dom.id)}
-                              className="btn btn-primary btn-sm"
-                              title="Verify DNS ownership"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Verify</span>
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => {
-                              setDomainEditModal({
-                                isOpen: true,
-                                domainId: dom._id || dom.id,
-                                domain: dom.domain,
-                                isPrimary: Boolean(dom.isPrimary),
-                                status: dom.status || 'active',
-                                sslStatus: dom.sslStatus || 'active',
-                                isCustom: Boolean(dom.isCustom),
-                              });
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            title="Edit Domain Name & Status"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
-                          </button>
-
-                          {!dom.isPrimary && (
-                            <button
-                              onClick={() => handleSetPrimaryDomain(dom._id || dom.id)}
+                              onClick={() => {
+                                setDomainEditModal({
+                                  isOpen: true,
+                                  domainId: dom._id || dom.id,
+                                  domain: dom.domain,
+                                  isPrimary: Boolean(dom.isPrimary),
+                                  status: dom.status || 'active',
+                                  sslStatus: dom.sslStatus || 'active',
+                                  isCustom: Boolean(dom.isCustom),
+                                });
+                              }}
                               className="btn btn-secondary btn-sm"
+                              title="Edit Domain Hostname & Status"
                             >
-                              Set Primary
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
                             </button>
-                          )}
 
-                          <a
-                            href={`https://${dom.domain}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn btn-secondary btn-sm"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
+                            {dom.isCustom && isLocalDev && (
+                              <a
+                                href={`http://${tenant?.slug || 'salon'}.localhost:${window.location.port || '3002'}/`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-secondary btn-sm"
+                                title="Test portal locally on localhost loopback"
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#4f46e5', fontWeight: 600 }}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 text-indigo-500" />
+                                <span>Local Dev Preview</span>
+                              </a>
+                            )}
 
-                          <button
-                            onClick={() => handleDeleteDomain(dom._id || dom.id)}
-                            className="btn btn-outline-danger btn-sm"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                            <a
+                              href={dom.isCustom ? (dom.domain.startsWith('http') ? dom.domain : `https://${dom.domain}/`) : visitUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-secondary btn-sm"
+                              title="Visit live website on this domain"
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Visit Domain</span>
+                            </a>
+
+                            <button
+                              onClick={() => handleDeleteDomain(dom._id || dom.id, dom.domain)}
+                              className="btn btn-outline-danger btn-sm"
+                              title="Delete and reset to default platform subdomain"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

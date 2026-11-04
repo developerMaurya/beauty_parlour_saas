@@ -40,6 +40,13 @@ router.get('/booking/availability', aptCtrl.getGeneralAvailability);
 router.get('/booking/services', publicCtrl.getPublicServices);
 router.get('/booking/packages', publicCtrl.getPublicPackages);
 
+// Academy Courses & Training
+router.get('/academy', publicCtrl.getPublicAcademyCourses);
+router.get('/courses', publicCtrl.getPublicAcademyCourses);
+
+// Public Contact & Inquiries
+router.post('/contact', publicCtrl.submitPublicContact);
+
 // Public Booking
 router.post('/bookings', publicCtrl.createPublicBooking);
 

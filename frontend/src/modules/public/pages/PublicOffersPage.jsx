@@ -20,8 +20,11 @@ export default function PublicOffersPage() {
       try {
         setLoading(true);
         const res = await offApi.getOffers();
-        if (res.data?.success) {
-          setOffers(res.data.data?.offers || res.data.data || []);
+        const data = res?.data?.offers || res?.data || res?.offers || res;
+        if (Array.isArray(data)) {
+          setOffers(data);
+        } else if (Array.isArray(data?.data)) {
+          setOffers(data.data);
         }
       } catch (err) {
         console.error('Failed to load public offers', err);
@@ -145,7 +148,7 @@ export default function PublicOffersPage() {
                 </div>
 
                 <button
-                  onClick={() => navigate(`/public/book?couponCode=${code}`)}
+                  onClick={() => navigate(`/book?couponCode=${code}`)}
                   style={{
                     width: '100%',
                     padding: '0.75rem',

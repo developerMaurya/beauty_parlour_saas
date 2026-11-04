@@ -35,6 +35,9 @@ export const authFetcher = {
 export const dashboardFetcher = {
   getOverview: (params) => adminAxiosClient.get('/admin/dashboard/overview', { params: buildParams(params) }),
   getOperationsQueue: (params) => adminAxiosClient.get('/admin/dashboard/operations-queue', { params: buildParams(params) }),
+  assignProduct: (data) => adminAxiosClient.post('/admin/dashboard/assign-product', data),
+  updateHomeServiceStatus: (appointmentId, data) => adminAxiosClient.patch(`/admin/dashboard/home-services/${appointmentId}/status`, data),
+  punchAttendance: (data) => adminAxiosClient.post('/admin/dashboard/attendance/punch', data),
 };
 
 // 3. User Fetcher

@@ -139,9 +139,9 @@ export const InventorySuppliersPage = () => {
   };
 
   const productFields = [
-    { name: 'name', label: 'Product Name', required: true, placeholder: 'e.g. L’Oréal Mythic Hair Oil, MAC Studio Fix' },
+    { name: 'name', label: 'Product Name (Creams, Powders, Serums, Kits)', required: true, placeholder: 'e.g. Kryolan HD Foundation Cream, MAC Translucent Powder, Olaplex No. 3' },
     { name: 'sku', label: 'SKU / Barcode', placeholder: 'SKU-8821' },
-    { name: 'category', label: 'Product Category', placeholder: 'e.g. Hair Care, Makeup, Consumables' },
+    { name: 'category', label: 'Product Category', placeholder: 'e.g. Creams & Powders, Makeup Artistry, Hair Care, Skin & Facial' },
     { name: 'price', label: 'Retail Price (₹)', type: 'currency', required: true },
     { name: 'costPrice', label: 'Purchase / Cost Price (₹)', type: 'currency' },
     { name: 'stockQuantity', label: 'Initial Stock Quantity', type: 'number', defaultValue: 10 },

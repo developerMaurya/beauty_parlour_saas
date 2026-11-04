@@ -44,47 +44,13 @@ import {
   Link2,
 } from 'lucide-react';
 
+import { buildTenantUrl, PLATFORM_DOMAIN } from '../../../utils/tenantDomain';
+
 /**
  * Resolve tenant portal URL dynamically (auto-detects localhost vs production)
  */
 export const getTenantVisitUrl = (tenant, portal = 'public') => {
-  if (!tenant) return '#';
-  const isLocal = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname.endsWith('.localhost')
-  );
-  const slug = tenant.subdomain || tenant.slug || 'salon';
-  const hasCustomDomain = tenant.primaryDomain &&
-    !tenant.primaryDomain.includes('yourplatform.com') &&
-    !tenant.primaryDomain.includes('beautysaas.local') &&
-    !tenant.primaryDomain.includes('localhost');
-
-  if (isLocal) {
-    const port = window.location.port ? `:${window.location.port}` : '';
-    const base = `${window.location.protocol}//${window.location.hostname}${port}`;
-    if (portal === 'admin') return `${base}/admin/login?tenant=${slug}`;
-    if (portal === 'customer') return `${base}/customer/login?tenant=${slug}`;
-    if (portal === 'staff') return `${base}/staff/login?tenant=${slug}`;
-    if (portal === 'student') return `${base}/student/login?tenant=${slug}`;
-    return `${base}/public?tenant=${slug}`;
-  }
-
-  // Live / Production URL
-  if (portal === 'public') {
-    if (hasCustomDomain) {
-      return tenant.primaryDomain.startsWith('http') ? tenant.primaryDomain : `https://${tenant.primaryDomain}`;
-    }
-    return `https://${slug}.yourplatform.com`;
-  }
-
-  const host = hasCustomDomain ? tenant.primaryDomain : `${slug}.yourplatform.com`;
-  const cleanHost = host.replace(/^https?:\/\//, '');
-  if (portal === 'admin') return `https://${cleanHost}/admin/login`;
-  if (portal === 'customer') return `https://${cleanHost}/customer/login`;
-  if (portal === 'staff') return `https://${cleanHost}/staff/login`;
-  if (portal === 'student') return `https://${cleanHost}/student/login`;
-  return `https://${cleanHost}/public`;
+  return buildTenantUrl(tenant, portal);
 };
 
 /**
@@ -194,7 +160,18 @@ const TenantActionsDropdown = ({
             onClick={() => setIsOpen(false)}
           >
             <Globe className="w-3.5 h-3.5 text-sky-400" />
-            <span>Public Website & Booking</span>
+            <span>Store / Website (/)</span>
+          </a>
+
+          <a
+            href={getTenantVisitUrl(tenant, 'booking')}
+            target="_blank"
+            rel="noreferrer"
+            className="action-dropdown-item"
+            onClick={() => setIsOpen(false)}
+          >
+            <Calendar className="w-3.5 h-3.5 text-rose-400" />
+            <span>Online Booking (/book)</span>
           </a>
 
           <a
@@ -205,7 +182,7 @@ const TenantActionsDropdown = ({
             onClick={() => setIsOpen(false)}
           >
             <Building2 className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Salon Admin Login</span>
+            <span>Salon Admin (/admin)</span>
           </a>
 
           <a
@@ -216,7 +193,7 @@ const TenantActionsDropdown = ({
             onClick={() => setIsOpen(false)}
           >
             <User className="w-3.5 h-3.5 text-pink-400" />
-            <span>Customer Booking Portal</span>
+            <span>Customer Portal (/customer)</span>
           </a>
 
           <a
@@ -227,7 +204,7 @@ const TenantActionsDropdown = ({
             onClick={() => setIsOpen(false)}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Staff Member Portal</span>
+            <span>Staff Portal (/staff)</span>
           </a>
 
           <a
@@ -238,7 +215,7 @@ const TenantActionsDropdown = ({
             onClick={() => setIsOpen(false)}
           >
             <Layers className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Student Academy Portal</span>
+            <span>Student Academy (/student)</span>
           </a>
 
           <div className="action-dropdown-divider" />
@@ -592,6 +569,7 @@ export const TenantsList = () => {
     const dateFormatted = expiryDate ? new Date(expiryDate).toISOString().split('T')[0] : '';
     const currentPlanId = tenant.planId?._id || tenant.planId || tenant.subscriptionId?.planId?._id || tenant.subscriptionId?.planId || '';
     const hasCustom = tenant.primaryDomain &&
+      !tenant.primaryDomain.includes(PLATFORM_DOMAIN) &&
       !tenant.primaryDomain.includes('yourplatform.com') &&
       !tenant.primaryDomain.includes('beautysaas.local') &&
       !tenant.primaryDomain.includes('localhost');
@@ -627,7 +605,7 @@ export const TenantsList = () => {
     const cleanSub = (editModal.subdomain || editModal.name.toLowerCase().replace(/[^a-z0-9]/g, '-')).trim();
     const finalPrimaryDomain = editModal.domainMode === 'custom' && editModal.primaryDomain?.trim()
       ? editModal.primaryDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '')
-      : `${cleanSub}.yourplatform.com`;
+      : `${cleanSub}.${PLATFORM_DOMAIN}`;
 
     const updatedData = {
       name: editModal.name,
@@ -840,8 +818,8 @@ export const TenantsList = () => {
       header: 'Domain Routing',
       accessor: 'primaryDomain',
       render: (row) => {
-        const isCustom = row.primaryDomain && !row.primaryDomain.includes('yourplatform.com') && !row.primaryDomain.includes('beautysaas.local') && !row.primaryDomain.includes('localhost');
-        const displayHost = isCustom ? row.primaryDomain : `${row.subdomain || row.slug}.yourplatform.com`;
+        const isCustom = row.primaryDomain && !row.primaryDomain.includes(PLATFORM_DOMAIN) && !row.primaryDomain.includes('yourplatform.com') && !row.primaryDomain.includes('beautysaas.local') && !row.primaryDomain.includes('localhost');
+        const displayHost = isCustom ? row.primaryDomain : `${row.subdomain || row.slug}.${PLATFORM_DOMAIN}`;
         const liveUrl = getTenantVisitUrl(row, 'public');
 
         return (
@@ -1619,14 +1597,14 @@ export const TenantsList = () => {
                       required
                     />
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '8px', whiteSpace: 'nowrap' }}>
-                      .yourplatform.com
+                      .{PLATFORM_DOMAIN}
                     </span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#38BDF8', marginTop: '4px' }}>
                     Live Resolution:{' '}
-                    {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-                      ? `http://localhost:${window.location.port || 3000}/public?tenant=${editModal.subdomain || 'tenant'} (Auto Localhost Mode)`
-                      : `https://${editModal.subdomain || 'tenant'}.yourplatform.com`}
+                    {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.endsWith('.localhost'))
+                      ? `http://${editModal.subdomain || 'tenant'}.localhost:${window.location.port || 3000}/ (Clean Localhost Subdomain)`
+                      : `https://${editModal.subdomain || 'tenant'}.${PLATFORM_DOMAIN}/`}
                   </div>
                 </div>
               ) : (
@@ -1637,13 +1615,13 @@ export const TenantsList = () => {
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. glamouracademy.in or blossomsalon.com"
+                    placeholder="e.g. www.glamourbeauty.com or blossomsalon.com"
                     value={editModal.primaryDomain}
                     onChange={(e) => setEditModal((p) => ({ ...p, primaryDomain: e.target.value }))}
                     required
                   />
                   <div style={{ fontSize: '0.72rem', color: '#38BDF8', marginTop: '4px' }}>
-                    Live Target: https://{editModal.primaryDomain || 'yourdomain.com'}
+                    Live Target: https://{editModal.primaryDomain || 'www.glamourbeauty.com'}/
                   </div>
                 </div>
               )}

@@ -29,13 +29,28 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Request Interceptor: Attach Access Token
+// Request Interceptor: Attach Access Token and Tenant Headers
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('sa_access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const tenantId = localStorage.getItem('tenant_id') || localStorage.getItem('admin_tenant_id') || localStorage.getItem('customer_tenant_id');
+    if (tenantId) {
+      config.headers['x-tenant-id'] = tenantId;
+    }
+
+    const tenantSlug = sessionStorage.getItem('current_tenant_slug') || localStorage.getItem('tenant_slug');
+    if (tenantSlug) {
+      config.headers['x-tenant-slug'] = tenantSlug;
+    }
+
+    if (typeof window !== 'undefined' && window.location.hostname) {
+      config.headers['x-tenant-domain'] = window.location.hostname;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

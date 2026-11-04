@@ -177,7 +177,7 @@ export const DomainsList = () => {
     setActionLoading(true);
     try {
       const cleanSub = subdomainModal.subdomain.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-      const fullDomain = `${cleanSub}.yourplatform.com`;
+      const fullDomain = `${cleanSub}.kashiservice.com`;
       await domainsApi.addTenantDomain(subdomainModal.tenantId, {
         domain: fullDomain,
         isPrimary: true,
@@ -246,7 +246,7 @@ export const DomainsList = () => {
   // Filtered domains
   const filteredDomains = domains.filter((d) => {
     if (domainTypeFilter === 'CUSTOM') return d.isCustom === true;
-    if (domainTypeFilter === 'SUBDOMAIN') return d.isCustom === false || d.domain?.includes('yourplatform.com');
+    if (domainTypeFilter === 'SUBDOMAIN') return d.isCustom === false || d.domain?.includes('kashiservice.com') || d.domain?.includes('yourplatform.com');
     return true;
   });
 
@@ -608,7 +608,7 @@ export const DomainsList = () => {
       >
         <form onSubmit={handleCreateSubdomain}>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Assign an instant pre-verified platform subdomain on your domain (e.g. <code>.yourplatform.com</code>) so the tenant can operate, book appointments, and test immediately without buying a domain.
+            Assign an instant pre-verified platform subdomain on your domain (e.g. <code>.kashiservice.com</code>) so the tenant can operate, book appointments, and test immediately without buying a domain.
           </p>
 
           <div className="form-group">
@@ -661,7 +661,7 @@ export const DomainsList = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                .yourplatform.com
+                .kashiservice.com
               </span>
             </div>
           </div>
@@ -794,7 +794,7 @@ export const DomainsList = () => {
               CNAME Record (Primary Traffic Routing)
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Host / Name: <code>@</code> or <code>www</code></div>
-            <div>Target Value: <code style={{ color: 'var(--primary)' }}>cname.yourplatform.com</code></div>
+            <div>Target Value: <code style={{ color: 'var(--primary)' }}>cname.kashiservice.com</code></div>
           </div>
 
           <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>

@@ -26,11 +26,13 @@ export default function PublicServicesPage() {
           srvApi.getServices(),
           catApi.getServiceCategories()
         ]);
-        if (sRes.status === 'fulfilled' && sRes.value.data?.success) {
-          setServices(sRes.value.data.data?.services || sRes.value.data.data || []);
+        if (sRes.status === 'fulfilled') {
+          const sData = sRes.value?.data?.services || sRes.value?.data || sRes.value?.services || sRes.value;
+          setServices(Array.isArray(sData) ? sData : (Array.isArray(sData?.data) ? sData.data : []));
         }
-        if (cRes.status === 'fulfilled' && cRes.value.data?.success) {
-          setCategories(cRes.value.data.data?.categories || cRes.value.data.data || []);
+        if (cRes.status === 'fulfilled') {
+          const cData = cRes.value?.data?.categories || cRes.value?.data || cRes.value?.categories || cRes.value;
+          setCategories(Array.isArray(cData) ? cData : (Array.isArray(cData?.data) ? cData.data : []));
         }
       } catch (err) {
         console.error('Failed to load public services', err);
@@ -182,7 +184,7 @@ export default function PublicServicesPage() {
                 </div>
 
                 <button
-                  onClick={() => navigate(`/public/book?serviceId=${sid}`)}
+                  onClick={() => navigate(`/book?serviceId=${sid}`)}
                   style={{
                     width: '100%',
                     padding: '0.75rem',

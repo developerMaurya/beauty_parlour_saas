@@ -1,7 +1,16 @@
 /**
  * @file public.routes.jsx
- * @description Routing Definitions for the White-Label Multi-Tenant Public & Guest Portal.
- * Conforms to Phase 07 Section 52.
+ * @description White-Label Multi-Tenant Public & Guest Portal Routing.
+ * Mounts clean, professional routes at the root domain/subdomain level:
+ *   - /            -> Store / Website Home
+ *   - /services    -> Service Catalog
+ *   - /packages    -> Beauty Packages
+ *   - /offers      -> Promotions & Discounts
+ *   - /branches    -> Salon Branches
+ *   - /book        -> Instant Appointment Booking
+ *   - /booking     -> Booking alias
+ * Supports Option A (glamour.kashiservice.com / glamour.localhost:3000)
+ * and Option B (www.glamourbeauty.com).
  * @module frontend/src/routes/public.routes
  */
 
@@ -15,10 +24,61 @@ import PublicPackagesPage from '../modules/public/pages/PublicPackagesPage.jsx';
 import PublicOffersPage from '../modules/public/pages/PublicOffersPage.jsx';
 import PublicBranchesPage from '../modules/public/pages/PublicBranchesPage.jsx';
 import PublicBookingPage from '../modules/public/pages/PublicBookingPage.jsx';
+import PublicAboutPage from '../modules/public/pages/PublicAboutPage.jsx';
+import PublicContactPage from '../modules/public/pages/PublicContactPage.jsx';
+import PublicAcademyPage from '../modules/public/pages/PublicAcademyPage.jsx';
 
 export const PublicRoutes = (
   <>
-    {/* Public & Guest Showcase Portal */}
+    {/* Clean White-Label Public Website at Root Level (SaaS Subdomain or Custom Domain) */}
+    <Route path="/" element={<PublicLayout />}>
+      <Route index element={<PublicHomePage />} />
+      <Route path="services" element={<PublicServicesPage />} />
+      <Route path="services/:id" element={<PublicServicesPage />} />
+      <Route path="packages" element={<PublicPackagesPage />} />
+      <Route path="packages/:id" element={<PublicPackagesPage />} />
+      <Route path="offers" element={<PublicOffersPage />} />
+      <Route path="offers/:id" element={<PublicOffersPage />} />
+      <Route path="branches" element={<PublicBranchesPage />} />
+      <Route path="branches/:id" element={<PublicBranchesPage />} />
+      <Route path="about" element={<PublicAboutPage />} />
+      <Route path="about-us" element={<PublicAboutPage />} />
+      <Route path="contact" element={<PublicContactPage />} />
+      <Route path="contact-us" element={<PublicContactPage />} />
+      <Route path="academy" element={<PublicAcademyPage />} />
+      <Route path="courses" element={<PublicAcademyPage />} />
+      <Route path="training" element={<PublicAcademyPage />} />
+      <Route path="book" element={<PublicBookingPage />} />
+      <Route path="booking" element={<PublicBookingPage />} />
+      <Route path="book/checkout" element={<PublicBookingPage />} />
+      <Route path="book/success" element={<PublicBookingPage />} />
+    </Route>
+
+    {/* Direct IP / Localhost Path Preview: /site/:tenantSlug */}
+    <Route path="/site/:tenantSlug" element={<PublicLayout />}>
+      <Route index element={<PublicHomePage />} />
+      <Route path="services" element={<PublicServicesPage />} />
+      <Route path="services/:id" element={<PublicServicesPage />} />
+      <Route path="packages" element={<PublicPackagesPage />} />
+      <Route path="packages/:id" element={<PublicPackagesPage />} />
+      <Route path="offers" element={<PublicOffersPage />} />
+      <Route path="offers/:id" element={<PublicOffersPage />} />
+      <Route path="branches" element={<PublicBranchesPage />} />
+      <Route path="branches/:id" element={<PublicBranchesPage />} />
+      <Route path="about" element={<PublicAboutPage />} />
+      <Route path="about-us" element={<PublicAboutPage />} />
+      <Route path="contact" element={<PublicContactPage />} />
+      <Route path="contact-us" element={<PublicContactPage />} />
+      <Route path="academy" element={<PublicAcademyPage />} />
+      <Route path="courses" element={<PublicAcademyPage />} />
+      <Route path="training" element={<PublicAcademyPage />} />
+      <Route path="book" element={<PublicBookingPage />} />
+      <Route path="booking" element={<PublicBookingPage />} />
+      <Route path="book/checkout" element={<PublicBookingPage />} />
+      <Route path="book/success" element={<PublicBookingPage />} />
+    </Route>
+
+    {/* Legacy /public Aliases (For Backwards-Compatibility) */}
     <Route path="/public" element={<PublicLayout />}>
       <Route index element={<PublicHomePage />} />
       <Route path="services" element={<PublicServicesPage />} />
@@ -30,13 +90,15 @@ export const PublicRoutes = (
       <Route path="branches" element={<PublicBranchesPage />} />
       <Route path="branches/:id" element={<PublicBranchesPage />} />
       <Route path="book" element={<PublicBookingPage />} />
+      <Route path="booking" element={<PublicBookingPage />} />
       <Route path="book/checkout" element={<PublicBookingPage />} />
       <Route path="book/success" element={<PublicBookingPage />} />
     </Route>
 
     {/* Guest Aliases */}
-    <Route path="/guest" element={<Navigate to="/public" replace />} />
-    <Route path="/guest/book" element={<Navigate to="/public/book" replace />} />
+    <Route path="/guest" element={<Navigate to="/" replace />} />
+    <Route path="/guest/book" element={<Navigate to="/book" replace />} />
+    <Route path="/guest/booking" element={<Navigate to="/book" replace />} />
   </>
 );
 

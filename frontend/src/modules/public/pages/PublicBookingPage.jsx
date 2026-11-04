@@ -111,8 +111,9 @@ export default function PublicBookingPage() {
       };
 
       const res = await guestApi.createGuestBooking(payload);
-      if (res.data?.success) {
-        setBookingConfirmed(res.data.data);
+      const conf = res?.data?.data || res?.data || res;
+      if (conf) {
+        setBookingConfirmed(conf);
       }
     } catch (err) {
       setMsg({
@@ -341,7 +342,7 @@ export default function PublicBookingPage() {
                 >
                   {branches.map(b => (
                     <option key={b._id || b.id} value={b._id || b.id}>
-                      {b.name} — {b.address || 'Main Branch'}
+                      {b.name} — {typeof b.address === 'object' && b.address ? (b.address.street || b.address.city || 'Main Branch') : String(b.address || 'Main Branch')}
                     </option>
                   ))}
                 </select>

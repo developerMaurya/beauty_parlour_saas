@@ -41,6 +41,7 @@ export const tenantsApi = {
   getSubscriptions: (tenantId) => axiosClient.get(`/superadmin/tenants/${tenantId}/subscriptions`),
   updateBlockSecurity: (tenantId, data) => axiosClient.post(`/superadmin/tenants/${tenantId}/block-security`, data),
   updateMasterAssignment: (tenantId, data) => axiosClient.post(`/superadmin/tenants/${tenantId}/master-assignment`, data),
+  resetAdminPassword: (tenantId, data) => axiosClient.post(`/superadmin/tenants/${tenantId}/reset-admin-password`, data),
   getDevices: (tenantId) => axiosClient.get(`/superadmin/tenants/${tenantId}/devices`),
   sendTestPush: (tenantId, deviceId) => axiosClient.post(`/superadmin/tenants/${tenantId}/devices/${deviceId}/test-push`),
   revokeDevice: (tenantId, deviceId) => axiosClient.delete(`/superadmin/tenants/${tenantId}/devices/${deviceId}`),

@@ -19,8 +19,11 @@ export default function PublicPackagesPage() {
       try {
         setLoading(true);
         const res = await pkgApi.getPackages();
-        if (res.data?.success) {
-          setPackages(res.data.data?.packages || res.data.data || []);
+        const data = res?.data?.packages || res?.data || res?.packages || res;
+        if (Array.isArray(data)) {
+          setPackages(data);
+        } else if (Array.isArray(data?.data)) {
+          setPackages(data.data);
         }
       } catch (err) {
         console.error('Failed to load public packages', err);
@@ -115,7 +118,7 @@ export default function PublicPackagesPage() {
                 </div>
 
                 <button
-                  onClick={() => navigate(`/public/book?packageId=${pkgId}`)}
+                  onClick={() => navigate(`/book?packageId=${pkgId}`)}
                   style={{
                     width: '100%',
                     padding: '0.875rem',

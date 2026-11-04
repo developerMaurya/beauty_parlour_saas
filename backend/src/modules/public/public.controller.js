@@ -12,10 +12,12 @@ export const getPublicBusiness = async (req, res) => {
   try {
     const WebsiteConfig = getTenantModel(req, 'WebsiteConfig');
     const Branch = getTenantModel(req, 'Branch');
+    const ServiceCategory = getTenantModel(req, 'ServiceCategory');
 
-    const [config, branches] = await Promise.all([
+    const [config, branches, categories] = await Promise.all([
       WebsiteConfig.findOne({ tenantId: req.tenantId }),
-      Branch.find({ tenantId: req.tenantId, status: 'active' }).select('name code phone email address openingTime closingTime isDefault'),
+      Branch.find({ tenantId: req.tenantId, status: 'active' }).select('name code phone email address openingTime closingTime isDefault weeklyOff'),
+      ServiceCategory.find({ tenantId: req.tenantId, status: 'active' }).select('name slug icon description sortOrder').sort({ sortOrder: 1, name: 1 }),
     ]);
 
     return sendSuccess(res, 'Business details retrieved', {
@@ -26,7 +28,52 @@ export const getPublicBusiness = async (req, res) => {
       theme: req.tenant.theme,
       websiteConfig: config,
       branches,
+      categories,
     });
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const submitPublicContact = async (req, res) => {
+  try {
+    const { name, email, phone, message, serviceInterest, preferredBranch } = req.body;
+    if (!name || (!phone && !email)) {
+      return sendError(res, 'Name and either Phone or Email are required', [], 400);
+    }
+
+    const WebsiteConfig = getTenantModel(req, 'WebsiteConfig');
+    let config = await WebsiteConfig.findOne({ tenantId: req.tenantId });
+    if (!config) {
+      config = await WebsiteConfig.create({ tenantId: req.tenantId, businessName: req.tenant.name });
+    }
+
+    const newInquiry = {
+      name: name.trim(),
+      email: (email || '').trim().toLowerCase(),
+      phone: (phone || '').trim(),
+      serviceInterest: serviceInterest || 'General Inquiry',
+      preferredBranch: preferredBranch || 'Any Branch',
+      message: message || '',
+      status: 'new',
+      createdAt: new Date(),
+    };
+
+    config.inquiries = config.inquiries || [];
+    config.inquiries.unshift(newInquiry);
+    await config.save();
+
+    return sendSuccess(res, 'Inquiry received successfully! Our beauty specialists will contact you shortly.', newInquiry, 201);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const getPublicAcademyCourses = async (req, res) => {
+  try {
+    const StudentPlan = getTenantModel(req, 'StudentPlan');
+    const courses = await StudentPlan.find({ tenantId: req.tenantId }).sort({ price: 1 });
+    return sendSuccess(res, 'Academy courses retrieved', courses);
   } catch (error) {
     return sendError(res, error.message, [], 500);
   }
@@ -421,5 +468,7 @@ export default {
   getPublicTestimonials,
   getPublicFaqs,
   createPublicBooking,
+  getPublicAcademyCourses,
+  submitPublicContact,
 };
 

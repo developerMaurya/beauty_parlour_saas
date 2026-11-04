@@ -1317,12 +1317,42 @@ export const WebsiteConfigSchema = new Schema(
     businessName: { type: String, default: '' },
     tagline: { type: String, default: '' },
     logoUrl: { type: String, default: '' },
+    faviconUrl: { type: String, default: '' },
     bannerUrl: { type: String, default: '' },
+    banners: [
+      {
+        title: String,
+        subtitle: String,
+        imageUrl: String,
+        buttonText: String,
+        buttonUrl: String,
+        isActive: { type: Boolean, default: true },
+      },
+    ],
+    navMenu: [
+      {
+        label: String,
+        path: String,
+        icon: String,
+        isVisible: { type: Boolean, default: true },
+        isExternal: { type: Boolean, default: false },
+        order: { type: Number, default: 0 },
+      },
+    ],
     primaryColor: { type: String, default: '#e11d48' },
     contactPhone: { type: String, default: '' },
+    whatsappPhone: { type: String, default: '' },
     contactEmail: { type: String, default: '' },
     address: { type: String, default: '' },
+    mapEmbedUrl: { type: String, default: '' },
     openingHoursText: { type: String, default: 'Mon-Sun: 9:00 AM - 8:00 PM' },
+    aboutFounder: {
+      name: { type: String, default: '' },
+      role: { type: String, default: '' },
+      quote: { type: String, default: '' },
+      photoUrl: { type: String, default: '' },
+      experienceYears: { type: Number, default: 12 },
+    },
     socialLinks: {
       facebook: { type: String, default: '' },
       instagram: { type: String, default: '' },
@@ -1331,6 +1361,42 @@ export const WebsiteConfigSchema = new Schema(
     },
     metaTitle: { type: String, default: '' },
     metaDescription: { type: String, default: '' },
+    heroHeading: { type: String, default: '' },
+    heroSubheading: { type: String, default: '' },
+    aboutStory: { type: String, default: '' },
+    aboutStats: [
+      {
+        label: String,
+        value: String,
+        icon: String,
+      },
+    ],
+    announcementBar: {
+      text: { type: String, default: '' },
+      isVisible: { type: Boolean, default: false },
+      linkUrl: { type: String, default: '' },
+    },
+    dynamicCategories: [
+      {
+        name: String,
+        slug: String,
+        icon: String,
+        description: String,
+        badge: String,
+      },
+    ],
+    inquiries: [
+      {
+        name: String,
+        email: String,
+        phone: String,
+        serviceInterest: String,
+        preferredBranch: String,
+        message: String,
+        status: { type: String, enum: ['new', 'contacted', 'converted', 'closed'], default: 'new' },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     gallery: [
       {
         title: String,

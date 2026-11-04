@@ -12,7 +12,12 @@ import { verifyAccessToken } from '../modules/auth/services/token.service.js';
 
 export const tenantResolverMiddleware = async (req, res, next) => {
   try {
-    let tenantIdentifier = req.headers['x-tenant-id'] || req.headers['x-tenant-slug'] || req.query.tenantId || req.query.tenantSlug;
+    let tenantIdentifier = req.headers['x-tenant-id'] || 
+                           req.headers['x-tenant-slug'] || 
+                           req.headers['x-tenant-domain'] || 
+                           req.query.tenantId || 
+                           req.query.tenantSlug || 
+                           req.query.tenant;
 
     // If not provided in headers, check Authorization JWT token if present
     if (!tenantIdentifier && req.headers.authorization) {
@@ -29,14 +34,33 @@ export const tenantResolverMiddleware = async (req, res, next) => {
       }
     }
 
-    // If still not found, inspect host/domain
-    if (!tenantIdentifier && req.headers.host) {
-      const host = req.headers.host.split(':')[0].toLowerCase();
-      // If host is subdomain like tenant1.beautysaas.local
-      if (host.includes('.')) {
+    // Inspect Host header / Forwarded Host for Subdomain or Custom White-Label Domain
+    const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+    const host = rawHost.split(':')[0].toLowerCase();
+
+    if (!tenantIdentifier && host) {
+      // 1. Localhost Subdomain: e.g. glamour.localhost or glamour-academy.localhost
+      if (host.endsWith('.localhost')) {
+        const sub = host.replace('.localhost', '').trim();
+        if (sub && !['api', 'admin', 'www', 'superadmin', 'app'].includes(sub)) {
+          tenantIdentifier = sub;
+        }
+      }
+      // 2. Kashi Service Platform Subdomain: e.g. glamour.kashiservice.com
+      else if (host.endsWith('.kashiservice.com')) {
+        const sub = host.replace('.kashiservice.com', '').trim();
+        if (sub && !['api', 'admin', 'www', 'superadmin', 'app', 'cname'].includes(sub)) {
+          tenantIdentifier = sub;
+        }
+      }
+      // 3. Generic Multi-Part Subdomain (e.g. salon1.beautysaas.local)
+      else if (host.includes('.')) {
         const parts = host.split('.');
-        if (parts.length >= 3 && parts[0] !== 'api' && parts[0] !== 'admin' && parts[0] !== 'www') {
+        if (parts.length >= 3 && !['api', 'admin', 'www', 'superadmin', 'app'].includes(parts[0])) {
           tenantIdentifier = parts[0];
+        } else if (host !== 'localhost' && !/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+          // 4. White-Label Custom Domain: e.g. www.glamourbeauty.com or glamourbeauty.com
+          tenantIdentifier = host.replace(/^www\./, '');
         }
       }
     }
@@ -65,14 +89,32 @@ export const tenantResolverMiddleware = async (req, res, next) => {
       tenant = await Tenant.findById(tenantIdentifier);
     }
     if (!tenant) {
+      const cleanIdent = String(tenantIdentifier).toLowerCase().trim();
+      const cleanWithoutWww = cleanIdent.replace(/^www\./, '');
       tenant = await Tenant.findOne({
         $or: [
-          { slug: String(tenantIdentifier).toLowerCase() },
-          { code: String(tenantIdentifier).toUpperCase() },
-          { primaryDomain: String(tenantIdentifier).toLowerCase() },
-          { subdomain: String(tenantIdentifier).toLowerCase() },
+          { slug: cleanIdent },
+          { slug: cleanWithoutWww },
+          { subdomain: cleanIdent },
+          { subdomain: cleanWithoutWww },
+          { primaryDomain: cleanIdent },
+          { primaryDomain: cleanWithoutWww },
+          { primaryDomain: `www.${cleanWithoutWww}` },
+          { code: cleanIdent.toUpperCase() },
         ],
       });
+    }
+
+    if (!tenant) {
+      const cleanIdent = String(tenantIdentifier).toLowerCase().trim();
+      const cleanWithoutWww = cleanIdent.replace(/^www\./, '');
+      const { Domain } = await import('../modules/superadmin/domains/models/domain.model.js');
+      const domainDoc = await Domain.findOne({
+        domain: { $in: [cleanIdent, cleanWithoutWww, `www.${cleanWithoutWww}`] },
+      });
+      if (domainDoc && domainDoc.tenantId) {
+        tenant = await Tenant.findById(domainDoc.tenantId);
+      }
     }
 
     if (!tenant) {

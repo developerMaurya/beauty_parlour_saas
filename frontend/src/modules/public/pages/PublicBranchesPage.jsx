@@ -19,8 +19,11 @@ export default function PublicBranchesPage() {
       try {
         setLoading(true);
         const res = await brApi.getBranches();
-        if (res.data?.success) {
-          setBranches(res.data.data?.branches || res.data.data || []);
+        const data = res?.data?.branches || res?.data || res?.branches || res;
+        if (Array.isArray(data)) {
+          setBranches(data);
+        } else if (Array.isArray(data?.data)) {
+          setBranches(data.data);
         }
       } catch (err) {
         console.error('Failed to load branches', err);
@@ -97,7 +100,9 @@ export default function PublicBranchesPage() {
                   </div>
 
                   <p style={{ margin: '0.75rem 0', color: '#cbd5e1', fontSize: '0.875rem', lineHeight: '1.5' }}>
-                    {b.address || 'High Street Luxury Boulevard, Level 2, Metro Center'}
+                    {typeof b.address === 'object' && b.address
+                      ? [b.address.street, b.address.city, b.address.state].filter(Boolean).join(', ') || 'High Street Luxury Boulevard, Level 2, Metro Center'
+                      : String(b.address || 'High Street Luxury Boulevard, Level 2, Metro Center')}
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem', color: '#94a3b8' }}>
@@ -108,7 +113,7 @@ export default function PublicBranchesPage() {
                 </div>
 
                 <button
-                  onClick={() => navigate(`/public/book?branchId=${bid}`)}
+                  onClick={() => navigate(`/book?branchId=${bid}`)}
                   style={{
                     width: '100%',
                     padding: '0.75rem',

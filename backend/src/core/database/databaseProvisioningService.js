@@ -81,23 +81,55 @@ export const databaseProvisioningService = {
         });
 
         // Step 5: Seed Initial Tenant Administrator
-        if (adminUserPayload && adminUserPayload.email && adminUserPayload.password) {
-          const passwordHash = await hashPassword(adminUserPayload.password);
-          await conn.db.collection('users').insertOne({
-            name: adminUserPayload.name || tenant.ownerName || 'Tenant Administrator',
-            email: adminUserPayload.email.toLowerCase().trim(),
+        const adminEmail = (adminUserPayload?.email || tenant.email || '').toLowerCase().trim();
+        const adminPassword = adminUserPayload?.password || 'Password@123';
+        if (adminEmail) {
+          const passwordHash = await hashPassword(adminPassword);
+          const tenantIdStr = String(tenant._id || tenant.id);
+          
+          const adminDoc = {
+            tenantId: tenantIdStr,
+            email: adminEmail,
+            phone: adminUserPayload?.phone || tenant.phone || '',
+            username: (adminUserPayload?.username || adminEmail.split('@')[0]).toLowerCase().trim(),
             passwordHash,
-            role: 'admin',
+            role: 'ADMIN',
             status: 'active',
-            isOwner: true,
+            isBlocked: false,
+            failedLoginAttempts: 0,
+            sessionVersion: 1,
             createdAt: new Date(),
             updatedAt: new Date(),
-          });
+          };
+
+          // Primary model collection used by TenantUser Mongoose model
+          await conn.db.collection('tenantusers').updateOne(
+            { tenantId: tenantIdStr, email: adminEmail },
+            { $set: adminDoc },
+            { upsert: true }
+          );
+
+          // Also keep legacy users collection populated for backward compatibility
+          await conn.db.collection('users').updateOne(
+            { email: adminEmail },
+            { $set: {
+                name: adminUserPayload?.name || tenant.ownerName || 'Tenant Administrator',
+                email: adminEmail,
+                passwordHash,
+                role: 'admin',
+                status: 'active',
+                isOwner: true,
+                updatedAt: new Date(),
+              },
+              $setOnInsert: { createdAt: new Date() }
+            },
+            { upsert: true }
+          );
 
           steps.push({
             step: 'SEED_TENANT_ADMIN',
             status: 'completed',
-            adminEmail: adminUserPayload.email,
+            adminEmail,
             timestamp: new Date(),
           });
         }
@@ -114,24 +146,56 @@ export const databaseProvisioningService = {
         });
 
         // In shared DB, ensure central mapping is tagged and tenant isolated records exist
-        if (adminUserPayload && adminUserPayload.email && adminUserPayload.password) {
-          const passwordHash = await hashPassword(adminUserPayload.password);
-          await centralConn.db.collection('tenant_users').insertOne({
-            tenantId: String(tenant._id || tenant.id),
-            name: adminUserPayload.name || tenant.ownerName || 'Tenant Administrator',
-            email: adminUserPayload.email.toLowerCase().trim(),
+        const adminEmail = (adminUserPayload?.email || tenant.email || '').toLowerCase().trim();
+        const adminPassword = adminUserPayload?.password || 'Password@123';
+        if (adminEmail) {
+          const passwordHash = await hashPassword(adminPassword);
+          const tenantIdStr = String(tenant._id || tenant.id);
+
+          const adminDoc = {
+            tenantId: tenantIdStr,
+            email: adminEmail,
+            phone: adminUserPayload?.phone || tenant.phone || '',
+            username: (adminUserPayload?.username || adminEmail.split('@')[0]).toLowerCase().trim(),
             passwordHash,
-            role: 'admin',
+            role: 'ADMIN',
             status: 'active',
-            isOwner: true,
+            isBlocked: false,
+            failedLoginAttempts: 0,
+            sessionVersion: 1,
             createdAt: new Date(),
             updatedAt: new Date(),
-          });
+          };
+
+          // Primary collection used by TenantUser Mongoose model in shared database
+          await centralConn.db.collection('tenantusers').updateOne(
+            { tenantId: tenantIdStr, email: adminEmail },
+            { $set: adminDoc },
+            { upsert: true }
+          );
+
+          // Legacy collection sync
+          await centralConn.db.collection('tenant_users').updateOne(
+            { tenantId: tenantIdStr, email: adminEmail },
+            { $set: {
+                tenantId: tenantIdStr,
+                name: adminUserPayload?.name || tenant.ownerName || 'Tenant Administrator',
+                email: adminEmail,
+                passwordHash,
+                role: 'admin',
+                status: 'active',
+                isOwner: true,
+                updatedAt: new Date(),
+              },
+              $setOnInsert: { createdAt: new Date() }
+            },
+            { upsert: true }
+          );
 
           steps.push({
             step: 'SEED_SHARED_TENANT_ADMIN',
             status: 'completed',
-            adminEmail: adminUserPayload.email,
+            adminEmail,
             timestamp: new Date(),
           });
         }

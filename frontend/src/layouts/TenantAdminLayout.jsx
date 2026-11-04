@@ -32,8 +32,13 @@ import {
   ChevronDown,
   Building2,
   Sparkles,
+  Sun,
+  Moon,
+  ExternalLink,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
+import { useTheme } from '../context/ThemeContext.jsx';
+import { buildTenantUrl } from '../utils/tenantDomain.js';
 
 const navItems = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -59,6 +64,7 @@ const navItems = [
 export const TenantAdminLayout = () => {
   const { user, tenant, branches, selectedBranchId, switchBranch, logout, isAuthenticated, isLoading } =
     useTenantAdmin();
+  const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (isLoading) {
@@ -322,7 +328,43 @@ export const TenantAdminLayout = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Live Website Preview Link */}
+            <a
+              href={buildTenantUrl(tenant, 'public')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-sm btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', textDecoration: 'none' }}
+              title="Visit Customer-Facing Website"
+            >
+              <Globe className="w-3.5 h-3.5 text-sky-400" />
+              <span>Visit Website</span>
+              <ExternalLink className="w-3 h-3 text-slate-400" />
+            </a>
+
+            {/* Bright Light / Dark Theme Switcher */}
+            <button
+              onClick={toggleTheme}
+              className="btn-icon"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: 'var(--bg-app)',
+                border: '1px solid var(--border-color)',
+                color: theme === 'dark' ? '#f59e0b' : '#6366f1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              title={theme === 'dark' ? 'Switch to Bright Light Mode' : 'Switch to Dark Luxury Mode'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+
             <span
               style={{
                 padding: '4px 10px',
