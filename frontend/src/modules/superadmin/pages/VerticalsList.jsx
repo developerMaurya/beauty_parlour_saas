@@ -85,9 +85,9 @@ export const VerticalsList = () => {
         tenantsApi.list({ limit: 100 }).catch(() => ({ data: { tenants: [] } })),
       ]);
 
-      setVerticals(vertRes.data?.verticals || []);
-      setTemplates(tplRes.data?.templates || []);
-      setTenants(tenRes.data?.tenants || []);
+      setVerticals(Array.isArray(vertRes.data) ? vertRes.data : (vertRes.data?.verticals || vertRes.data?.items || []));
+      setTemplates(Array.isArray(tplRes.data) ? tplRes.data : (tplRes.data?.templates || tplRes.data?.items || []));
+      setTenants(Array.isArray(tenRes.data) ? tenRes.data : (tenRes.data?.tenants || tenRes.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to load industry verticals');
     } finally {

@@ -27,6 +27,7 @@ import { profileController } from '../modules/superadmin/profile/controllers/pro
 import { verticalController } from '../modules/superadmin/verticals/controllers/vertical.controller.js';
 import { templateController } from '../modules/superadmin/templates/controllers/template.controller.js';
 import { themeController } from '../modules/superadmin/themes/controllers/theme.controller.js';
+import { masterController } from '../modules/superadmin/masters/controllers/master.controller.js';
 
 import {
   authenticateAccessToken,
@@ -63,6 +64,11 @@ router.get('/tenants/:tenantId/usage', tenantController.getTenantUsage);
 router.get('/tenants/:tenantId/database', tenantController.getTenantDatabase);
 router.get('/tenants/:tenantId/domains', tenantController.getTenantDomains);
 router.get('/tenants/:tenantId/subscriptions', tenantController.getTenantSubscriptions);
+router.post('/tenants/:tenantId/block-security', tenantController.updateBlockSecurity);
+router.post('/tenants/:tenantId/master-assignment', tenantController.updateMasterAssignment);
+router.get('/tenants/:tenantId/devices', tenantController.getTenantDevices);
+router.post('/tenants/:tenantId/devices/:deviceId/test-push', tenantController.sendTestPushToDevice);
+router.delete('/tenants/:tenantId/devices/:deviceId', tenantController.revokeDevice);
 router.get('/tenants/:tenantId/addons', addonController.listTenantAddons);
 router.post('/tenants/:tenantId/addons', addonController.assignAddonToTenant);
 router.patch('/tenants/:tenantId/addons/:assignmentId', addonController.updateTenantAddon);
@@ -203,6 +209,7 @@ router.get('/settings/security', settingsController.getSecuritySettings);
 router.patch('/settings/security', settingsController.updateSecuritySettings);
 
 // N. Notification APIs
+router.post('/notifications/send', notificationController.sendNotification);
 router.post('/notifications', notificationController.createTemplate);
 router.get('/notifications', notificationController.listTemplates);
 router.get('/notifications/:notificationId', notificationController.getTemplateById);
@@ -253,6 +260,14 @@ router.get('/themes/:themeId', themeController.getThemeById);
 router.patch('/themes/:themeId', themeController.updateTheme);
 router.delete('/themes/:themeId', themeController.deleteTheme);
 router.post('/tenants/:tenantId/theme', themeController.applyThemeToTenant);
+
+// U. Central Master Data Management APIs
+router.get('/masters', masterController.listMasters);
+router.post('/masters', masterController.createMaster);
+router.post('/masters/seed-defaults', masterController.seedDefaults);
+router.get('/masters/:id', masterController.getMasterById);
+router.patch('/masters/:id', masterController.updateMaster);
+router.delete('/masters/:id', masterController.deleteMaster);
 
 export default router;
 

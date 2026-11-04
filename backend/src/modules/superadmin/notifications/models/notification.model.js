@@ -23,7 +23,7 @@ const NotificationTemplateSchema = new mongoose.Schema(
     channels: [
       {
         type: String,
-        enum: ['email', 'sms', 'whatsapp', 'in_app'],
+        enum: ['email', 'sms', 'whatsapp', 'in_app', 'push', 'fcm'],
       },
     ],
     subject: {
@@ -60,7 +60,7 @@ const NotificationLogSchema = new mongoose.Schema(
     },
     channel: {
       type: String,
-      enum: ['email', 'sms', 'whatsapp', 'in_app'],
+      enum: ['email', 'sms', 'whatsapp', 'in_app', 'push', 'fcm'],
       required: true,
     },
     recipient: {

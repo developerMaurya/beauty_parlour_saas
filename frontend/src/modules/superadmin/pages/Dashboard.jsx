@@ -57,8 +57,8 @@ export const Dashboard = () => {
 
       setOverview(overviewRes.data || {});
       setRevenue(revenueRes.data || {});
-      setRecentActivities(activitiesRes.data?.activities || []);
-      setExpiringSubs(expiringRes.data?.subscriptions || []);
+      setRecentActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data : (activitiesRes.data?.activities || activitiesRes.data?.items || []));
+      setExpiringSubs(Array.isArray(expiringRes.data) ? expiringRes.data : (expiringRes.data?.subscriptions || expiringRes.data?.items || []));
     } finally {
       setIsLoading(false);
     }
@@ -331,57 +331,120 @@ export const Dashboard = () => {
               </div>
             </div>
 
-            {/* Expiring Subscriptions Alert Panel */}
+            {/* Expiring Subscriptions Alert Panel (Next 30 Days) */}
             <div className="card">
               <div className="card-header">
                 <div>
                   <h3 className="card-title">
                     <AlertTriangle className="w-5 h-5 text-amber-400" />
-                    <span>Expiring Subscriptions</span>
+                    <span>Expiring Subscriptions (Next 30 Days)</span>
                   </h3>
-                  <p className="card-subtitle">Tenants requiring renewal or plan follow-up</p>
+                  <p className="card-subtitle">Tenants requiring renewal or plan follow-up from live database</p>
                 </div>
                 <Link to="/superadmin/subscriptions" className="btn btn-secondary btn-sm">
-                  View All
+                  View All ({expiringSubs.length})
                 </Link>
               </div>
 
-              <div style={{ marginTop: '0.5rem' }}>
+              <div style={{ marginTop: '0.75rem' }}>
                 {expiringSubs.length === 0 ? (
                   <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                     <ShieldCheck className="w-8 h-8 text-emerald-400" style={{ margin: '0 auto 0.5rem', opacity: 0.8 }} />
                     <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>All Subscriptions Current</p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No tenant accounts expiring within the next 14 days.</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No tenant accounts expiring within the next 30 days.</p>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {expiringSubs.slice(0, 4).map((sub) => (
-                      <div
-                        key={sub._id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.75rem 1rem',
-                          borderRadius: 'var(--radius-md)',
-                          background: 'rgba(255, 255, 255, 0.02)',
-                          border: '1px solid var(--border-subtle)',
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{sub.tenantName || 'Tenant'}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Expires: {new Date(sub.endDate).toLocaleDateString()}
+                    {expiringSubs.slice(0, 10).map((sub) => {
+                      const daysLeft = sub.daysRemaining !== undefined ? sub.daysRemaining : Math.ceil((new Date(sub.endDate) - new Date()) / (1000 * 60 * 60 * 24));
+                      const isExpired = sub.isExpired || daysLeft <= 0;
+                      return (
+                        <div
+                          key={sub._id || sub.subscriptionId}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.85rem 1rem',
+                            borderRadius: 'var(--radius-md)',
+                            background: isExpired ? 'rgba(239, 68, 68, 0.04)' : 'rgba(255, 255, 255, 0.02)',
+                            border: `1px solid ${isExpired ? 'rgba(239, 68, 68, 0.25)' : 'var(--border-subtle)'}`,
+                            gap: '1rem',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '220px' }}>
+                            <div
+                              style={{
+                                width: '2.25rem',
+                                height: '2.25rem',
+                                borderRadius: '8px',
+                                background: isExpired ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.12)',
+                                color: isExpired ? '#F87171' : 'var(--primary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                              }}
+                            >
+                              {sub.tenantName ? sub.tenantName.charAt(0).toUpperCase() : 'T'}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{sub.tenantName || 'Tenant'}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                Plan: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sub.planName || 'Standard Plan'}</span>
+                                {sub.amount > 0 && ` • ₹${sub.amount.toLocaleString()}`}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                Expiry: {new Date(sub.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </div>
+                              <div style={{ marginTop: '2px' }}>
+                                {isExpired ? (
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#F87171', background: 'rgba(239, 68, 68, 0.12)', padding: '2px 8px', borderRadius: '4px' }}>
+                                    ⚠️ Expired ({Math.abs(daysLeft)}d ago)
+                                  </span>
+                                ) : daysLeft <= 3 ? (
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#EF4444', background: 'rgba(239, 68, 68, 0.12)', padding: '2px 8px', borderRadius: '4px' }}>
+                                    ⚠️ {daysLeft} days left
+                                  </span>
+                                ) : daysLeft <= 15 ? (
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#F59E0B', background: 'rgba(245, 158, 11, 0.12)', padding: '2px 8px', borderRadius: '4px' }}>
+                                    ⏳ {daysLeft} days left
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10B981', background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: '4px' }}>
+                                    ✓ {daysLeft} days left
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                              <Link
+                                to={`/superadmin/tenants?search=${encodeURIComponent(sub.tenantName || '')}`}
+                                className="btn btn-secondary btn-sm"
+                                title="Manage Tenant"
+                              >
+                                Manage
+                              </Link>
+                              <Link
+                                to={`/superadmin/subscriptions`}
+                                className="btn btn-primary btn-sm"
+                                title="Renew Subscription"
+                              >
+                                Renew
+                              </Link>
+                            </div>
                           </div>
                         </div>
-                        <Link
-                          to={`/superadmin/subscriptions`}
-                          className="btn btn-secondary btn-sm"
-                        >
-                          Renew
-                        </Link>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

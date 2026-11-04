@@ -81,12 +81,15 @@ export const notificationController = {
   async sendNotification(req, res, next) {
     try {
       const { channel, type, recipient, subject, body, customMessage, targetType, tenantId } = req.body;
-      const tpl = await NotificationTemplate.findById(req.params.notificationId);
+      let tpl = null;
+      if (req.params.notificationId && req.params.notificationId !== 'send') {
+        tpl = await NotificationTemplate.findById(req.params.notificationId).catch(() => null);
+      }
 
       const finalChannel = (channel || (type ? type.toLowerCase() : null) || tpl?.channels?.[0] || 'email').toLowerCase();
       const finalSubject = subject || tpl?.subject || 'Platform Broadcast Notification';
       const finalBody = body || customMessage || tpl?.body || 'Platform Notification dispatch';
-      const finalRecipient = recipient || (targetType === 'ALL_TENANTS' ? 'All Active Tenants' : 'Tenant Owner');
+      const finalRecipient = recipient || (targetType === 'ALL_TENANTS' ? 'All Active Tenants' : 'Tenant Administrator');
 
       const log = await NotificationLog.create({
         tenantId: tenantId || null,
@@ -107,7 +110,11 @@ export const notificationController = {
       const limit = parseInt(req.query.limit || '50', 10);
 
       const total = await NotificationLog.countDocuments();
-      const logs = await NotificationLog.find().sort({ sentAt: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+      const logs = await NotificationLog.find()
+        .populate('tenantId', 'name slug email phone')
+        .sort({ sentAt: -1, createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit);
       return sendSuccess(res, 'Notification logs', { items: logs, logs, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
     } catch (e) { next(e); }
   },

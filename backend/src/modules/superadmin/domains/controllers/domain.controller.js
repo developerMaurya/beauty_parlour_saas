@@ -10,7 +10,7 @@ export const domainController = {
       if (req.query.status) query.status = req.query.status;
       if (req.query.isCustom !== undefined) query.isCustom = req.query.isCustom === 'true';
 
-      const domains = await Domain.find(query).populate('tenantId', 'name slug email').sort({ createdAt: -1 });
+      const domains = await Domain.find(query).populate('tenantId', 'name slug email subdomain primaryDomain').sort({ createdAt: -1 });
       return sendSuccess(res, 'Domains retrieved', domains);
     } catch (e) { next(e); }
   },
@@ -62,8 +62,54 @@ export const domainController = {
 
   async updateDomain(req, res, next) {
     try {
-      const domain = await Domain.findByIdAndUpdate(req.params.domainId, { $set: req.body }, { new: true });
-      return sendSuccess(res, 'Domain updated', domain);
+      const { domainId } = req.params;
+      const { domain, isPrimary, status, sslStatus, isCustom } = req.body;
+
+      const existingDoc = await Domain.findById(domainId);
+      if (!existingDoc) {
+        return sendError(res, 'Domain not found', [], 404);
+      }
+
+      if (domain && domain.trim().toLowerCase() !== existingDoc.domain) {
+        const cleanDomain = domain.trim().toLowerCase();
+        const conflict = await Domain.findOne({ domain: cleanDomain, _id: { $ne: domainId } });
+        if (conflict) {
+          return sendError(res, `Domain hostname "${cleanDomain}" is already in use by another tenant`, [], 409);
+        }
+        existingDoc.domain = cleanDomain;
+      }
+
+      if (isCustom !== undefined) existingDoc.isCustom = Boolean(isCustom);
+      if (status) {
+        existingDoc.status = status;
+        if (status === 'verified' || status === 'active') {
+          existingDoc.verifiedAt = existingDoc.verifiedAt || new Date();
+          if (!sslStatus) existingDoc.sslStatus = 'active';
+        }
+      }
+      if (sslStatus) existingDoc.sslStatus = sslStatus;
+
+      if (isPrimary !== undefined) {
+        const primaryBool = Boolean(isPrimary);
+        existingDoc.isPrimary = primaryBool;
+        if (primaryBool) {
+          await Domain.updateMany({ tenantId: existingDoc.tenantId, _id: { $ne: domainId } }, { $set: { isPrimary: false } });
+          await Tenant.findByIdAndUpdate(existingDoc.tenantId, { primaryDomain: existingDoc.domain });
+        }
+      }
+
+      await existingDoc.save();
+      const updated = await Domain.findById(domainId).populate('tenantId', 'name slug email subdomain primaryDomain');
+
+      await recordAuditLog({
+        req,
+        action: 'DOMAIN_UPDATED',
+        resourceType: 'Domain',
+        resourceId: domainId,
+        details: { domain: existingDoc.domain, status: existingDoc.status, isPrimary: existingDoc.isPrimary },
+      });
+
+      return sendSuccess(res, 'Domain updated successfully', updated);
     } catch (e) { next(e); }
   },
 

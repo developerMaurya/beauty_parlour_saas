@@ -12,12 +12,16 @@ export const auditLogController = {
       const query = {};
       if (action) query.action = action;
       if (resourceType) query.resourceType = resourceType;
+      if (req.query.tenantId) {
+        query.$or = [{ tenantId: req.query.tenantId }, { resourceId: req.query.tenantId }];
+      }
 
       const total = await AuditLog.countDocuments(query);
       const logs = await AuditLog.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
 
       return sendSuccess(res, 'Audit logs retrieved', {
         items: logs,
+        logs,
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       });
     } catch (e) { next(e); }

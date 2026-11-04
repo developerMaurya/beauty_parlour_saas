@@ -40,6 +40,11 @@ export const BillingView = () => {
     reason: '',
   });
 
+  const [viewInvoiceModal, setViewInvoiceModal] = useState({
+    isOpen: false,
+    invoice: null,
+  });
+
   const [actionLoading, setActionLoading] = useState(false);
   const { success, error } = useToast();
 
@@ -116,31 +121,45 @@ export const BillingView = () => {
       header: 'Invoice Number',
       accessor: 'invoiceNumber',
       render: (row) => (
-        <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
+        <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--primary)' }}>
           {row.invoiceNumber || `INV-${row._id?.substring(0, 8)}`}
         </span>
       ),
     },
     {
-      header: 'Tenant Name',
-      accessor: 'tenantName',
-      render: (row) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{row.tenantName || 'Tenant'}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            ID: {row.tenantId || row._id}
+      header: 'Tenant Business',
+      accessor: 'tenantId',
+      render: (row) => {
+        const tenant = row.tenantId;
+        const name = tenant?.name || row.tenantName || 'Salon Tenant';
+        const email = tenant?.email || '';
+        return (
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{name}</div>
+            {email && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{email}</div>}
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      header: 'Amount',
-      accessor: 'amount',
-      render: (row) => (
-        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-          ${row.amount?.toFixed(2) || '0.00'}
-        </span>
-      ),
+      header: 'Total Amount',
+      accessor: 'totalAmount',
+      render: (row) => {
+        const total = row.totalAmount || row.amount || 0;
+        const tax = row.taxAmount || 0;
+        return (
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+              ₹{total.toLocaleString('en-IN')}
+            </div>
+            {tax > 0 && (
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                Incl. ₹{tax.toLocaleString('en-IN')} GST (18%)
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Status',
@@ -148,62 +167,103 @@ export const BillingView = () => {
       render: (row) => <Badge status={row.status || 'PAID'} />,
     },
     {
-      header: 'Due Date',
+      header: 'Due / Paid Date',
       accessor: 'dueDate',
       render: (row) => (
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-          {row.dueDate ? new Date(row.dueDate).toLocaleDateString() : 'N/A'}
-        </span>
+        <div style={{ fontSize: '0.8rem' }}>
+          {row.paidAt ? (
+            <span style={{ color: '#10B981', fontWeight: 500 }}>
+              Paid: {new Date(row.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </span>
+          ) : (
+            <span style={{ color: '#F59E0B', fontWeight: 500 }}>
+              Due: {new Date(row.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => setViewInvoiceModal({ isOpen: true, invoice: row })}
+          className="btn btn-secondary btn-sm"
+          title="View Tax Invoice Receipt"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>Receipt</span>
+        </button>
       ),
     },
   ];
 
   const transactionColumns = [
     {
-      header: 'Transaction ID',
-      accessor: '_id',
+      header: 'Gateway Tx ID',
+      accessor: 'gatewayTransactionId',
       render: (row) => (
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
-          {row.transactionId || row._id?.substring(0, 10)}
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {row.gatewayTransactionId || row.transactionId || row._id?.substring(0, 12)}
         </span>
       ),
     },
     {
-      header: 'Tenant Name',
-      accessor: 'tenantName',
-      render: (row) => (
-        <span style={{ fontWeight: 500 }}>{row.tenantName || 'Tenant'}</span>
-      ),
+      header: 'Tenant Business',
+      accessor: 'tenantId',
+      render: (row) => {
+        const tenant = row.tenantId;
+        return (
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {tenant?.name || row.tenantName || 'Salon Tenant'}
+          </span>
+        );
+      },
     },
     {
-      header: 'Amount',
+      header: 'Settlement Amount',
       accessor: 'amount',
       render: (row) => (
-        <span style={{ fontWeight: 700, color: '#10B981' }}>
-          +${row.amount?.toFixed(2) || '0.00'}
+        <span style={{ fontWeight: 700, color: '#10B981', fontSize: '0.9rem' }}>
+          +₹{(row.amount || 0).toLocaleString('en-IN')}
         </span>
       ),
     },
     {
-      header: 'Gateway',
-      accessor: 'gateway',
-      render: (row) => <span>{row.gateway || 'Stripe'}</span>,
+      header: 'Payment Method',
+      accessor: 'paymentMethod',
+      render: (row) => (
+        <span style={{ textTransform: 'capitalize', fontSize: '0.8rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-subtle)' }}>
+          {(row.paymentMethod || 'card').replace('_', ' ')}
+        </span>
+      ),
     },
     {
       header: 'Status',
       accessor: 'status',
-      render: (row) => <Badge status={row.status || 'SUCCESS'} />,
+      render: (row) => <Badge status={row.status || 'SUCCEEDED'} />,
     },
     {
-      header: 'Date',
+      header: 'Settled At',
       accessor: 'createdAt',
       render: (row) => (
         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          {new Date(row.createdAt).toLocaleDateString()}
+          {new Date(row.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
         </span>
       ),
     },
   ];
+
+  const totalCalculatedRevenue = transactions
+    .filter((tx) => tx.status === 'succeeded')
+    .reduce((acc, tx) => acc + (tx.amount || 0), 0);
+
+  const pendingReceivables = invoices
+    .filter((inv) => inv.status === 'unpaid' || inv.status === 'overdue')
+    .reduce((acc, inv) => acc + (inv.totalAmount || inv.amount || 0), 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -250,27 +310,27 @@ export const BillingView = () => {
       <div className="grid-cols-4">
         <StatCard
           title="Total Gross Revenue"
-          value={`$${(overview.totalRevenue || 0).toLocaleString()}`}
+          value={`₹${(totalCalculatedRevenue || overview.totalRevenue || 0).toLocaleString('en-IN')}`}
           trend="up"
           change="+18.2%"
           icon={DollarSign}
         />
         <StatCard
           title="Invoices Paid"
-          value={overview.paidInvoices || invoices.length || 0}
+          value={invoices.filter((i) => i.status === 'paid').length || overview.paidInvoices || 0}
           trend="up"
           icon={Receipt}
         />
         <StatCard
           title="Pending Receivables"
-          value={`$${(overview.pendingAmount || 0).toLocaleString()}`}
+          value={`₹${(pendingReceivables || overview.pendingAmount || 0).toLocaleString('en-IN')}`}
           trend="down"
           icon={ArrowUpRight}
         />
         <StatCard
-          title="Refunds Issued"
-          value={`$${(overview.refundedAmount || 0).toLocaleString()}`}
-          trend="down"
+          title="Successful Transactions"
+          value={transactions.filter((t) => t.status === 'succeeded').length || 0}
+          trend="up"
           icon={ArrowDownLeft}
         />
       </div>
@@ -432,6 +492,103 @@ export const BillingView = () => {
             />
           </div>
         </form>
+      </Modal>
+
+      {/* View & Print Invoice Modal */}
+      <Modal
+        isOpen={viewInvoiceModal.isOpen}
+        onClose={() => setViewInvoiceModal({ isOpen: false, invoice: null })}
+        title={`Tax Invoice: ${viewInvoiceModal.invoice?.invoiceNumber || 'Details'}`}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => window.print()}
+            >
+              <Download className="w-4 h-4" />
+              <span>Print / Download Receipt</span>
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => setViewInvoiceModal({ isOpen: false, invoice: null })}
+            >
+              Done
+            </button>
+          </div>
+        }
+      >
+        {viewInvoiceModal.invoice && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '0.5rem 0' }}>
+            {/* Header info */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {viewInvoiceModal.invoice.tenantId?.name || viewInvoiceModal.invoice.tenantName || 'Salon Enterprise'}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {viewInvoiceModal.invoice.tenantId?.email}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary)' }}>
+                  {viewInvoiceModal.invoice.invoiceNumber}
+                </div>
+                <div style={{ marginTop: '4px' }}>
+                  <Badge status={viewInvoiceModal.invoice.status || 'PAID'} />
+                </div>
+              </div>
+            </div>
+
+            {/* Line items table */}
+            <div>
+              <div style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                Itemized Services & Subscription Term:
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+                <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '0.65rem 1rem' }}>Description</th>
+                      <th style={{ padding: '0.65rem 1rem', textAlign: 'right' }}>Qty</th>
+                      <th style={{ padding: '0.65rem 1rem', textAlign: 'right' }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(viewInvoiceModal.invoice.lineItems || [
+                      { description: 'Platform Services', amount: viewInvoiceModal.invoice.amount || 0, quantity: 1 }
+                    ]).map((item, idx) => (
+                      <tr key={idx} style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                        <td style={{ padding: '0.75rem 1rem' }}>{item.description}</td>
+                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{item.quantity || 1}</td>
+                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>
+                          ₹{(item.amount || 0).toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Totals */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', alignItems: 'flex-end', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
+                <span style={{ fontWeight: 600 }}>₹{(viewInvoiceModal.invoice.amount || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>GST (18% Central & State):</span>
+                <span style={{ fontWeight: 600 }}>₹{(viewInvoiceModal.invoice.taxAmount || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '2rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '1.05rem' }}>
+                <span style={{ fontWeight: 700 }}>Total Settled:</span>
+                <span style={{ fontWeight: 800, color: 'var(--primary)' }}>
+                  ₹{(viewInvoiceModal.invoice.totalAmount || viewInvoiceModal.invoice.amount || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

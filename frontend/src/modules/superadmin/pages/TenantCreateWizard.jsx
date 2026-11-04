@@ -1,12 +1,16 @@
 /**
  * @file TenantCreateWizard.jsx
- * @description 6-Step Multi-Tenant Provisioning Wizard with Real Database Provisioning
+ * @description 7-Step Multi-Tenant Provisioning Wizard with Database Provisioning and Permissions Matrix
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { tenantsApi, plansApi } from '../../../services/api/superadmin.api';
 import { useToast } from '../../../context/ToastContext';
+import {
+  DEFAULT_PERMISSIONS,
+  PERMISSION_DEFINITIONS,
+} from '../tenants/constants/permissions.constants';
 import {
   Building2,
   Layers,
@@ -19,7 +23,10 @@ import {
   Sparkles,
   Server,
   Shield,
+  ShieldCheck,
   Loader2,
+  Check,
+  Link2,
 } from 'lucide-react';
 
 const STEPS = [
@@ -28,7 +35,8 @@ const STEPS = [
   { id: 3, title: 'Database Mode', icon: Database },
   { id: 4, title: 'Domain Setup', icon: Globe },
   { id: 5, title: 'Tenant Admin', icon: UserCheck },
-  { id: 6, title: 'Review & Provision', icon: CheckCircle2 },
+  { id: 6, title: 'Permissions', icon: ShieldCheck },
+  { id: 7, title: 'Review & Provision', icon: CheckCircle2 },
 ];
 
 export const TenantCreateWizard = () => {
@@ -63,6 +71,7 @@ export const TenantCreateWizard = () => {
     databaseName: '',
 
     // Step 4: Domain
+    domainMode: 'subdomain',
     subdomain: '',
     customDomain: '',
     isPrimaryCustom: false,
@@ -72,6 +81,9 @@ export const TenantCreateWizard = () => {
     adminEmail: '',
     adminPhone: '',
     initialStatus: 'ACTIVE',
+
+    // Step 6: Permissions
+    permissions: { ...DEFAULT_PERMISSIONS },
   });
 
   // Load available plans
@@ -102,16 +114,20 @@ export const TenantCreateWizard = () => {
       name,
       slug,
       subdomain: slug,
-      databaseName: prev.databaseMode === 'SEPARATE' ? `beauty_tenant_${slug.replace(/-/g, '_')}` : 'beauty_saas_shared',
+      databaseName:
+        prev.databaseMode === 'SEPARATE'
+          ? `beauty_tenant_${slug.replace(/-/g, '_')}`
+          : 'beauty_saas_shared',
       adminName: prev.adminName || prev.ownerName,
       adminEmail: prev.adminEmail || prev.email,
     }));
   };
 
   const handleModeChange = (mode) => {
-    const generatedDb = mode === 'SEPARATE'
-      ? `beauty_tenant_${(formData.slug || 'custom').replace(/-/g, '_')}`
-      : 'beauty_saas_shared';
+    const generatedDb =
+      mode === 'SEPARATE'
+        ? `beauty_tenant_${(formData.slug || 'custom').replace(/-/g, '_')}`
+        : 'beauty_saas_shared';
     setFormData((prev) => ({
       ...prev,
       databaseMode: mode,
@@ -147,7 +163,7 @@ export const TenantCreateWizard = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, 6));
+      setCurrentStep((prev) => Math.min(prev + 1, 7));
     }
   };
 
@@ -184,11 +200,17 @@ export const TenantCreateWizard = () => {
           phone: formData.adminPhone || formData.phone,
         },
         status: formData.initialStatus,
+        permissions: formData.permissions,
+        allowCustomCloudflare: Boolean(formData.permissions?.customCloudflare),
+        allowCustomDatabase: Boolean(formData.permissions?.customDatabase),
+        customDomainAllowed: Boolean(formData.permissions?.customDomain),
+        ipWhitelistEnabled: Boolean(formData.permissions?.ipWhitelist),
+        whiteLabelEnabled: Boolean(formData.permissions?.whiteLabelBranding),
       };
 
       const res = await tenantsApi.create(payload);
       setProvisionResult(res.data);
-      success('Tenant provisioned successfully with live database and administrator!');
+      success('Tenant provisioned successfully with live database, permissions and administrator!');
     } catch (err) {
       error(err.message || 'Tenant provisioning failed');
     } finally {
@@ -196,8 +218,10 @@ export const TenantCreateWizard = () => {
     }
   };
 
+  const enabledPermissionsCount = Object.values(formData.permissions || {}).filter(Boolean).length;
+
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Wizard Header */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -207,7 +231,7 @@ export const TenantCreateWizard = () => {
         </div>
         <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>Tenant Provisioning Wizard</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          Configure multi-database architecture, white-label domain routing, and tenant administration.
+          Configure multi-database architecture, domain routing, operational permissions, and tenant administration.
         </p>
       </div>
 
@@ -220,11 +244,12 @@ export const TenantCreateWizard = () => {
           background: 'var(--bg-card)',
           border: '1px solid var(--border-card)',
           borderRadius: 'var(--radius-lg)',
-          padding: '1rem 1.5rem',
+          padding: '1rem 1.25rem',
+          overflowX: 'auto',
+          gap: '0.5rem',
         }}
       >
-        {STEPS.map((s, idx) => {
-          const Icon = s.icon;
+        {STEPS.map((s) => {
           const isDone = currentStep > s.id;
           const isCurrent = currentStep === s.id;
 
@@ -235,8 +260,14 @@ export const TenantCreateWizard = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                opacity: isCurrent || isDone ? 1 : 0.4,
+                opacity: isCurrent || isDone ? 1 : 0.45,
+                cursor: isDone ? 'pointer' : 'default',
+                flexShrink: 0,
               }}
+              onClick={() => {
+                if (isDone) setCurrentStep(s.id);
+              }}
+              title={isDone ? `Jump to Step ${s.id}` : ''}
             >
               <div
                 style={{
@@ -254,13 +285,12 @@ export const TenantCreateWizard = () => {
                   justifyContent: 'center',
                   fontSize: '0.8rem',
                   fontWeight: 700,
+                  flexShrink: 0,
                 }}
               >
                 {isDone ? '✓' : s.id}
               </div>
-              <span style={{ fontSize: '0.825rem', fontWeight: 600, display: 'none', lg: 'inline' }}>
-                {s.title}
-              </span>
+              <span style={{ fontSize: '0.825rem', fontWeight: 600 }}>{s.title}</span>
             </div>
           );
         })}
@@ -398,7 +428,8 @@ export const TenantCreateWizard = () => {
                       style={{
                         padding: '1.25rem',
                         borderRadius: 'var(--radius-md)',
-                        background: formData.planId === plan._id ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                        background:
+                          formData.planId === plan._id ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
                         border: `1px solid ${formData.planId === plan._id ? 'var(--primary)' : 'var(--border-card)'}`,
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
@@ -406,7 +437,8 @@ export const TenantCreateWizard = () => {
                     >
                       <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>{plan.name}</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>
-                        ${plan.price} <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>/mo</span>
+                        ${plan.price}{' '}
+                        <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>/mo</span>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
                         {plan.description || 'Full features for beauty operations'}
@@ -460,7 +492,8 @@ export const TenantCreateWizard = () => {
                 style={{
                   padding: '1.5rem',
                   borderRadius: 'var(--radius-lg)',
-                  background: formData.databaseMode === 'SHARED' ? 'rgba(14, 165, 233, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                  background:
+                    formData.databaseMode === 'SHARED' ? 'rgba(14, 165, 233, 0.12)' : 'rgba(255, 255, 255, 0.02)',
                   border: `2px solid ${formData.databaseMode === 'SHARED' ? '#38BDF8' : 'var(--border-card)'}`,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -484,7 +517,8 @@ export const TenantCreateWizard = () => {
                 style={{
                   padding: '1.5rem',
                   borderRadius: 'var(--radius-lg)',
-                  background: formData.databaseMode === 'SEPARATE' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                  background:
+                    formData.databaseMode === 'SEPARATE' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
                   border: `2px solid ${formData.databaseMode === 'SEPARATE' ? '#C084FC' : 'var(--border-card)'}`,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -524,56 +558,111 @@ export const TenantCreateWizard = () => {
         {currentStep === 4 && (
           <div>
             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Step 4: White-Label Domain Routing</h3>
-            <div className="grid-cols-2">
+
+            {/* Mode Selector */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div
+                onClick={() => setFormData((p) => ({ ...p, domainMode: 'subdomain', isPrimaryCustom: false }))}
+                style={{
+                  padding: '1.25rem',
+                  borderRadius: 'var(--radius-lg)',
+                  background: formData.domainMode !== 'custom' ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                  border: `2px solid ${formData.domainMode !== 'custom' ? 'var(--primary)' : 'var(--border-card)'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <Link2 className="w-5 h-5 text-indigo-400" />
+                  <span style={{ fontWeight: 700, fontSize: '1rem' }}>Option A: Platform Subdomain</span>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.4, margin: 0 }}>
+                  Fastest setup. Uses platform wildcard DNS with free automatic SSL certificate.
+                </p>
+              </div>
+
+              <div
+                onClick={() => setFormData((p) => ({ ...p, domainMode: 'custom', isPrimaryCustom: true }))}
+                style={{
+                  padding: '1.25rem',
+                  borderRadius: 'var(--radius-lg)',
+                  background: formData.domainMode === 'custom' ? 'rgba(14, 165, 233, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                  border: `2px solid ${formData.domainMode === 'custom' ? '#38BDF8' : 'var(--border-card)'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <Globe className="w-5 h-5 text-sky-400" />
+                  <span style={{ fontWeight: 700, fontSize: '1rem' }}>Option B: Custom White-Label Domain</span>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.4, margin: 0 }}>
+                  Full brand isolation. Tenant uses their own custom registered domain (e.g. yourbrand.com).
+                </p>
+              </div>
+            </div>
+
+            {formData.domainMode !== 'custom' ? (
               <div className="form-group">
-                <label className="form-label">Platform Subdomain *</label>
+                <label className="form-label">Platform Subdomain Prefix *</label>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="my-salon"
-                    value={formData.subdomain}
-                    onChange={(e) => setFormData((p) => ({ ...p, subdomain: e.target.value }))}
+                    placeholder="e.g. blossom-salon"
+                    value={formData.subdomain || formData.slug}
+                    onChange={(e) => setFormData((p) => ({ ...p, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                     required
                   />
                   <span style={{ padding: '0 0.75rem', color: 'var(--text-muted)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                    .beautysaas.local
+                    .yourplatform.com
                   </span>
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Custom White-Label Domain (Optional)</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="www.mysalonbrand.com"
-                  value={formData.customDomain}
-                  onChange={(e) => setFormData((p) => ({ ...p, customDomain: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            {formData.customDomain && (
-              <div
-                style={{
-                  marginTop: '1rem',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                  DNS Verification Instructions for {formData.customDomain}:
+                <div style={{ fontSize: '0.75rem', color: '#38BDF8', marginTop: '6px' }}>
+                  Resolved Route:{' '}
+                  {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                    ? `http://localhost:${window.location.port || 3000}/public?tenant=${formData.subdomain || formData.slug || 'salon'} (Localhost Development)`
+                    : `https://${formData.subdomain || formData.slug || 'salon'}.yourplatform.com (Production SaaS)`}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  1. CNAME Record: <code style={{ color: 'var(--primary)' }}>@</code> pointing to{' '}
-                  <code style={{ color: 'var(--primary)' }}>cname.beautysaas.com</code>
-                  <br />
-                  2. TXT Record: <code style={{ color: 'var(--primary)' }}>_beauty-verification</code> pointing to{' '}
-                  <code style={{ color: 'var(--primary)' }}>verify-tenant-{formData.slug}</code>
+              </div>
+            ) : (
+              <div>
+                <div className="form-group">
+                  <label className="form-label">Custom White-Label Domain *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. glamouracademy.in or blossomsalon.com"
+                    value={formData.customDomain}
+                    onChange={(e) => setFormData((p) => ({ ...p, customDomain: e.target.value }))}
+                    required
+                  />
+                  <div style={{ fontSize: '0.75rem', color: '#38BDF8', marginTop: '6px' }}>
+                    Live Target URL: https://{formData.customDomain || 'yourdomain.com'}
+                  </div>
                 </div>
+
+                {formData.customDomain && (
+                  <div
+                    style={{
+                      marginTop: '1rem',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                      DNS Verification Records for {formData.customDomain}:
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      1. CNAME Record: <code style={{ color: 'var(--primary)' }}>@ / www</code> pointing to{' '}
+                      <code style={{ color: 'var(--primary)' }}>cname.yourplatform.com</code>
+                      <br />
+                      2. Fallback Subdomain: <code style={{ color: 'var(--primary)' }}>{formData.subdomain || formData.slug || 'salon'}.yourplatform.com</code>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -634,10 +723,134 @@ export const TenantCreateWizard = () => {
           </div>
         )}
 
-        {/* Step 6: Review & Provision */}
+        {/* Step 6: Permissions */}
         {currentStep === 6 && (
           <div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Step 6: Review & Automatic Provisioning</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Step 6: Module Access & System Permissions</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
+                  Configure operational modules and governance controls granted to this tenant upon provisioning.
+                </p>
+              </div>
+            </div>
+
+            {/* Summary Bar */}
+            <div className="permission-summary-bar">
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Assigned Permissions Matrix
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {enabledPermissionsCount} of 17 permissions enabled by default.
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const allOn = {};
+                    Object.keys(DEFAULT_PERMISSIONS).forEach((k) => {
+                      allOn[k] = true;
+                    });
+                    setFormData((p) => ({ ...p, permissions: allOn }));
+                  }}
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                >
+                  Enable All
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const allOff = {};
+                    Object.keys(DEFAULT_PERMISSIONS).forEach((k) => {
+                      allOff[k] = false;
+                    });
+                    setFormData((p) => ({ ...p, permissions: allOff }));
+                  }}
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                >
+                  Disable All
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {PERMISSION_DEFINITIONS.map((category) => (
+                <div key={category.section}>
+                  <div className="permission-section-title">
+                    <span>{category.icon}</span>
+                    <span>{category.section}</span>
+                  </div>
+
+                  <div className="permission-grid">
+                    {category.items.map((item) => {
+                      const isEnabled = Boolean(formData.permissions?.[item.key]);
+                      return (
+                        <div
+                          key={item.key}
+                          className={`permission-item ${isEnabled ? 'enabled' : ''}`}
+                          onClick={() => {
+                            setFormData((p) => ({
+                              ...p,
+                              permissions: {
+                                ...p.permissions,
+                                [item.key]: !p.permissions?.[item.key],
+                              },
+                            }));
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="permission-item-label">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span className="permission-item-name">{item.name}</span>
+                              <span
+                                style={{
+                                  fontSize: '0.65rem',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  background: isEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                  color: isEnabled ? '#10B981' : 'var(--text-muted)',
+                                }}
+                              >
+                                {isEnabled ? 'ENABLED' : 'DISABLED'}
+                              </span>
+                            </div>
+                            <div className="permission-item-desc">{item.desc}</div>
+                          </div>
+                          <label className="permission-toggle" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isEnabled}
+                              onChange={() => {
+                                setFormData((p) => ({
+                                  ...p,
+                                  permissions: {
+                                    ...p.permissions,
+                                    [item.key]: !p.permissions?.[item.key],
+                                  },
+                                }));
+                              }}
+                            />
+                            <span className="toggle-track" />
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 7: Review & Provision */}
+        {currentStep === 7 && (
+          <div>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Step 7: Review & Automatic Provisioning</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
               Confirm tenant specifications. Clicking Provision will initialize databases, configure collections, and create tenant credentials.
             </p>
@@ -682,6 +895,70 @@ export const TenantCreateWizard = () => {
               </div>
             </div>
 
+            {/* Permissions Summary Section */}
+            <div
+              style={{
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-lg)',
+                background: 'rgba(99, 102, 241, 0.05)',
+                border: '1px solid rgba(99, 102, 241, 0.2)',
+                marginBottom: '1.5rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>
+                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                  <span>Permissions & Entitlements Summary</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '999px',
+                    background: 'rgba(99, 102, 241, 0.15)',
+                    color: 'var(--primary)',
+                  }}
+                >
+                  {enabledPermissionsCount} of 17 Enabled
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {Object.entries(formData.permissions || {}).map(([key, val]) => {
+                  if (!val) return null;
+                  let itemName = key;
+                  for (const sec of PERMISSION_DEFINITIONS) {
+                    const found = sec.items.find((it) => it.key === key);
+                    if (found) {
+                      itemName = found.name;
+                      break;
+                    }
+                  }
+                  return (
+                    <span
+                      key={key}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontSize: '0.75rem',
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: '6px',
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        color: '#10B981',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      <Check className="w-3 h-3" />
+                      <span>{itemName}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
             {provisionResult ? (
               <div
                 style={{
@@ -697,7 +974,7 @@ export const TenantCreateWizard = () => {
                   Tenant Provisioned Successfully!
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                  Database collections created, domain routing established, and admin user initialized.
+                  Database collections created, domain routing established, permissions configured, and admin user initialized.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
                   <Link
@@ -735,7 +1012,7 @@ export const TenantCreateWizard = () => {
               <ArrowLeft className="w-4 h-4" /> Previous
             </button>
 
-            {currentStep < 6 ? (
+            {currentStep < 7 ? (
               <button className="btn btn-primary" onClick={handleNext}>
                 <span>Next Step</span>
                 <ArrowRight className="w-4 h-4" />

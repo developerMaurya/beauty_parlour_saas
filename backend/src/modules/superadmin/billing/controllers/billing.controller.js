@@ -24,10 +24,13 @@ export const billingController = {
     try {
       const page = parseInt(req.query.page || '1', 10);
       const limit = parseInt(req.query.limit || '15', 10);
+      const query = {};
+      if (req.query.tenantId) query.tenantId = req.query.tenantId;
+      if (req.query.status) query.status = req.query.status;
 
-      const total = await Transaction.countDocuments();
-      const items = await Transaction.find().populate('tenantId', 'name slug email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
-      return sendSuccess(res, 'Transactions retrieved', { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+      const total = await Transaction.countDocuments(query);
+      const items = await Transaction.find(query).populate('tenantId', 'name slug email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+      return sendSuccess(res, 'Transactions retrieved', { items, transactions: items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
     } catch (e) { next(e); }
   },
 
@@ -43,10 +46,13 @@ export const billingController = {
     try {
       const page = parseInt(req.query.page || '1', 10);
       const limit = parseInt(req.query.limit || '15', 10);
+      const query = {};
+      if (req.query.tenantId) query.tenantId = req.query.tenantId;
+      if (req.query.status) query.status = req.query.status;
 
-      const total = await Invoice.countDocuments();
-      const items = await Invoice.find().populate('tenantId', 'name slug email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
-      return sendSuccess(res, 'Invoices retrieved', { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+      const total = await Invoice.countDocuments(query);
+      const items = await Invoice.find(query).populate('tenantId', 'name slug email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+      return sendSuccess(res, 'Invoices retrieved', { items, invoices: items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
     } catch (e) { next(e); }
   },
 
@@ -88,7 +94,7 @@ export const billingController = {
   async listRefunds(req, res, next) {
     try {
       const refunds = await Refund.find().populate('tenantId', 'name slug email').sort({ createdAt: -1 });
-      return sendSuccess(res, 'Refunds retrieved', refunds);
+      return sendSuccess(res, 'Refunds retrieved', { items: refunds, refunds });
     } catch (e) { next(e); }
   },
 

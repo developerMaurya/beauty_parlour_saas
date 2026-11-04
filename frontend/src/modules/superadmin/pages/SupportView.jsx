@@ -87,8 +87,8 @@ export const SupportView = () => {
         tenantsApi.list({ limit: 100 }).catch(() => ({ data: { tenants: [] } })),
       ]);
 
-      setTickets(tickRes.data?.tickets || []);
-      setTenants(tenRes.data?.tenants || []);
+      setTickets(Array.isArray(tickRes.data) ? tickRes.data : (tickRes.data?.tickets || tickRes.data?.items || []));
+      setTenants(Array.isArray(tenRes.data) ? tenRes.data : (tenRes.data?.tenants || tenRes.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to fetch tickets');
     } finally {

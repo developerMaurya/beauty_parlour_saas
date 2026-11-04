@@ -100,7 +100,7 @@ export const verticalController = {
 
       return res.status(200).json({
         success: true,
-        data: { verticals: enriched },
+        data: { verticals: enriched, items: enriched },
       });
     } catch (err) {
       next(err);

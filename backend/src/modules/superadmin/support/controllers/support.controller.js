@@ -8,7 +8,7 @@ export const supportController = {
       if (req.query.status) query.status = req.query.status;
 
       const tickets = await SupportTicket.find(query).populate('tenantId', 'name slug email').sort({ createdAt: -1 });
-      return sendSuccess(res, 'Support tickets retrieved', tickets);
+      return sendSuccess(res, 'Support tickets retrieved', { tickets, items: tickets });
     } catch (e) { next(e); }
   },
 

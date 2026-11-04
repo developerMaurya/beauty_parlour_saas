@@ -44,8 +44,8 @@ export const ThemesList = () => {
         tenantsApi.list({ limit: 100 }).catch(() => ({ data: { tenants: [] } })),
       ]);
 
-      setThemes(thmRes.data?.themes || []);
-      setTenants(tenRes.data?.tenants || []);
+      setThemes(Array.isArray(thmRes.data) ? thmRes.data : (thmRes.data?.themes || thmRes.data?.items || []));
+      setTenants(Array.isArray(tenRes.data) ? tenRes.data : (tenRes.data?.tenants || tenRes.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to load themes');
     } finally {

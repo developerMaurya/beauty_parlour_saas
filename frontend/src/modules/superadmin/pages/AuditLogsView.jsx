@@ -33,7 +33,7 @@ export const AuditLogsView = () => {
         limit: pagination.limit,
         search,
       });
-      setLogs(res.data?.logs || []);
+      setLogs(Array.isArray(res.data) ? res.data : (res.data?.logs || res.data?.items || []));
       setPagination((p) => ({ ...p, total: res.data?.pagination?.total || 0 }));
     } catch (err) {
       error(err.message || 'Failed to fetch audit logs');

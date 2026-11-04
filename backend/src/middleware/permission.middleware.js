@@ -35,4 +35,25 @@ export const requirePermission = (permissionCode) => {
   };
 };
 
+/**
+ * Check if the tenant has a specific high-level module enabled by SuperAdmin
+ * @param {string} moduleKey - e.g. 'appointments', 'inventory', 'payroll', 'academyModule', 'marketing'
+ */
+export const requireTenantModule = (moduleKey) => {
+  return (req, res, next) => {
+    if (req.tenant && req.tenant.permissions) {
+      const isAllowed = req.tenant.permissions[moduleKey];
+      if (isAllowed === false) {
+        return sendError(
+          res,
+          `Module Access Restricted: The "${moduleKey}" feature is not enabled for this business by the platform Super Administrator.`,
+          [],
+          403
+        );
+      }
+    }
+    return next();
+  };
+};
+
 export default requirePermission;

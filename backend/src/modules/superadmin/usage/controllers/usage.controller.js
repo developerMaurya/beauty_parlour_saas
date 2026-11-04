@@ -31,7 +31,7 @@ export const usageController = {
           appointmentsThisMonth: 85,
         },
       }));
-      return sendSuccess(res, 'Tenant usage stats', formatted);
+      return sendSuccess(res, 'Tenant usage stats', { usage: formatted, items: formatted });
     } catch (e) { next(e); }
   },
 
@@ -46,7 +46,7 @@ export const usageController = {
   async listLimits(_req, res, next) {
     try {
       const limits = await UsageLimit.find();
-      return sendSuccess(res, 'Global resource limits', limits);
+      return sendSuccess(res, 'Global resource limits', { limits, items: limits });
     } catch (e) { next(e); }
   },
 

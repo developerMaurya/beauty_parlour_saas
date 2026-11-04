@@ -234,7 +234,10 @@ export const dashboardController = {
         .sort({ createdAt: -1 })
         .limit(10);
 
-      return sendSuccess(res, 'Recent platform activities retrieved', activities);
+      return sendSuccess(res, 'Recent platform activities retrieved', {
+        activities,
+        items: activities,
+      });
     } catch (error) {
       return next(error);
     }
@@ -245,17 +248,87 @@ export const dashboardController = {
    */
   async getExpiringSubscriptions(_req, res, next) {
     try {
+      const now = new Date();
+      const pastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      const expiring = await Subscription.find({
-        status: { $in: ['active', 'trial'] },
-        endDate: { $gte: new Date(), $lte: thirtyDaysFromNow },
+
+      const expiringSubs = await Subscription.find({
+        endDate: { $gte: pastWeek, $lte: thirtyDaysFromNow },
       })
-        .populate('tenantId', 'name email slug')
-        .populate('planId', 'name')
+        .populate('tenantId', 'name email slug phone primaryDomain subdomain status')
+        .populate('planId', 'name priceMonthly currency')
         .sort({ endDate: 1 })
+        .limit(25);
+
+      // Check tenants directly in case they are in trial or have trialExpiresAt within 30 days
+      const expiringTenants = await Tenant.find({
+        $or: [
+          { trialExpiresAt: { $gte: pastWeek, $lte: thirtyDaysFromNow } },
+        ],
+        status: { $ne: 'suspended' },
+      })
+        .populate('planId', 'name priceMonthly currency')
         .limit(15);
 
-      return sendSuccess(res, 'Expiring subscriptions retrieved', expiring);
+      const mapped = [];
+      const seenTenantIds = new Set();
+
+      for (const s of expiringSubs) {
+        if (!s.tenantId) continue;
+        const tIdStr = s.tenantId._id ? s.tenantId._id.toString() : s.tenantId.toString();
+        seenTenantIds.add(tIdStr);
+        const daysLeft = Math.ceil((new Date(s.endDate) - now) / (1000 * 60 * 60 * 24));
+        mapped.push({
+          _id: s._id,
+          subscriptionId: s._id,
+          tenantId: s.tenantId,
+          tenantName: s.tenantId.name || 'Salon Tenant',
+          email: s.tenantId.email,
+          phone: s.tenantId.phone,
+          slug: s.tenantId.slug,
+          primaryDomain: s.tenantId.primaryDomain,
+          subdomain: s.tenantId.subdomain,
+          planName: s.planId?.name || 'Standard Salon Plan',
+          amount: s.amount || s.planId?.priceMonthly || 0,
+          currency: s.currency || 'INR',
+          endDate: s.endDate,
+          daysRemaining: daysLeft,
+          isExpired: daysLeft <= 0,
+          status: s.status || (daysLeft <= 0 ? 'expired' : 'active'),
+        });
+      }
+
+      for (const t of expiringTenants) {
+        const tIdStr = t._id.toString();
+        if (seenTenantIds.has(tIdStr)) continue;
+        seenTenantIds.add(tIdStr);
+        const expDate = t.trialExpiresAt || thirtyDaysFromNow;
+        const daysLeft = Math.ceil((new Date(expDate) - now) / (1000 * 60 * 60 * 24));
+        mapped.push({
+          _id: t._id,
+          tenantId: t,
+          tenantName: t.name,
+          email: t.email,
+          phone: t.phone,
+          slug: t.slug,
+          primaryDomain: t.primaryDomain,
+          subdomain: t.subdomain,
+          planName: t.planId?.name || 'Trial Plan',
+          amount: t.planId?.priceMonthly || 0,
+          currency: 'INR',
+          endDate: expDate,
+          daysRemaining: daysLeft,
+          isExpired: daysLeft <= 0,
+          status: t.status || 'trial',
+        });
+      }
+
+      mapped.sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+      return sendSuccess(res, 'Expiring subscriptions retrieved', {
+        subscriptions: mapped,
+        items: mapped,
+      });
     } catch (error) {
       return next(error);
     }

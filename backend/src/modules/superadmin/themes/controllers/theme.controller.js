@@ -98,7 +98,7 @@ export const themeController = {
 
       return res.status(200).json({
         success: true,
-        data: { themes },
+        data: { themes, items: themes },
       });
     } catch (err) {
       next(err);

@@ -58,8 +58,8 @@ export const UsageView = () => {
       ]);
 
       setOverview(overRes.data || {});
-      setTenantUsage(tenRes.data?.usage || []);
-      setLimits(limRes.data?.limits || []);
+      setTenantUsage(Array.isArray(tenRes.data) ? tenRes.data : (tenRes.data?.usage || tenRes.data?.items || []));
+      setLimits(Array.isArray(limRes.data) ? limRes.data : (limRes.data?.limits || limRes.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to fetch usage data');
     } finally {

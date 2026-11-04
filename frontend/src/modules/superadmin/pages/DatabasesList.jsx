@@ -59,7 +59,7 @@ export const DatabasesList = () => {
         search,
         type: typeFilter,
       });
-      setDatabases(res.data?.databases || []);
+      setDatabases(Array.isArray(res.data) ? res.data : (res.data?.databases || res.data?.items || []));
       setPagination((prev) => ({
         ...prev,
         total: res.data?.pagination?.total || 0,

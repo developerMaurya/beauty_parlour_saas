@@ -28,6 +28,7 @@ export const DataTable = ({
   defaultSortColumn = null,
   defaultSortDirection = 'asc',
   onSortChange,
+  onRowClick,
 }) => {
   const [sortColumn, setSortColumn] = useState(defaultSortColumn);
   const [sortDirection, setSortDirection] = useState(defaultSortDirection);
@@ -223,7 +224,19 @@ export const DataTable = ({
               </tr>
             ) : (
               processedData.map((row, rowIdx) => (
-                <tr key={row._id || row.id || rowIdx}>
+                <tr
+                  key={row._id || row.id || rowIdx}
+                  onClick={(e) => {
+                    if (onRowClick && !e.target.closest('button, a, input, select, textarea, .action-dropdown-wrap, [role="button"]')) {
+                      onRowClick(row);
+                    }
+                  }}
+                  style={{
+                    cursor: onRowClick ? 'pointer' : 'default',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                  className={onRowClick ? 'table-clickable-row' : ''}
+                >
                   {columns.map((col, colIdx) => (
                     <td key={colIdx} style={{ textAlign: col.align || 'left' }}>
                       {col.render ? col.render(row) : row[col.accessor]}
@@ -271,7 +284,24 @@ export const DataTable = ({
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {pagination.onLimitChange && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Show:</span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.8rem', height: '28px' }}
+                  value={pagination.limit || 10}
+                  onChange={(e) => pagination.onLimitChange(Number(e.target.value))}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            )}
+
             <button
               className="btn btn-secondary btn-sm"
               disabled={pagination.page <= 1 || isLoading}
@@ -280,12 +310,12 @@ export const DataTable = ({
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
             <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>
-              Page {pagination.page} of {Math.ceil((pagination.total || 1) / pagination.limit) || 1}
+              Page {pagination.page} of {Math.ceil((pagination.total || 1) / (pagination.limit || 10)) || 1}
             </span>
             <button
               className="btn btn-secondary btn-sm"
               disabled={
-                pagination.page >= Math.ceil((pagination.total || 0) / pagination.limit) || isLoading
+                pagination.page >= Math.ceil((pagination.total || 0) / (pagination.limit || 10)) || isLoading
               }
               onClick={() => pagination.onPageChange(pagination.page + 1)}
             >

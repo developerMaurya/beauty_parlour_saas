@@ -10,7 +10,19 @@ import DataTable from '../../../components/DataTable';
 import Badge from '../../../components/Badge';
 import Modal from '../../../components/Modal';
 import { useToast } from '../../../context/ToastContext';
-import { Bell, Plus, Send, Edit2, Trash2 } from 'lucide-react';
+import {
+  Bell,
+  Plus,
+  Send,
+  Edit2,
+  Trash2,
+  Mail,
+  MessageSquare,
+  Smartphone,
+  CheckCircle,
+  Building2,
+  Clock,
+} from 'lucide-react';
 
 export const NotificationsView = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,9 +46,12 @@ export const NotificationsView = () => {
 
   const [sendModal, setSendModal] = useState({
     isOpen: false,
+    channel: 'email',
     templateId: '',
     targetType: 'ALL_TENANTS',
-    recipientEmail: '',
+    tenantId: '',
+    recipient: '',
+    subject: '',
     message: '',
   });
 
@@ -46,15 +61,14 @@ export const NotificationsView = () => {
   // Listen for action=send in URL
   useEffect(() => {
     if (searchParams.get('action') === 'send') {
-      setSendModal({
+      setSendModal((prev) => ({
+        ...prev,
         isOpen: true,
-        templateId: templates[0]?._id || '',
+        channel: 'email',
         targetType: 'ALL_TENANTS',
-        recipientEmail: '',
-        message: '',
-      });
+      }));
     }
-  }, [searchParams, templates]);
+  }, [searchParams]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -65,9 +79,9 @@ export const NotificationsView = () => {
         tenantsApi.list({ limit: 100 }).catch(() => ({ data: { tenants: [] } })),
       ]);
 
-      setTemplates(tplRes.data?.templates || []);
-      setLogs(logRes.data?.logs || []);
-      setTenants(tenRes.data?.tenants || []);
+      setTemplates(Array.isArray(tplRes.data) ? tplRes.data : (tplRes.data?.templates || tplRes.data?.items || []));
+      setLogs(Array.isArray(logRes.data) ? logRes.data : (logRes.data?.logs || logRes.data?.items || []));
+      setTenants(Array.isArray(tenRes.data) ? tenRes.data : (tenRes.data?.tenants || tenRes.data?.items || []));
     } catch (err) {
       error(err.message || 'Failed to load notifications');
     } finally {
@@ -78,6 +92,29 @@ export const NotificationsView = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleSelectTemplate = (tplId) => {
+    const tpl = templates.find((t) => t._id === tplId);
+    setSendModal((prev) => ({
+      ...prev,
+      templateId: tplId,
+      subject: tpl?.subject || prev.subject,
+      message: tpl?.body || prev.message,
+      channel: tpl?.channels?.[0] || tpl?.type?.toLowerCase() || prev.channel,
+    }));
+  };
+
+  const handleSelectTenant = (tId) => {
+    const t = tenants.find((item) => (item._id || item.id) === tId);
+    const rec = sendModal.channel === 'whatsapp' || sendModal.channel === 'sms'
+      ? (t?.phone || '')
+      : (t?.email || '');
+    setSendModal((prev) => ({
+      ...prev,
+      tenantId: tId,
+      recipient: rec,
+    }));
+  };
 
   const handleSaveTemplate = async (e) => {
     e.preventDefault();
@@ -111,17 +148,32 @@ export const NotificationsView = () => {
     e.preventDefault();
     setActionLoading(true);
     try {
-      const targetId = sendModal.templateId || templates[0]?._id;
-      if (!targetId) throw new Error('Select a template to dispatch');
-
-      await notificationsApi.send(targetId, {
+      const payload = {
+        channel: sendModal.channel,
         targetType: sendModal.targetType,
-        recipient: sendModal.recipientEmail || undefined,
-        customMessage: sendModal.message || undefined,
-      });
+        tenantId: sendModal.tenantId || undefined,
+        recipient: sendModal.recipient || (sendModal.targetType === 'ALL_TENANTS' ? 'All Active Tenants' : undefined),
+        subject: sendModal.subject || 'Platform Broadcast Alert',
+        body: sendModal.message || 'Platform notification dispatch',
+      };
 
-      success('Notification broadcast dispatched to queue');
-      setSendModal({ isOpen: false, templateId: '', targetType: 'ALL_TENANTS', recipientEmail: '', message: '' });
+      if (sendModal.templateId) {
+        await notificationsApi.send(sendModal.templateId, payload);
+      } else {
+        await notificationsApi.sendDirect(payload);
+      }
+
+      success(`Notification dispatched successfully via ${sendModal.channel.toUpperCase()}!`);
+      setSendModal({
+        isOpen: false,
+        channel: 'email',
+        templateId: '',
+        targetType: 'ALL_TENANTS',
+        tenantId: '',
+        recipient: '',
+        subject: '',
+        message: '',
+      });
       fetchData();
     } catch (err) {
       error(err.message || 'Failed to dispatch notification');
@@ -137,15 +189,31 @@ export const NotificationsView = () => {
       render: (row) => <span style={{ fontWeight: 600 }}>{row.name}</span>,
     },
     {
-      header: 'Channel',
-      accessor: 'type',
-      render: (row) => (
-        <Badge
-          status={row.type || 'EMAIL'}
-          variant={row.type === 'SMS' ? 'separate' : 'shared'}
-          text={row.type || 'EMAIL'}
-        />
-      ),
+      header: 'Channels',
+      accessor: 'channels',
+      render: (row) => {
+        const chList = row.channels && row.channels.length ? row.channels : [row.type || 'email'];
+        return (
+          <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+            {chList.map((ch, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.7rem',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                {ch}
+              </span>
+            ))}
+          </div>
+        );
+      },
     },
     {
       header: 'Subject / Title',
@@ -187,29 +255,113 @@ export const NotificationsView = () => {
     {
       header: 'Channel',
       accessor: 'channel',
-      render: (row) => <span>{row.channel || 'EMAIL'}</span>,
+      render: (row) => {
+        const ch = (row.channel || row.type || 'email').toLowerCase();
+        let icon = <Mail className="w-3.5 h-3.5" />;
+        let color = '#38BDF8';
+        let bg = 'rgba(56, 189, 248, 0.12)';
+        let label = 'Email';
+
+        if (ch === 'whatsapp') {
+          icon = <MessageSquare className="w-3.5 h-3.5" />;
+          color = '#22C55E';
+          bg = 'rgba(34, 197, 94, 0.12)';
+          label = 'WhatsApp';
+        } else if (ch === 'sms') {
+          icon = <Smartphone className="w-3.5 h-3.5" />;
+          color = '#F59E0B';
+          bg = 'rgba(245, 158, 11, 0.12)';
+          label = 'SMS';
+        } else if (ch === 'in_app' || ch === 'push') {
+          icon = <Bell className="w-3.5 h-3.5" />;
+          color = '#A855F7';
+          bg = 'rgba(168, 85, 247, 0.12)';
+          label = 'In-App';
+        }
+
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              padding: '2px 8px',
+              borderRadius: '4px',
+              background: bg,
+              color: color,
+            }}
+          >
+            {icon}
+            <span>{label}</span>
+          </span>
+        );
+      },
     },
     {
-      header: 'Recipient',
+      header: 'Target / Recipient',
       accessor: 'recipient',
-      render: (row) => <span style={{ fontWeight: 500 }}>{row.recipient || 'All Tenants'}</span>,
+      render: (row) => {
+        const tenant = row.tenantId;
+        return (
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+              {row.recipient || 'All Active Tenants'}
+            </div>
+            {tenant?.name && (
+              <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '2px' }}>
+                <Building2 className="w-3 h-3 opacity-60" />
+                <span>{tenant.name}</span>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
-      header: 'Subject',
+      header: 'Message Details',
       accessor: 'subject',
-      render: (row) => <span>{row.subject || 'Platform Broadcast'}</span>,
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+            {row.subject || 'Platform Broadcast'}
+          </div>
+          {row.body && (
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                marginTop: '2px',
+                maxWidth: '450px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title={row.body}
+            >
+              {row.body}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
-      header: 'Delivery Status',
+      header: 'Status',
       accessor: 'status',
       render: (row) => <Badge status={row.status || 'SENT'} />,
     },
     {
-      header: 'Timestamp',
+      header: 'Dispatched At',
       accessor: 'createdAt',
       render: (row) => (
         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          {new Date(row.createdAt).toLocaleString()}
+          {new Date(row.sentAt || row.createdAt).toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
         </span>
       ),
     },
@@ -273,9 +425,10 @@ export const NotificationsView = () => {
           columns={logColumns}
           data={
             logs.filter((log) => {
-              if (activeTab === 'email_logs') return (log.type || '').toUpperCase() === 'EMAIL';
-              if (activeTab === 'sms_logs') return (log.type || '').toUpperCase() === 'SMS';
-              if (activeTab === 'whatsapp_logs') return (log.type || '').toUpperCase() === 'WHATSAPP';
+              const ch = (log.channel || log.type || '').toUpperCase();
+              if (activeTab === 'email_logs') return ch === 'EMAIL';
+              if (activeTab === 'sms_logs') return ch === 'SMS';
+              if (activeTab === 'whatsapp_logs') return ch === 'WHATSAPP';
               return true;
             })
           }
@@ -358,7 +511,8 @@ export const NotificationsView = () => {
       <Modal
         isOpen={sendModal.isOpen}
         onClose={() => setSendModal((p) => ({ ...p, isOpen: false }))}
-        title="Dispatch Broadcast Notification"
+        title="Dispatch Broadcast & Direct Notification"
+        size="large"
         footer={
           <>
             <button
@@ -369,52 +523,139 @@ export const NotificationsView = () => {
               Cancel
             </button>
             <button className="btn btn-primary" onClick={handleSendNotification} disabled={actionLoading}>
-              Dispatch Notification
+              {actionLoading ? 'Dispatching...' : 'Dispatch Notification'}
             </button>
           </>
         }
       >
         <form onSubmit={handleSendNotification}>
+          {/* Channel selector */}
           <div className="form-group">
-            <label className="form-label">Select Template</label>
-            <select
-              className="form-select"
-              value={sendModal.templateId}
-              onChange={(e) => setSendModal((p) => ({ ...p, templateId: e.target.value }))}
-              required
-            >
-              <option value="">Select a template...</option>
-              {templates.map((tpl) => (
-                <option key={tpl._id} value={tpl._id}>
-                  {tpl.name} ({tpl.type})
-                </option>
+            <label className="form-label">Delivery Channel</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+              {[
+                { id: 'email', label: 'Email', icon: Mail, color: '#38BDF8' },
+                { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: '#22C55E' },
+                { id: 'sms', label: 'SMS', icon: Smartphone, color: '#F59E0B' },
+                { id: 'in_app', label: 'In-App Alert', icon: Bell, color: '#A855F7' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSendModal((p) => ({ ...p, channel: item.id }))}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    border: sendModal.channel === item.id ? `1px solid ${item.color}` : '1px solid var(--border-subtle)',
+                    background: sendModal.channel === item.id ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                    color: sendModal.channel === item.id ? item.color : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <item.icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Audience Target</label>
-            <select
-              className="form-select"
-              value={sendModal.targetType}
-              onChange={(e) => setSendModal((p) => ({ ...p, targetType: e.target.value }))}
-            >
-              <option value="ALL_TENANTS">All Active Tenants</option>
-              <option value="SPECIFIC_TENANT">Single Recipient</option>
-            </select>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            {/* Template selector */}
+            <div className="form-group">
+              <label className="form-label">Select Template (Optional)</label>
+              <select
+                className="form-select"
+                value={sendModal.templateId}
+                onChange={(e) => handleSelectTemplate(e.target.value)}
+              >
+                <option value="">Custom Message (No Template)...</option>
+                {templates.map((tpl) => (
+                  <option key={tpl._id} value={tpl._id}>
+                    {tpl.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Target audience */}
+            <div className="form-group">
+              <label className="form-label">Target Audience</label>
+              <select
+                className="form-select"
+                value={sendModal.targetType}
+                onChange={(e) => setSendModal((p) => ({ ...p, targetType: e.target.value }))}
+              >
+                <option value="ALL_TENANTS">All Active Tenants (Broadcast)</option>
+                <option value="SPECIFIC_TENANT">Single Tenant from List</option>
+                <option value="CUSTOM">Custom Phone / Email</option>
+              </select>
+            </div>
           </div>
+
           {sendModal.targetType === 'SPECIFIC_TENANT' && (
             <div className="form-group">
-              <label className="form-label">Recipient Email</label>
+              <label className="form-label">Select Tenant</label>
+              <select
+                className="form-select"
+                value={sendModal.tenantId}
+                onChange={(e) => handleSelectTenant(e.target.value)}
+                required
+              >
+                <option value="">Select Tenant Salon / Academy...</option>
+                {tenants.map((t) => (
+                  <option key={t._id || t.id} value={t._id || t.id}>
+                    {t.name} ({t.ownerName || t.slug}) — {t.email} / {t.phone}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {(sendModal.targetType === 'SPECIFIC_TENANT' || sendModal.targetType === 'CUSTOM') && (
+            <div className="form-group">
+              <label className="form-label">
+                Recipient {sendModal.channel === 'whatsapp' || sendModal.channel === 'sms' ? 'Phone Number' : 'Email Address'}
+              </label>
               <input
-                type="email"
+                type={sendModal.channel === 'whatsapp' || sendModal.channel === 'sms' ? 'tel' : 'email'}
                 className="form-input"
-                placeholder="tenant@salon.com"
-                value={sendModal.recipientEmail}
-                onChange={(e) => setSendModal((p) => ({ ...p, recipientEmail: e.target.value }))}
+                placeholder={sendModal.channel === 'whatsapp' || sendModal.channel === 'sms' ? '+91 98765 43210' : 'owner@salon.com'}
+                value={sendModal.recipient}
+                onChange={(e) => setSendModal((p) => ({ ...p, recipient: e.target.value }))}
                 required
               />
             </div>
           )}
+
+          <div className="form-group">
+            <label className="form-label">Subject / Header</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. Important Notice: Platform Feature Upgrade"
+              value={sendModal.subject}
+              onChange={(e) => setSendModal((p) => ({ ...p, subject: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Message Body</label>
+            <textarea
+              className="form-textarea"
+              rows="4"
+              placeholder="Write your broadcast or direct message here..."
+              value={sendModal.message}
+              onChange={(e) => setSendModal((p) => ({ ...p, message: e.target.value }))}
+              required
+            />
+          </div>
         </form>
       </Modal>
     </div>

@@ -28,6 +28,8 @@ import SettingsView from '../modules/superadmin/pages/SettingsView';
 import ProfileView from '../modules/superadmin/pages/ProfileView';
 import VerticalsList from '../modules/superadmin/pages/VerticalsList';
 import ThemesList from '../modules/superadmin/pages/ThemesList';
+import UnifiedAccessManagementCenter from '../modules/superadmin/pages/UnifiedAccessManagementCenter';
+import MasterDataManagement from '../modules/superadmin/pages/MasterDataManagement';
 
 export const SuperAdminRoutes = (
   <>
@@ -41,6 +43,10 @@ export const SuperAdminRoutes = (
       <Route path="tenants" element={<TenantsList />} />
       <Route path="tenants/create" element={<TenantCreateWizard />} />
       <Route path="tenants/:tenantId" element={<TenantDetail />} />
+      <Route path="access-control" element={<UnifiedAccessManagementCenter />} />
+      <Route path="management-center" element={<UnifiedAccessManagementCenter />} />
+      <Route path="masters" element={<MasterDataManagement />} />
+      <Route path="master-data" element={<MasterDataManagement />} />
       <Route path="verticals" element={<VerticalsList />} />
       <Route path="themes" element={<ThemesList />} />
       <Route path="plans" element={<PlansList />} />

@@ -39,6 +39,11 @@ export const tenantsApi = {
   getDatabase: (tenantId) => axiosClient.get(`/superadmin/tenants/${tenantId}/database`),
   getDomains: (tenantId) => axiosClient.get(`/superadmin/tenants/${tenantId}/domains`),
   getSubscriptions: (tenantId) => axiosClient.get(`/superadmin/tenants/${tenantId}/subscriptions`),
+  updateBlockSecurity: (tenantId, data) => axiosClient.post(`/superadmin/tenants/${tenantId}/block-security`, data),
+  updateMasterAssignment: (tenantId, data) => axiosClient.post(`/superadmin/tenants/${tenantId}/master-assignment`, data),
+  getDevices: (tenantId) => axiosClient.get(`/superadmin/tenants/${tenantId}/devices`),
+  sendTestPush: (tenantId, deviceId) => axiosClient.post(`/superadmin/tenants/${tenantId}/devices/${deviceId}/test-push`),
+  revokeDevice: (tenantId, deviceId) => axiosClient.delete(`/superadmin/tenants/${tenantId}/devices/${deviceId}`),
 };
 
 export const provisioningApi = {
@@ -192,6 +197,7 @@ export const notificationsApi = {
   update: (notificationId, data) => axiosClient.patch(`/superadmin/notifications/${notificationId}`, data),
   delete: (notificationId) => axiosClient.delete(`/superadmin/notifications/${notificationId}`),
   send: (notificationId, data) => axiosClient.post(`/superadmin/notifications/${notificationId}/send`, data),
+  sendDirect: (data) => axiosClient.post('/superadmin/notifications/send', data),
   getLogs: (params) => axiosClient.get('/superadmin/notification-logs', { params }),
 };
 
@@ -237,5 +243,14 @@ export const themesApi = {
   update: (themeId, data) => axiosClient.patch(`/superadmin/themes/${themeId}`, data),
   delete: (themeId) => axiosClient.delete(`/superadmin/themes/${themeId}`),
   applyToTenant: (tenantId, themeCode) => axiosClient.post(`/superadmin/tenants/${tenantId}/theme`, { themeCode }),
+};
+
+export const mastersApi = {
+  list: (params) => axiosClient.get('/superadmin/masters', { params }),
+  get: (id) => axiosClient.get(`/superadmin/masters/${id}`),
+  create: (data) => axiosClient.post('/superadmin/masters', data),
+  update: (id, data) => axiosClient.patch(`/superadmin/masters/${id}`, data),
+  delete: (id) => axiosClient.delete(`/superadmin/masters/${id}`),
+  seedDefaults: () => axiosClient.post('/superadmin/masters/seed-defaults'),
 };
 
