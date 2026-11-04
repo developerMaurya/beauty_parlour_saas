@@ -190,18 +190,18 @@ export const StaffManagementPage = () => {
       header: 'Department / Role',
       render: (row) => (
         <div>
-          <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-            {row.designation?.name || designations.find((d) => d._id === row.designation)?.name || 'Staff'}
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#f472b6' }}>
+            {row.designationId?.name || row.designation?.name || designations.find((d) => d._id === (row.designationId || row.designation))?.name || (typeof row.designation === 'string' && row.designation) || 'Senior Stylist'}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {row.department?.name || departments.find((d) => d._id === row.department)?.name || 'General'}
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            {row.departmentId?.name || row.department?.name || departments.find((d) => d._id === (row.departmentId || row.department))?.name || (typeof row.department === 'string' && row.department) || 'Parlour Department'}
           </div>
         </div>
       ),
     },
     {
       header: 'Branch',
-      render: (row) => row.branch?.name || branches.find((b) => b._id === row.branch)?.name || 'All Branches',
+      render: (row) => row.branchId?.name || row.branch?.name || branches.find((b) => b._id === (row.branchId || row.branch))?.name || 'Main Flagship Sanctuary',
     },
     {
       header: 'Compensation',

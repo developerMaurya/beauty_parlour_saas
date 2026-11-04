@@ -117,11 +117,22 @@ export const deleteBranch = async (req, res) => {
     const branch = await Branch.findOne({ _id: req.params.branchId, tenantId: req.tenantId });
     if (!branch) return sendError(res, 'Branch not found', [], 404);
 
-    if (branch.isDefault) {
-      return sendError(res, 'Cannot delete the default branch. Set another branch as default first.', [], 400);
+    const totalBranches = await Branch.countDocuments({ tenantId: req.tenantId });
+    if (totalBranches <= 1) {
+      return sendError(res, 'Cannot delete the only branch of the salon. At least one branch must remain active.', [], 400);
     }
 
+    const wasDefault = branch.isDefault;
     await branch.deleteOne();
+
+    // If default branch was deleted, ensure another active branch becomes default
+    if (wasDefault) {
+      const remainingDefault = await Branch.findOne({ tenantId: req.tenantId, isDefault: true });
+      if (!remainingDefault) {
+        await Branch.findOneAndUpdate({ tenantId: req.tenantId }, { isDefault: true });
+      }
+    }
+
     return sendSuccess(res, 'Branch deleted successfully');
   } catch (error) {
     return sendError(res, error.message, [], 500);

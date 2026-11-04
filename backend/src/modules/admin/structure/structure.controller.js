@@ -120,13 +120,13 @@ export const deleteDepartment = async (req, res) => {
 
 export const createDesignation = async (req, res) => {
   try {
-    const { name, departmentId, description, status } = req.body;
+    const { name, departmentId, department, description, status } = req.body;
     if (!name) return sendError(res, 'Designation name is required', [], 400);
 
     const Designation = getTenantModel(req, 'Designation');
     const doc = await Designation.create({
       tenantId: req.tenantId,
-      departmentId: departmentId || null,
+      departmentId: departmentId || department || null,
       name: name.trim(),
       description: description || '',
       status: status || 'active',

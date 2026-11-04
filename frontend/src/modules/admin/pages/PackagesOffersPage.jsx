@@ -150,7 +150,7 @@ export const PackagesOffersPage = () => {
   ];
 
   const offerFields = [
-    { name: 'name', label: 'Offer Title', required: true, placeholder: 'e.g. Festive Diwali 25% Off' },
+    { name: 'name', label: 'Seasonal Offer Title', required: true, placeholder: 'e.g. Festive Bridal Bonanza (Nov 1 - Nov 15)' },
     {
       name: 'discountType',
       label: 'Discount Type',
@@ -162,9 +162,11 @@ export const PackagesOffersPage = () => {
       ],
     },
     { name: 'discountValue', label: 'Discount Value', type: 'number', required: true, placeholder: '25' },
+    { name: 'festivalTag', label: 'Festival / Seasonal Badge', placeholder: 'e.g. Diwali Dhamaka, Karwa Chauth, Eid Glow, Christmas' },
+    { name: 'validFrom', label: 'Date-Range: Valid From Date', type: 'date', required: true },
+    { name: 'validUntil', label: 'Date-Range: Valid Until Date', type: 'date', required: true },
     { name: 'minimumAmount', label: 'Minimum Spend (₹)', type: 'currency' },
     { name: 'maximumDiscount', label: 'Max Discount Cap (₹)', type: 'currency' },
-    { name: 'validUntil', label: 'Valid Until Date', type: 'date' },
   ];
 
   const couponFields = [
@@ -257,21 +259,70 @@ export const PackagesOffersPage = () => {
 
   const offerColumns = [
     {
-      header: 'Offer Name',
+      header: 'Seasonal Offer',
       accessor: 'name',
-      render: (row) => <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>,
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{row.name}</div>
+          {row.festivalTag && (
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: 'rgba(236, 72, 153, 0.2)',
+                color: '#ec4899',
+                display: 'inline-block',
+                marginTop: '4px',
+              }}
+            >
+              🎉 {row.festivalTag}
+            </span>
+          )}
+        </div>
+      ),
     },
     {
-      header: 'Discount',
+      header: 'Discount Deal',
       render: (row) => (
-        <span style={{ fontWeight: 700, color: '#ec4899' }}>
+        <span style={{ fontWeight: 800, color: '#10b981', fontSize: '0.95rem' }}>
           {row.discountType === 'percentage' ? `${row.discountValue}% Off` : `₹${row.discountValue} Flat Off`}
         </span>
       ),
     },
     {
-      header: 'Valid Until',
-      render: (row) => row.validUntil ? new Date(row.validUntil).toLocaleDateString() : 'Ongoing',
+      header: 'Campaign Date Range',
+      render: (row) => (
+        <div style={{ fontSize: '0.8rem' }}>
+          <div style={{ color: 'var(--text-secondary)' }}>
+            From: <strong>{row.validFrom ? new Date(row.validFrom).toLocaleDateString() : 'Active Now'}</strong>
+          </div>
+          <div style={{ color: '#f59e0b', marginTop: '2px' }}>
+            Until: <strong>{row.validUntil ? new Date(row.validUntil).toLocaleDateString() : 'End of Month'}</strong>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Validity Status',
+      render: (row) => {
+        const isExpiringSoon = row.validUntil && new Date(row.validUntil) - new Date() < 5 * 86400000;
+        return (
+          <span
+            style={{
+              padding: '3px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 800,
+              background: isExpiringSoon ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+              color: isExpiringSoon ? '#f59e0b' : '#10b981',
+            }}
+          >
+            {isExpiringSoon ? '⏳ Expiring Soon' : '● Live Campaign'}
+          </span>
+        );
+      },
     },
     {
       header: 'Actions',
@@ -284,7 +335,7 @@ export const PackagesOffersPage = () => {
             }}
             className="btn btn-secondary btn-sm"
           >
-            <Edit2 className="w-3.5 h-3.5" />
+            <Edit2 className="w-3.5 h-3.5" /> Edit
           </button>
         </div>
       ),

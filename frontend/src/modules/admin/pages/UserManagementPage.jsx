@@ -157,49 +157,103 @@ export const UserManagementPage = () => {
     {
       header: 'User',
       accessor: 'name',
-      render: (row) => (
-        <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{row.email}</div>
-        </div>
-      ),
+      render: (row) => {
+        const displayName = row.name || row.username || (row.email ? row.email.split('@')[0] : 'User');
+        const displaySub = row.email || row.phone || `@${row.username}`;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background:
+                  (row.role || row.userType) === 'ADMIN'
+                    ? 'rgba(236, 72, 153, 0.15)'
+                    : (row.role || row.userType) === 'STAFF'
+                    ? 'rgba(59, 130, 246, 0.15)'
+                    : (row.role || row.userType) === 'STUDENT'
+                    ? 'rgba(99, 102, 241, 0.15)'
+                    : 'rgba(16, 185, 129, 0.15)',
+                color:
+                  (row.role || row.userType) === 'ADMIN'
+                    ? '#ec4899'
+                    : (row.role || row.userType) === 'STAFF'
+                    ? '#3b82f6'
+                    : (row.role || row.userType) === 'STUDENT'
+                    ? '#6366f1'
+                    : '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+              }}
+            >
+              {displayName[0]?.toUpperCase() || 'U'}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{displayName}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{displaySub}</div>
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'Primary Type',
-      accessor: 'userType',
-      render: (row) => (
-        <span
-          style={{
-            padding: '3px 8px',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            backgroundColor:
-              row.userType === 'ADMIN'
-                ? 'rgba(236, 72, 153, 0.15)'
-                : row.userType === 'STAFF'
-                ? 'rgba(59, 130, 246, 0.15)'
-                : row.userType === 'STUDENT'
-                ? 'rgba(99, 102, 241, 0.15)'
-                : 'rgba(16, 185, 129, 0.15)',
-            color:
-              row.userType === 'ADMIN'
-                ? '#ec4899'
-                : row.userType === 'STAFF'
-                ? '#3b82f6'
-                : row.userType === 'STUDENT'
-                ? '#6366f1'
-                : '#10b981',
-          }}
-        >
-          {row.userType}
-        </span>
-      ),
+      accessor: 'role',
+      render: (row) => {
+        const rawType = (row.role || row.userType || 'CUSTOMER').toUpperCase();
+        const bgMap = {
+          ADMIN: 'rgba(236, 72, 153, 0.15)',
+          STAFF: 'rgba(59, 130, 246, 0.15)',
+          STUDENT: 'rgba(99, 102, 241, 0.15)',
+          CUSTOMER: 'rgba(16, 185, 129, 0.15)',
+        };
+        const colorMap = {
+          ADMIN: '#ec4899',
+          STAFF: '#3b82f6',
+          STUDENT: '#6366f1',
+          CUSTOMER: '#10b981',
+        };
+        const borderMap = {
+          ADMIN: 'rgba(236, 72, 153, 0.35)',
+          STAFF: 'rgba(59, 130, 246, 0.35)',
+          STUDENT: 'rgba(99, 102, 241, 0.35)',
+          CUSTOMER: 'rgba(16, 185, 129, 0.35)',
+        };
+
+        return (
+          <span
+            style={{
+              padding: '3px 10px',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              backgroundColor: bgMap[rawType] || 'rgba(148, 163, 184, 0.15)',
+              color: colorMap[rawType] || '#94a3b8',
+              border: `1px solid ${borderMap[rawType] || 'rgba(148, 163, 184, 0.3)'}`,
+              display: 'inline-block',
+            }}
+          >
+            {rawType}
+          </span>
+        );
+      },
     },
     {
-      header: 'Role',
-      render: (row) => row.role || 'Standard',
+      header: 'Security Role',
+      render: (row) => {
+        const roleName = row.customRoleId?.name || (row.role ? (row.role.charAt(0).toUpperCase() + row.role.slice(1).toLowerCase()) : 'Standard');
+        return (
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            {roleName}
+          </span>
+        );
+      },
     },
     {
       header: 'Status',

@@ -14,7 +14,7 @@ import { recordAuditLog } from '../../../utils/audit.utils.js';
 
 export const createUser = async (req, res) => {
   try {
-    const { email, phone, username, password, role, customRoleId, branchId, allowedBranches } = req.body;
+    const { name, email, phone, username, password, role, customRoleId, branchId, allowedBranches } = req.body;
 
     if (!role || !['ADMIN', 'STAFF', 'STUDENT', 'CUSTOMER'].includes(role)) {
       return sendError(res, 'Role must be one of: ADMIN, STAFF, STUDENT, CUSTOMER', [], 400);
@@ -44,6 +44,7 @@ export const createUser = async (req, res) => {
 
     const user = await TenantUser.create({
       tenantId: req.tenantId,
+      name: name ? name.trim() : (username || ''),
       email: email ? email.trim().toLowerCase() : null,
       phone: phone ? phone.trim() : null,
       username: username ? username.trim().toLowerCase() : null,
@@ -79,12 +80,14 @@ export const getUsers = async (req, res) => {
     const sort = getSort(req.query, 'createdAt');
     const filter = buildTenantFilter(req);
 
-    if (req.query.role && req.query.role !== 'all') {
-      filter.role = req.query.role.toUpperCase();
+    const roleParam = req.query.role || req.query.userType;
+    if (roleParam && roleParam !== 'all') {
+      filter.role = roleParam.toUpperCase();
     }
 
     if (req.query.search) {
       filter.$or = [
+        { name: { $regex: req.query.search, $options: 'i' } },
         { email: { $regex: req.query.search, $options: 'i' } },
         { phone: { $regex: req.query.search, $options: 'i' } },
         { username: { $regex: req.query.search, $options: 'i' } },

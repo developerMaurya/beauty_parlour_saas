@@ -54,6 +54,7 @@ export default function StaffLayout() {
     {
       title: 'Clients & Catalog',
       items: [
+        { label: 'Staff CRM & Operations', path: '/staff/crm', icon: '🤝', highlight: true },
         { label: 'Customers (CRM)', path: '/staff/customers', icon: '👥', permission: 'customers_read' },
         { label: 'Services & Skills', path: '/staff/services', icon: '✨' },
         { label: 'Packages & Offers', path: '/staff/packages', icon: '🎁' },

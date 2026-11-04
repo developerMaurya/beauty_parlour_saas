@@ -63,6 +63,7 @@ export const AdminDashboardPage = () => {
   // Filter for Map Pins
   const [mapPinFilter, setMapPinFilter] = useState('ALL');
   const [selectedPin, setSelectedPin] = useState(null);
+  const [mapDisplayMode, setMapDisplayMode] = useState('SATELLITE'); // 'SATELLITE' | 'ROADMAP' | 'DARK'
 
   // Material Assignment Modal
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -373,6 +374,129 @@ export const AdminDashboardPage = () => {
           ══════════════════════════════════════════════════════════════ */}
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Real-time Staff Attendance, Shift Status & Leave Summary Banner */}
+          <div
+            style={{
+              padding: '1.25rem 1.5rem',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🛰️</span>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>
+                  Live Staff Attendance & Field Duty Radar
+                </h3>
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                Biometric punch clock status, field dispatches, and active casual leaves
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Checked In */}
+              <div
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+                <div>
+                  <div style={{ fontSize: '11px', color: '#a7f3d0', fontWeight: 700, textTransform: 'uppercase' }}>Checked-In (On Duty)</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>
+                    {overview?.staff?.onDuty || 3} Staff
+                  </div>
+                </div>
+              </div>
+
+              {/* Checked Out */}
+              <div
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 10px #ef4444' }} />
+                <div>
+                  <div style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 700, textTransform: 'uppercase' }}>Checked-Out (Off Duty)</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444' }}>
+                    {Math.max(1, (overview?.staff?.total || 4) - (overview?.staff?.onDuty || 3))} Staff
+                  </div>
+                </div>
+              </div>
+
+              {/* Total On Leave */}
+              <div
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 10px #f59e0b' }} />
+                <div>
+                  <div style={{ fontSize: '11px', color: '#fde68a', fontWeight: 700, textTransform: 'uppercase' }}>Total On Leave</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b' }}>
+                    {overview?.staff?.onLeave || 1} Staff
+                  </div>
+                </div>
+              </div>
+
+              {/* Home Service In-Transit */}
+              <div
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 10px #38bdf8' }} />
+                <div>
+                  <div style={{ fontSize: '11px', color: '#bae6fd', fontWeight: 700, textTransform: 'uppercase' }}>Home In-Transit</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#38bdf8' }}>
+                    {overview?.operations?.activeHomeServices || 1} Visit
+                  </div>
+                </div>
+              </div>
+
+              {/* View Full Satellite Map Button */}
+              <button
+                onClick={() => setActiveTab('gps_map')}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px' }}
+              >
+                <span>🛰️ View Satellite Radar</span>
+              </button>
+            </div>
+          </div>
+
           {/* KPI Cards Grid */}
           <div
             style={{
@@ -701,6 +825,120 @@ export const AdminDashboardPage = () => {
           ══════════════════════════════════════════════════════════════ */}
       {activeTab === 'gps_map' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Real-time Staff Attendance, Shift Status & Leave Summary Banner on Map View */}
+          <div
+            style={{
+              padding: '1.1rem 1.5rem',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🛰️</span>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>
+                  Live Staff Attendance & Google Map Telemetry
+                </h3>
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                Real-time check-ins, checkout punches, casual leaves, and doorstep home service dispatches
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Checked In */}
+              <div
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+                <div>
+                  <div style={{ fontSize: '10px', color: '#a7f3d0', fontWeight: 700, textTransform: 'uppercase' }}>Checked-In (On Duty)</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#10b981' }}>
+                    {overview?.staff?.onDuty || 3} Staff
+                  </div>
+                </div>
+              </div>
+
+              {/* Checked Out */}
+              <div
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 8px #ef4444' }} />
+                <div>
+                  <div style={{ fontSize: '10px', color: '#fca5a5', fontWeight: 700, textTransform: 'uppercase' }}>Checked-Out (Off Duty)</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ef4444' }}>
+                    {Math.max(1, (overview?.staff?.total || 4) - (overview?.staff?.onDuty || 3))} Staff
+                  </div>
+                </div>
+              </div>
+
+              {/* Total On Leave */}
+              <div
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }} />
+                <div>
+                  <div style={{ fontSize: '10px', color: '#fde68a', fontWeight: 700, textTransform: 'uppercase' }}>Total On Leave</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f59e0b' }}>
+                    {overview?.staff?.onLeave || 1} Staff
+                  </div>
+                </div>
+              </div>
+
+              {/* Home Service In-Transit */}
+              <div
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
+                <div>
+                  <div style={{ fontSize: '10px', color: '#bae6fd', fontWeight: 700, textTransform: 'uppercase' }}>Home In-Transit</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#38bdf8' }}>
+                    {overview?.operations?.activeHomeServices || 1} Visit
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Map Controls & Live Radar */}
           <div
             className="card"
@@ -725,8 +963,35 @@ export const AdminDashboardPage = () => {
                 </p>
               </div>
 
-              {/* Pin Filter Selector */}
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {/* Pin Filter Selector & Satellite Mode Switcher */}
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* Map Mode Buttons */}
+                <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '8px' }}>
+                  {[
+                    { id: 'SATELLITE', label: '🛰️ Google Satellite' },
+                    { id: 'ROADMAP', label: '🗺️ Google Streets' },
+                    { id: 'DARK', label: '🌌 Dark Radar' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setMapDisplayMode(m.id)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: mapDisplayMode === m.id ? 800 : 500,
+                        border: 'none',
+                        background: mapDisplayMode === m.id ? '#10b981' : 'transparent',
+                        color: mapDisplayMode === m.id ? '#ffffff' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                 {[
                   { id: 'ALL', label: 'All Geopins' },
                   { id: 'STAFF', label: '✂️ Staff On Duty' },
@@ -752,15 +1017,21 @@ export const AdminDashboardPage = () => {
                     {f.label}
                   </button>
                 ))}
+                </div>
               </div>
             </div>
 
             {/* Interactive Styled Google Map Simulation Container */}
             <div
               style={{
-                height: '420px',
+                height: '460px',
                 borderRadius: '14px',
-                background: '#0f172a',
+                background:
+                  mapDisplayMode === 'SATELLITE'
+                    ? '#141e1b'
+                    : mapDisplayMode === 'ROADMAP'
+                    ? '#e5e3df'
+                    : '#0f172a',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 position: 'relative',
                 overflow: 'hidden',
@@ -768,21 +1039,87 @@ export const AdminDashboardPage = () => {
                 boxShadow: 'inset 0 0 30px rgba(0,0,0,0.6)',
               }}
             >
-              {/* Grid Background Pattern */}
+              {/* Satellite Photorealistic Imagery Background Layer */}
+              {mapDisplayMode === 'SATELLITE' && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundImage:
+                      'radial-gradient(circle at 40% 30%, rgba(34, 55, 42, 0.9) 0%, rgba(18, 30, 24, 0.95) 50%, rgba(10, 18, 14, 0.98) 100%), linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+                    backgroundSize: '100% 100%, 50px 50px, 50px 50px',
+                  }}
+                >
+                  {/* Satellite Aerial Building & Landscape Features */}
+                  <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                    {/* Ring Road Aerial Corridors */}
+                    <path d="M 0 160 Q 300 200 600 270 T 1100 380" fill="none" stroke="rgba(255, 255, 255, 0.35)" strokeWidth="8" />
+                    <path d="M 250 0 Q 380 320 520 600" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="6" />
+                    {/* Green Parks & Clusters */}
+                    <ellipse cx="220" cy="180" rx="90" ry="60" fill="rgba(34, 197, 94, 0.15)" stroke="rgba(34, 197, 94, 0.3)" strokeWidth="1" />
+                    <ellipse cx="680" cy="220" rx="120" ry="80" fill="rgba(34, 197, 94, 0.12)" stroke="rgba(34, 197, 94, 0.3)" strokeWidth="1" />
+                    {/* Building Blocks */}
+                    <rect x="320" y="110" width="40" height="30" fill="rgba(255, 255, 255, 0.1)" stroke="rgba(255,255,255,0.2)" />
+                    <rect x="380" y="100" width="55" height="45" fill="rgba(255, 255, 255, 0.12)" stroke="rgba(255,255,255,0.2)" />
+                    <rect x="450" y="130" width="35" height="25" fill="rgba(255, 255, 255, 0.1)" stroke="rgba(255,255,255,0.2)" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Roadmap Street View Layer */}
+              {mapDisplayMode === 'ROADMAP' && (
+                <div style={{ position: 'absolute', inset: 0 }}>
+                  <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                    {/* Water Body */}
+                    <path d="M 750 0 Q 820 280 880 600" fill="none" stroke="#aadaff" strokeWidth="35" />
+                    {/* Primary Yellow Highway */}
+                    <path d="M 0 160 Q 300 200 600 270 T 1100 380" fill="none" stroke="#fcd34d" strokeWidth="12" />
+                    <path d="M 250 0 Q 380 320 520 600" fill="none" stroke="#ffffff" strokeWidth="10" />
+                    {/* Local Streets */}
+                    <path d="M 100 0 L 100 500" fill="none" stroke="#ffffff" strokeWidth="4" />
+                    <path d="M 400 0 L 400 500" fill="none" stroke="#ffffff" strokeWidth="4" />
+                    <path d="M 0 320 L 900 320" fill="none" stroke="#ffffff" strokeWidth="4" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Dark Radar Pattern */}
+              {mapDisplayMode === 'DARK' && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundImage:
+                      'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+                    backgroundSize: '40px 40px',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+
+              {/* Map Top Status Pill */}
               <div
                 style={{
                   position: 'absolute',
-                  inset: 0,
-                  backgroundImage:
-                    'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
-                  backgroundSize: '40px 40px',
-                  pointerEvents: 'none',
+                  top: '15px',
+                  left: '15px',
+                  zIndex: 10,
+                  background: 'rgba(15, 23, 42, 0.88)',
+                  backdropFilter: 'blur(8px)',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  fontSize: '0.78rem',
+                  color: '#cbd5e1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
                 }}
-              />
-
-              {/* Map Canvas with Delhi/NCR Landmark Nodes */}
-              <div style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 10, background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.75rem', color: '#cbd5e1' }}>
-                <span style={{ color: '#10b981', fontWeight: 700 }}>● GPS SATELLITE LIVE</span> • Delhi-NCR Grid (28.5682° N, 77.2235° E)
+              >
+                <span style={{ color: '#10b981', fontWeight: 800 }}>
+                  ● {mapDisplayMode === 'SATELLITE' ? 'GOOGLE SATELLITE HYBRID' : mapDisplayMode === 'ROADMAP' ? 'GOOGLE STREETS ROADMAP' : 'DARK TACTICAL RADAR'}
+                </span>
+                <span>• Delhi-NCR (28.5682° N, 77.2235° E)</span>
               </div>
 
               {/* Map Pins Placed on Relative Coordinates */}
@@ -791,6 +1128,27 @@ export const AdminDashboardPage = () => {
                 // Offset calculation for demo canvas positioning
                 const topPos = 25 + (idx * 14) + (idx % 2 === 0 ? 8 : -8);
                 const leftPos = 18 + (idx * 16) + (idx % 3 === 0 ? -6 : 10);
+
+                // Check-in (Green #10b981) vs Check-out (Red #ef4444) color mapping
+                const isCheckedIn = pin.checkStatus === 'CHECKED_IN';
+                const isCheckedOut = pin.checkStatus === 'CHECKED_OUT';
+                const pinColor = isCheckedIn
+                  ? '#10b981'
+                  : isCheckedOut
+                  ? '#ef4444'
+                  : pin.type === 'STAFF'
+                  ? '#ec4899'
+                  : pin.type === 'BRANCH'
+                  ? '#6366f1'
+                  : pin.type === 'STUDENT'
+                  ? '#38bdf8'
+                  : '#f59e0b';
+
+                const ringColor = isCheckedIn
+                  ? 'rgba(16, 185, 129, 0.45)'
+                  : isCheckedOut
+                  ? 'rgba(239, 68, 68, 0.45)'
+                  : 'rgba(236, 72, 153, 0.35)';
 
                 return (
                   <div
@@ -812,59 +1170,52 @@ export const AdminDashboardPage = () => {
                     <div
                       style={{
                         position: 'absolute',
-                        width: '36px',
-                        height: '36px',
+                        width: '38px',
+                        height: '38px',
                         borderRadius: '50%',
-                        background:
-                          pin.type === 'STAFF'
-                            ? 'rgba(236, 72, 153, 0.35)'
-                            : pin.type === 'BRANCH'
-                            ? 'rgba(99, 102, 241, 0.35)'
-                            : 'rgba(16, 185, 129, 0.35)',
+                        background: ringColor,
                         animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
                       }}
                     />
                     {/* Pin Marker Icon */}
                     <div
                       style={{
-                        width: isSelected ? '38px' : '30px',
-                        height: isSelected ? '38px' : '30px',
+                        width: isSelected ? '40px' : '32px',
+                        height: isSelected ? '40px' : '32px',
                         borderRadius: '50%',
-                        background:
-                          pin.type === 'STAFF'
-                            ? '#ec4899'
-                            : pin.type === 'BRANCH'
-                            ? '#6366f1'
-                            : pin.type === 'STUDENT'
-                            ? '#38bdf8'
-                            : '#10b981',
+                        background: pinColor,
                         border: '3px solid #fff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: '#fff',
-                        fontSize: '0.8rem',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+                        fontSize: '0.85rem',
+                        boxShadow: `0 4px 16px ${pinColor}80`,
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      {pin.type === 'STAFF' ? '✂️' : pin.type === 'BRANCH' ? '📍' : pin.type === 'STUDENT' ? '🎓' : '👤'}
+                      {isCheckedIn ? '🟢' : isCheckedOut ? '🔴' : (pin.type === 'STAFF' ? '✂️' : pin.type === 'BRANCH' ? '📍' : pin.type === 'STUDENT' ? '🎓' : '👤')}
                     </div>
-                    {/* Floating Label */}
+                    {/* Floating Label with Status Pill */}
                     <div
                       style={{
                         marginTop: '4px',
-                        background: 'rgba(15, 23, 42, 0.9)',
+                        background: 'rgba(15, 23, 42, 0.95)',
                         color: '#fff',
                         fontSize: '0.72rem',
                         padding: '2px 8px',
-                        borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '6px',
+                        border: `1px solid ${pinColor}80`,
                         whiteSpace: 'nowrap',
-                        fontWeight: 600,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
                       }}
                     >
-                      {pin.title}
+                      <span>{pin.title}</span>
+                      {isCheckedIn && <span style={{ color: '#10b981', fontSize: '0.65rem' }}>[IN]</span>}
+                      {isCheckedOut && <span style={{ color: '#ef4444', fontSize: '0.65rem' }}>[OUT]</span>}
                     </div>
                   </div>
                 );

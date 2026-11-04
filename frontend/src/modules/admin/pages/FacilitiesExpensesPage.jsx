@@ -151,10 +151,22 @@ export const FacilitiesExpensesPage = () => {
   ];
 
   const assetFields = [
-    { name: 'name', label: 'Asset Name', required: true, placeholder: 'e.g. Dyson Hair Dryer, Hydraulic Salon Chair' },
-    { name: 'category', label: 'Asset Category', placeholder: 'e.g. Furniture, Electrical, Machine' },
-    { name: 'purchaseCost', label: 'Purchase Cost (₹)', type: 'currency' },
-    { name: 'serialNumber', label: 'Serial / Model Number', placeholder: 'SN-9821' },
+    { name: 'name', label: 'Machine / Equipment Asset Name', required: true, placeholder: 'e.g. 7-in-1 Hydra-Facial Machine, Diode Laser Console, UV Nail Lamp' },
+    {
+      name: 'category',
+      label: 'Asset / Machine Category',
+      type: 'select',
+      required: true,
+      options: [
+        { label: 'Aesthetic Skin Machines (Hydra-Facial, Laser Diode, Microcurrent)', value: 'Aesthetic Machines' },
+        { label: 'Hair Care Consoles (Steamer, Climazone, Dyson Supersonic)', value: 'Hair Equipment' },
+        { label: 'Nail Station Tech (UV Gel Lamps, Electric Nail Drills)', value: 'Nail Tech' },
+        { label: 'Hygiene & Sterilizers (Medical Autoclaves, UV Glass Cabinet)', value: 'Sterilizers' },
+        { label: 'Salon Furniture & Beds (Hydraulic Styling Chairs, Spa Recliner)', value: 'Furniture' },
+      ],
+    },
+    { name: 'purchaseCost', label: 'Purchase / Capital Cost (₹)', type: 'currency' },
+    { name: 'serialNumber', label: 'Serial / Machine Model Number', placeholder: 'SN-HF-2026-902' },
   ];
 
   const maintenanceFields = [

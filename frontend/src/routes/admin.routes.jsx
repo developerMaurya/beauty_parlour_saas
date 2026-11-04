@@ -29,6 +29,11 @@ import FacilitiesExpensesPage from '../modules/admin/pages/FacilitiesExpensesPag
 import ReportsPage from '../modules/admin/pages/ReportsPage.jsx';
 import WebsiteCMSPage from '../modules/admin/pages/WebsiteCMSPage.jsx';
 import SettingsPage from '../modules/admin/pages/SettingsPage.jsx';
+import CRMPage from '../modules/admin/pages/CRMPage.jsx';
+import NotificationsPage from '../modules/admin/pages/NotificationsPage.jsx';
+import SupportCenterPage from '../modules/admin/pages/SupportCenterPage.jsx';
+import AdminProfilePage from '../modules/admin/pages/AdminProfilePage.jsx';
+import LiveTrackingPage from '../modules/admin/pages/LiveTrackingPage.jsx';
 
 export const AdminRoutes = (
   <>
@@ -44,6 +49,11 @@ export const AdminRoutes = (
       <Route path="roles" element={<RolePermissionPage />} />
       <Route path="permissions" element={<RolePermissionPage />} />
       <Route path="users" element={<UserManagementPage />} />
+      <Route path="crm" element={<CRMPage />} />
+      <Route path="tracking" element={<LiveTrackingPage />} />
+      <Route path="notifications" element={<NotificationsPage />} />
+      <Route path="support" element={<SupportCenterPage />} />
+      <Route path="profile" element={<AdminProfilePage />} />
       <Route path="staff" element={<StaffManagementPage />} />
       <Route path="attendance" element={<AttendanceLeavesPage />} />
       <Route path="leaves" element={<AttendanceLeavesPage />} />

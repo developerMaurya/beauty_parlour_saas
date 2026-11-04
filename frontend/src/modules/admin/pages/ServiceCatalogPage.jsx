@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Copy, Scissors, Layers, PlusCircle, CheckCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy, Scissors, Layers, PlusCircle, CheckCircle, LayoutGrid, List, Sparkles } from 'lucide-react';
 import DataTable from '../../../components/DataTable.jsx';
 import FormModal from '../../../components/FormEngine/FormModal.jsx';
 import {
@@ -24,6 +24,7 @@ export const ServiceCatalogPage = () => {
   const toast = useToast();
 
   const [activeTab, setActiveTab] = useState('services'); // 'services' | 'categories' | 'subcategories'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -160,23 +161,23 @@ export const ServiceCatalogPage = () => {
   };
 
   const serviceFields = [
-    { name: 'name', label: 'Service Name', required: true, placeholder: 'e.g. Bridal HD Airbrush Makeup, Layer Cut' },
+    { name: 'name', label: 'Service Name', required: true, placeholder: 'e.g. Bridal HD Airbrush Makeup, Layer Cut, Keratin Spa' },
     {
       name: 'category',
-      label: 'Category',
+      label: 'Category (Hair, Makeup, Skin, Massage, Spa, Nails)',
       type: 'select',
       required: true,
       options: categories.map((c) => ({ label: c.name, value: c._id })),
     },
     {
       name: 'subcategory',
-      label: 'Subcategory',
+      label: 'Subcategory (Optional)',
       type: 'select',
       options: subcategories.map((s) => ({ label: s.name, value: s._id })),
     },
-    { name: 'duration', label: 'Duration (Minutes)', type: 'number', required: true, placeholder: '45' },
-    { name: 'price', label: 'Base Price (₹)', type: 'currency', required: true },
-    { name: 'discount', label: 'Discount Amount (₹)', type: 'currency' },
+    { name: 'duration', label: 'Duration (Minutes)', type: 'number', required: false, placeholder: '45' },
+    { name: 'price', label: 'Price (₹) (Optional / Starting at)', type: 'currency', required: false, placeholder: 'Leave blank for custom consultation' },
+    { name: 'discount', label: 'Discount / Offer Price (₹)', type: 'currency', required: false },
     {
       name: 'gender',
       label: 'Target Client Gender',
@@ -189,7 +190,14 @@ export const ServiceCatalogPage = () => {
       ],
     },
     { name: 'homeServiceAllowed', label: 'Allow Home Service Dispatch', type: 'switch', defaultValue: true },
-    { name: 'description', label: 'Service Details & Steps', type: 'textarea', span: 2 },
+    {
+      name: 'features',
+      label: 'Key Features & Benefits (Enter bullet points or highlights)',
+      type: 'textarea',
+      span: 2,
+      placeholder: '• International professional cosmetics (MAC / Kryolan)\n• Includes skin prep, hydration & lashes\n• Guaranteed long-lasting 18hr finish',
+    },
+    { name: 'description', label: 'Service Details & Overview', type: 'textarea', span: 2 },
   ];
 
   const catFields = [
@@ -236,8 +244,8 @@ export const ServiceCatalogPage = () => {
     {
       header: 'Price',
       render: (row) => (
-        <span style={{ fontWeight: 700, color: '#10b981' }}>
-          ₹{(row.price || 0).toLocaleString()}
+        <span style={{ fontWeight: 700, color: row.price ? '#10b981' : '#818cf8' }}>
+          {row.price ? `₹${Number(row.price).toLocaleString()}` : 'Custom / On Request'}
         </span>
       ),
     },
@@ -361,32 +369,252 @@ export const ServiceCatalogPage = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        <button
-          onClick={() => setActiveTab('services')}
-          className={`btn ${activeTab === 'services' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          <Scissors className="w-4 h-4" /> Services & Options
-        </button>
-        <button
-          onClick={() => setActiveTab('categories')}
-          className={`btn ${activeTab === 'categories' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          <Layers className="w-4 h-4" /> Categories
-        </button>
-        <button
-          onClick={() => setActiveTab('subcategories')}
-          className={`btn ${activeTab === 'subcategories' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          <PlusCircle className="w-4 h-4" /> Subcategories
-        </button>
+      {/* Tabs & View Switcher */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setActiveTab('services')}
+            className={`btn ${activeTab === 'services' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Scissors className="w-4 h-4" /> Services & Options
+          </button>
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`btn ${activeTab === 'categories' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Layers className="w-4 h-4" /> Categories
+          </button>
+          <button
+            onClick={() => setActiveTab('subcategories')}
+            className={`btn ${activeTab === 'subcategories' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <PlusCircle className="w-4 h-4" /> Subcategories
+          </button>
+        </div>
+
+        {activeTab === 'services' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-app)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '0.75rem' }}
+              title="Visual Icon Cards"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Icon Cards</span>
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '0.75rem' }}
+              title="Detailed Table List"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Table List</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {activeTab === 'services' && (
+      {activeTab === 'services' && viewMode === 'grid' && (
+        <div>
+          {isLoading ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              Loading service catalog...
+            </div>
+          ) : services.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+              No services found. Click "Add Service" to create one.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+              {services.map((srv) => {
+                // Category-based icon helper
+                const catName = srv.category?.name || '';
+                const iconEmoji =
+                  catName.includes('Hair') ? '✂️' :
+                  catName.includes('Skin') || catName.includes('Facial') ? '💆' :
+                  catName.includes('Bridal') || catName.includes('Makeover') ? '💄' :
+                  catName.includes('Nail') ? '💅' :
+                  catName.includes('Spa') ? '🌿' : '✨';
+
+                return (
+                  <div
+                    key={srv._id}
+                    className="card"
+                    style={{
+                      padding: '1.25rem',
+                      borderRadius: '16px',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '1rem',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    }}
+                  >
+                    <div>
+                      {/* Top Header with Icon & Category */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: '12px',
+                              background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)',
+                              border: '1px solid rgba(236, 72, 153, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '1.4rem',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {iconEmoji}
+                          </div>
+                          <div>
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                                color: 'var(--primary-color, #ec4899)',
+                              }}
+                            >
+                              {srv.category?.name || 'General Ritual'}
+                            </span>
+                            <h4
+                              style={{
+                                fontSize: '1.05rem',
+                                fontWeight: 800,
+                                color: 'var(--text-primary)',
+                                margin: '2px 0 0 0',
+                                lineHeight: '1.3',
+                              }}
+                            >
+                              {srv.name}
+                            </h4>
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: '1.15rem',
+                            fontWeight: 800,
+                            color: '#10b981',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          ₹{(srv.price || 0).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Description */}
+                      <p
+                        style={{
+                          fontSize: '0.82rem',
+                          color: 'var(--text-muted)',
+                          lineHeight: '1.5',
+                          margin: '0 0 0.75rem 0',
+                        }}
+                      >
+                        {srv.description || 'Artisanal treatment executed with certified formulation and hygiene standards.'}
+                      </p>
+
+                      {/* Meta Pills */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem' }}>
+                        <span style={{ padding: '3px 8px', borderRadius: '6px', background: 'var(--bg-app)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}>
+                          ⏱ {srv.duration || 45} mins
+                        </span>
+                        <span
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            background: srv.homeServiceAllowed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                            color: srv.homeServiceAllowed ? '#10b981' : '#94a3b8',
+                            border: `1px solid ${srv.homeServiceAllowed ? '#10b98140' : 'rgba(148, 163, 184, 0.3)'}`,
+                          }}
+                        >
+                          {srv.homeServiceAllowed ? '🚗 Home Service Available' : '🏢 In-Salon Only'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Options & Action Toolbar */}
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                          onClick={() => {
+                            setSelectedServiceForOption(srv);
+                            setOptionModalOpen(true);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ flex: 1, fontSize: '0.75rem', padding: '5px' }}
+                          title="Manage Variants (e.g. U-Cut, V-Cut)"
+                        >
+                          + Option ({srv.options?.length || 0})
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedServiceForAddon(srv);
+                            setAddonModalOpen(true);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ flex: 1, fontSize: '0.75rem', padding: '5px' }}
+                          title="Manage Add-ons (e.g. Wash, Ampoule)"
+                        >
+                          + Add-on ({srv.addons?.length || 0})
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.4rem' }}>
+                        <button
+                          onClick={() => handleDuplicateService(srv._id)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '5px 8px' }}
+                          title="Duplicate Service"
+                        >
+                          <Copy className="w-3.5 h-3.5 text-indigo-400" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingService(srv);
+                            setServiceModalOpen(true);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '5px 8px' }}
+                          title="Edit Service"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-blue-400" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteService(srv._id)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '5px 8px' }}
+                          title="Delete Service"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'services' && viewMode === 'table' && (
         <DataTable
           columns={serviceColumns}
           data={services}

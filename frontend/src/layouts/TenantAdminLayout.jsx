@@ -35,6 +35,10 @@ import {
   Sun,
   Moon,
   ExternalLink,
+  Bell,
+  LifeBuoy,
+  UserCog,
+  MapPin,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -46,15 +50,20 @@ const navItems = [
   { label: 'Structure', path: '/admin/structure', icon: Layers },
   { label: 'Roles & Permissions', path: '/admin/roles', icon: ShieldCheck },
   { label: 'Users', path: '/admin/users', icon: Users },
+  { label: 'CRM & Operations', path: '/admin/crm', icon: HeartHandshake },
   { label: 'Staff Management', path: '/admin/staff', icon: UserCheck },
   { label: 'Attendance & Leaves', path: '/admin/attendance', icon: Clock },
   { label: 'Academy & Students', path: '/admin/students', icon: GraduationCap },
-  { label: 'Customers', path: '/admin/customers', icon: HeartHandshake },
+  { label: 'Customers', path: '/admin/customers', icon: Users },
   { label: 'Services & Packages', path: '/admin/services', icon: Scissors },
   { label: 'Appointments', path: '/admin/appointments', icon: Calendar },
   { label: 'Home Services', path: '/admin/home-services', icon: Navigation },
+  { label: 'Live Staff Tracking', path: '/admin/tracking', icon: MapPin },
   { label: 'Billing & POS', path: '/admin/billing', icon: CreditCard },
   { label: 'Products & Inventory', path: '/admin/inventory', icon: Package },
+  { label: 'Notifications Hub', path: '/admin/notifications', icon: Bell },
+  { label: 'Support & Helpdesk', path: '/admin/support', icon: LifeBuoy },
+  { label: 'Profile & Security', path: '/admin/profile', icon: UserCog },
   { label: 'Facilities & Ops', path: '/admin/facilities', icon: Building },
   { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
   { label: 'Website CMS', path: '/admin/website', icon: Globe },
@@ -365,19 +374,81 @@ export const TenantAdminLayout = () => {
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            <span
+            {/* Notifications Hub Button */}
+            <NavLink
+              to="/admin/notifications"
+              className="btn-icon"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: 'var(--bg-app)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                textDecoration: 'none',
+              }}
+              title="Notifications Hub"
+            >
+              <Bell className="w-4 h-4" />
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '6px',
+                  right: '6px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#ec4899',
+                }}
+              />
+            </NavLink>
+
+            {/* Support Center Link */}
+            <NavLink
+              to="/admin/support"
+              className="btn-icon"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: 'var(--bg-app)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textDecoration: 'none',
+              }}
+              title="Super Admin Helpdesk"
+            >
+              <LifeBuoy className="w-4 h-4" />
+            </NavLink>
+
+            {/* User Profile Pill */}
+            <NavLink
+              to="/admin/profile"
               style={{
                 padding: '4px 10px',
                 borderRadius: '999px',
                 fontSize: '0.75rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 backgroundColor: 'rgba(236, 72, 153, 0.15)',
                 color: 'var(--primary-color, #ec4899)',
                 border: '1px solid rgba(236, 72, 153, 0.3)',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
               }}
+              title="Edit Admin Profile & Salon Branding"
             >
-              {user?.role || user?.userType}
-            </span>
+              <UserCog className="w-3.5 h-3.5" />
+              <span>{user?.role || user?.userType || 'ADMIN'}</span>
+            </NavLink>
           </div>
         </header>
 

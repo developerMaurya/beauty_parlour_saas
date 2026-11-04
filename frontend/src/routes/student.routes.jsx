@@ -46,6 +46,7 @@ import StudentReportsPage from '../modules/student/pages/StudentReportsPage.jsx'
 import StudentTimelinePage from '../modules/student/pages/StudentTimelinePage.jsx';
 import StudentSettingsPage from '../modules/student/pages/StudentSettingsPage.jsx';
 import StudentSecurityPage from '../modules/student/pages/StudentSecurityPage.jsx';
+import StudentCRMPage from '../modules/student/pages/StudentCRMPage.jsx';
 
 export const StudentRoutes = (
   <>
@@ -56,6 +57,7 @@ export const StudentRoutes = (
     <Route path="/student" element={<StudentLayout />}>
       <Route index element={<Navigate to="/student/dashboard" replace />} />
       <Route path="dashboard" element={<StudentDashboardPage />} />
+      <Route path="crm" element={<StudentCRMPage />} />
 
       {/* Profile & Security */}
       <Route path="profile" element={<StudentProfilePage />} />

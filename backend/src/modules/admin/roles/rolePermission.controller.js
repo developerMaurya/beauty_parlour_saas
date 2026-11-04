@@ -68,10 +68,87 @@ export const getRoles = async (req, res) => {
       ];
     }
 
-    const [items, total] = await Promise.all([
+    let [items, total] = await Promise.all([
       Role.find(filter).sort(sort).skip(skip).limit(limit),
       Role.countDocuments(filter),
     ]);
+
+    // If no roles exist for this tenant, auto-seed the standard predefined roles
+    if (total === 0) {
+      const defaultRoles = [
+        {
+          tenantId: req.tenantId,
+          name: 'Administrator',
+          code: 'ADMIN',
+          description: 'Full administrative rights across salon, billing, and staff',
+          isSystem: true,
+          permissions: SYSTEM_PERMISSIONS.map((p) => p.code),
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Salon Manager',
+          code: 'MANAGER',
+          description: 'Store operations, staff rosters, appointments, and inventory management',
+          isSystem: true,
+          permissions: [
+            'dashboard.view', 'staff.view', 'staff.update', 'attendance.manage',
+            'customer.view', 'customer.create', 'customer.update',
+            'service.view', 'package.view', 'appointment.view', 'appointment.create',
+            'appointment.update', 'billing.view', 'billing.create', 'inventory.view', 'inventory.create',
+          ],
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Senior Stylist & Artist',
+          code: 'SENIOR_STYLIST',
+          description: 'Client appointments, services execution, and daily attendance',
+          isSystem: false,
+          permissions: [
+            'dashboard.view', 'staff.view', 'attendance.manage',
+            'customer.view', 'service.view', 'appointment.view', 'appointment.update',
+          ],
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Staff Specialist',
+          code: 'STAFF',
+          description: 'General staff member with personal schedule and attendance rights',
+          isSystem: true,
+          permissions: ['staff.view', 'attendance.manage', 'appointment.view'],
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Academy Student',
+          code: 'STUDENT',
+          description: 'Enrolled academy trainee with course syllabus and schedule access',
+          isSystem: true,
+          permissions: ['student.view'],
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Customer & Client',
+          code: 'CUSTOMER',
+          description: 'Client profile with appointment booking and order history',
+          isSystem: true,
+          permissions: ['customer.view', 'service.view', 'appointment.create', 'appointment.view'],
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Front Desk Receptionist',
+          code: 'RECEPTIONIST',
+          description: 'Customer check-ins, instant billing POS, and appointment scheduling',
+          isSystem: false,
+          permissions: [
+            'dashboard.view', 'customer.view', 'customer.create', 'customer.update',
+            'appointment.view', 'appointment.create', 'appointment.update',
+            'billing.view', 'billing.create',
+          ],
+        },
+      ];
+      await Role.insertMany(defaultRoles);
+      items = await Role.find(filter).sort(sort).skip(skip).limit(limit);
+      total = items.length;
+    }
 
     return sendListResponse(res, items, { page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {

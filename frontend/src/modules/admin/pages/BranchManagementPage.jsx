@@ -42,15 +42,21 @@ export const BranchManagementPage = () => {
   }, []);
 
   const handleSave = async (data) => {
-    if (editingBranch) {
-      await branchFetcher.update(editingBranch._id, data);
-      toast.success('Branch updated successfully');
-    } else {
-      await branchFetcher.create(data);
-      toast.success('New branch established');
+    try {
+      if (editingBranch) {
+        await branchFetcher.update(editingBranch._id, data);
+        toast.success('Branch updated successfully');
+      } else {
+        await branchFetcher.create(data);
+        toast.success('New branch established');
+      }
+      setModalOpen(false);
+      setEditingBranch(null);
+      fetchBranches();
+      loadBranches();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to save branch');
     }
-    fetchBranches();
-    loadBranches();
   };
 
   const handleSetDefault = async (branchId) => {
@@ -60,7 +66,7 @@ export const BranchManagementPage = () => {
       fetchBranches();
       loadBranches();
     } catch (err) {
-      toast.error(err.message || 'Could not set default branch');
+      toast.error(err.response?.data?.message || err.message || 'Could not set default branch');
     }
   };
 
@@ -72,7 +78,7 @@ export const BranchManagementPage = () => {
       fetchBranches();
       loadBranches();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not delete branch');
+      toast.error(err.response?.data?.message || err.message || 'Could not delete branch');
     }
   };
 

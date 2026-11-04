@@ -27,6 +27,7 @@ export default function StudentLayout() {
       title: 'Academics & Schedule',
       items: [
         { label: 'Dashboard', path: '/student/dashboard', icon: '⚡' },
+        { label: 'Student Academy CRM', path: '/student/crm', icon: '🤝', highlight: true },
         { label: 'Class Schedule', path: '/student/schedule', icon: '🗓️' },
         { label: 'Calendar', path: '/student/calendar', icon: '📅' },
         { label: 'Attendance', path: '/student/attendance', icon: '⏱️' },

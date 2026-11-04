@@ -38,6 +38,7 @@ import StaffPerformancePage from '../modules/staff/pages/StaffPerformancePage.js
 import StaffReportsPage from '../modules/staff/pages/StaffReportsPage.jsx';
 import StaffSettingsPage from '../modules/staff/pages/StaffSettingsPage.jsx';
 import StaffSecurityPage from '../modules/staff/pages/StaffSecurityPage.jsx';
+import StaffCRMPage from '../modules/staff/pages/StaffCRMPage.jsx';
 
 export const StaffRoutes = (
   <>
@@ -65,6 +66,7 @@ export const StaffRoutes = (
       <Route path="tasks/:id" element={<StaffTaskDetailPage />} />
 
       {/* Clients CRM & Catalog */}
+      <Route path="crm" element={<StaffCRMPage />} />
       <Route path="customers" element={<StaffCustomersPage />} />
       <Route path="customers/:id" element={<StaffCustomerDetailPage />} />
       <Route path="services" element={<StaffServicesPage />} />

@@ -117,6 +117,7 @@ export const PermissionSchema = new Schema(
 export const TenantUserSchema = new Schema(
   {
     tenantId: { type: String, required: true, index: true },
+    name: { type: String, trim: true, default: '' },
     email: { type: String, lowercase: true, trim: true, default: null },
     phone: { type: String, trim: true, default: null },
     username: { type: String, trim: true, lowercase: true, default: null },
@@ -625,10 +626,12 @@ export const ServiceSchema = new Schema(
     code: { type: String, trim: true, uppercase: true },
     description: { type: String, default: '' },
     durationMinutes: { type: Number, required: true, default: 30 },
-    price: { type: Number, required: true },
+    price: { type: Number, default: 0 },
     discountPrice: { type: Number, default: 0 },
     taxRate: { type: Number, default: 0 },
     gender: { type: String, enum: ['female', 'male', 'unisex', 'kids'], default: 'unisex' },
+    features: [{ type: String }],
+    highlights: { type: String, default: '' },
     branchIds: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
     assignedStaff: [{ type: Schema.Types.ObjectId, ref: 'Staff' }],
     requiredSkills: [{ type: String }],

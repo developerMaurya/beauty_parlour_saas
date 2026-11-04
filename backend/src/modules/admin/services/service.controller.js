@@ -188,13 +188,15 @@ export const createService = async (req, res) => {
       requiredSkills,
       imageUrl,
       gallery,
+      features,
+      highlights,
       homeServiceAllowed,
       appointmentAllowed,
       walkInAllowed,
     } = req.body;
 
-    if (!name || !categoryId || price === undefined) {
-      return sendError(res, 'Service name, category, and price are required', [], 400);
+    if (!name || !categoryId) {
+      return sendError(res, 'Service name and category are required', [], 400);
     }
 
     const Service = getTenantModel(req, 'Service');
@@ -205,10 +207,12 @@ export const createService = async (req, res) => {
       subcategoryId: subcategoryId || null,
       description: description || '',
       durationMinutes: Number(durationMinutes) || 30,
-      price: Number(price),
+      price: price !== undefined && price !== '' ? Number(price) : 0,
       discountPrice: Number(discountPrice) || 0,
       taxRate: Number(taxRate) || 0,
       gender: gender || 'unisex',
+      features: Array.isArray(features) ? features : (typeof features === 'string' ? features.split('\n').filter(Boolean) : []),
+      highlights: highlights || (typeof features === 'string' ? features : ''),
       branchIds: Array.isArray(branchIds) ? branchIds : [],
       assignedStaff: Array.isArray(assignedStaff) ? assignedStaff : [],
       requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : [],

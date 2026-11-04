@@ -20,8 +20,11 @@ export const createStaff = async (req, res) => {
       email,
       password,
       branchId,
+      branch,
       departmentId,
+      department,
       designationId,
+      designation,
       skills,
       specializations,
       assignedServices,
@@ -39,7 +42,11 @@ export const createStaff = async (req, res) => {
       notes,
     } = req.body;
 
-    if (!name || !phone || !branchId) {
+    const finalBranchId = branchId || branch;
+    const finalDeptId = departmentId || department || null;
+    const finalDesigId = designationId || designation || null;
+
+    if (!name || !phone || !finalBranchId) {
       return sendError(res, 'Name, phone, and branch are required', [], 400);
     }
 
@@ -77,7 +84,7 @@ export const createStaff = async (req, res) => {
     const staff = await Staff.create({
       tenantId: req.tenantId,
       userId: user._id,
-      branchId,
+      branchId: finalBranchId,
       name: name.trim(),
       phone: phone.trim(),
       email: email ? email.trim().toLowerCase() : '',
@@ -85,8 +92,8 @@ export const createStaff = async (req, res) => {
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
       employeeId: staffEmpId,
-      departmentId: departmentId || null,
-      designationId: designationId || null,
+      departmentId: finalDeptId,
+      designationId: finalDesigId,
       skills: Array.isArray(skills) ? skills : [],
       specializations: Array.isArray(specializations) ? specializations : [],
       assignedServices: Array.isArray(assignedServices) ? assignedServices : [],
