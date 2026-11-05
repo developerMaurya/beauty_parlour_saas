@@ -10,7 +10,7 @@
  * @module frontend/src/modules/public/pages/PlatformHubPage
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import {
   Sparkles,
@@ -28,6 +28,7 @@ import {
   Check,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
   Eye,
   Star,
   MapPin,
@@ -66,7 +67,20 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
   const [receiptData, setReceiptData] = useState(null);
   const [instantTrialService, setInstantTrialService] = useState(null);
   const [purchaseService, setPurchaseService] = useState(null);
+  const [isDocsDropdownOpen, setIsDocsDropdownOpen] = useState(false);
+  const docsDropdownRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Close docs dropdown on click outside
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (docsDropdownRef.current && !docsDropdownRef.current.contains(e.target)) {
+        setIsDocsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -272,25 +286,136 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
               Rental Assets
             </button>
 
-            <NavLink
-              to="/docs"
-              style={{
-                textDecoration: 'none',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: '#4f46e5',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '5px 12px',
-                borderRadius: '6px',
-                background: '#eef2ff',
-                border: '1px solid #c7d2fe',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>📖 Docs & Dashboards</span>
-            </NavLink>
+            {/* Interactive Docs & Services Dropdown */}
+            <div style={{ position: 'relative' }} ref={docsDropdownRef}>
+              <button
+                onClick={() => setIsDocsDropdownOpen((prev) => !prev)}
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: '#4f46e5',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  background: isDocsDropdownOpen ? '#e0e7ff' : '#eef2ff',
+                  border: '1.5px solid #c7d2fe',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>📖 Docs & Services</span>
+                <ChevronDown
+                  size={14}
+                  style={{
+                    transform: isDocsDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </button>
+
+              {/* Floating Dropdown Menu */}
+              {isDocsDropdownOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: '340px',
+                    background: '#ffffff',
+                    borderRadius: '14px',
+                    border: '1px solid #cbd5e1',
+                    boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.2), 0 8px 16px -6px rgba(15, 23, 42, 0.1)',
+                    padding: '8px',
+                    zIndex: 1000,
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      color: '#64748b',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      borderBottom: '1px solid #f1f5f9',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Select Service Documentation:
+                  </div>
+
+                  {[
+                    { id: 'beauty-parlour', name: 'Beauty Parlour & Salon ERP', icon: '💅', badge: 'Production' },
+                    { id: 'software-saas', name: 'Software SaaS Suite (Retail & LMS)', icon: '🛍️', badge: '4 In 1' },
+                    { id: 'event-services', name: 'Event Services & Stage Operations', icon: '🎪', badge: 'QR Passes' },
+                    { id: 'plotting-services', name: 'Real Estate & Colony Plotting', icon: '🏡', badge: 'SVG Map' },
+                    { id: 'rent-services', name: 'Rental Properties & Asset Leasing', icon: '🔑', badge: 'Auto UPI' },
+                    { id: 'dashboards', name: '5 Autonomous Dashboards Walkthrough', icon: '🖥️', badge: 'Portals' },
+                    { id: 'architecture', name: 'Technical Architecture & Cloud DB', icon: '🏗️', badge: 'Multi-Tenant' },
+                  ].map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        setIsDocsDropdownOpen(false);
+                        navigate(`/docs?service=${item.id}`);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                        <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>{item.name}</span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '9.5px',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          background: '#eff6ff',
+                          color: '#2563eb',
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    </div>
+                  ))}
+
+                  <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '6px', paddingTop: '6px' }}>
+                    <div
+                      onClick={() => {
+                        setIsDocsDropdownOpen(false);
+                        navigate('/docs');
+                      }}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#4f46e5',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        background: '#eef2ff',
+                      }}
+                    >
+                      📖 Open Full Documentation Hub →
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
       </header>
