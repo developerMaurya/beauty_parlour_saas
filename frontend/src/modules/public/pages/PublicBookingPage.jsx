@@ -360,13 +360,13 @@ export default function PublicBookingPage() {
   }
 
   return (
-    <div style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+    <div style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Title */}
       <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#f8fafc', margin: 0, letterSpacing: '-0.025em' }}>
-          Reserve Salon Appointment
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>
+          Reserve Beauty Parlour Appointment
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '1rem', marginTop: '0.5rem' }}>
+        <p style={{ color: '#475569', fontSize: '1rem', marginTop: '0.5rem' }}>
           Instant booking with UPI / Online Payment options and printable verified bill receipt.
         </p>
       </div>
@@ -376,10 +376,11 @@ export default function PublicBookingPage() {
           style={{
             padding: '1rem',
             borderRadius: '12px',
-            background: msg.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+            background: msg.type === 'error' ? '#fef2f2' : '#ecfdf5',
             border: `1px solid ${msg.type === 'error' ? '#ef4444' : '#10b981'}`,
-            color: msg.type === 'error' ? '#ef4444' : '#10b981',
+            color: msg.type === 'error' ? '#b91c1c' : '#047857',
             fontSize: '0.875rem',
+            fontWeight: 600,
           }}
         >
           {msg.text}
@@ -387,32 +388,33 @@ export default function PublicBookingPage() {
       )}
 
       {loadingInitial ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>Loading salon menu...</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>Loading parlour menu...</div>
       ) : (
         <form
           onSubmit={handleSubmit}
           style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#ffffff',
+            border: '1px solid #f1e6ea',
             borderRadius: '24px',
             padding: '2rem',
             display: 'flex',
             flexDirection: 'column',
             gap: '1.75rem',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.03)',
           }}
         >
           {/* Step 1: Treatment & Location Type */}
           <div>
-            <h3 style={{ margin: '0 0 1rem 0', color: '#f8fafc', fontSize: '1.125rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.5rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.15rem', fontWeight: 800, borderBottom: '1px solid #f1e6ea', paddingBottom: '0.5rem' }}>
               1. Treatment & Experience
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Select Treatment</label>
+                <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Select Treatment</label>
                 <select
                   value={formData.serviceId}
                   onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.875rem' }}
                 >
                   {services.map((s) => (
                     <option key={s._id || s.id} value={s._id || s.id}>
@@ -423,7 +425,7 @@ export default function PublicBookingPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Service Mode</label>
+                <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Service Mode</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
                     type="button"
@@ -432,15 +434,15 @@ export default function PublicBookingPage() {
                       flex: 1,
                       padding: '0.625rem',
                       borderRadius: '10px',
-                      border: 'none',
-                      background: formData.bookingType === 'IN_BRANCH' ? 'linear-gradient(135deg, #ec4899, #8b5cf6)' : '#0f172a',
-                      color: '#fff',
-                      fontWeight: 600,
+                      border: formData.bookingType === 'IN_BRANCH' ? '1px solid #be185d' : '1px solid #e2e8f0',
+                      background: formData.bookingType === 'IN_BRANCH' ? 'linear-gradient(135deg, #be185d, #e11d48)' : '#f8fafc',
+                      color: formData.bookingType === 'IN_BRANCH' ? '#fff' : '#475569',
+                      fontWeight: 700,
                       cursor: 'pointer',
                       fontSize: '0.8125rem',
                     }}
                   >
-                    In Salon
+                    🏢 In Studio
                   </button>
                   <button
                     type="button"
@@ -449,15 +451,15 @@ export default function PublicBookingPage() {
                       flex: 1,
                       padding: '0.625rem',
                       borderRadius: '10px',
-                      border: 'none',
-                      background: formData.bookingType === 'HOME_SERVICE' ? 'linear-gradient(135deg, #ec4899, #8b5cf6)' : '#0f172a',
-                      color: '#fff',
-                      fontWeight: 600,
+                      border: formData.bookingType === 'HOME_SERVICE' ? '1px solid #be185d' : '1px solid #e2e8f0',
+                      background: formData.bookingType === 'HOME_SERVICE' ? 'linear-gradient(135deg, #be185d, #e11d48)' : '#f8fafc',
+                      color: formData.bookingType === 'HOME_SERVICE' ? '#fff' : '#475569',
+                      fontWeight: 700,
                       cursor: 'pointer',
                       fontSize: '0.8125rem',
                     }}
                   >
-                    Home Service
+                    🚗 Home Visit
                   </button>
                 </div>
               </div>
@@ -465,11 +467,11 @@ export default function PublicBookingPage() {
 
             {formData.bookingType === 'IN_BRANCH' ? (
               <div style={{ marginTop: '1rem' }}>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Salon Branch</label>
+                <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Parlour Studio</label>
                 <select
                   value={formData.branchId}
                   onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.875rem' }}
                 >
                   {branches.map((b) => (
                     <option key={b._id || b.id} value={b._id || b.id}>
@@ -479,8 +481,8 @@ export default function PublicBookingPage() {
                 </select>
               </div>
             ) : (
-              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#0f172a', padding: '1rem', borderRadius: '12px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#ec4899', fontWeight: 700, textTransform: 'uppercase' }}>Home Delivery Address</span>
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#fff5f7', padding: '1rem', borderRadius: '12px', border: '1px solid #fecdd3' }}>
+                <span style={{ fontSize: '0.75rem', color: '#be185d', fontWeight: 800, textTransform: 'uppercase' }}>Home Delivery Address</span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   <input
                     type="text"
@@ -488,7 +490,7 @@ export default function PublicBookingPage() {
                     placeholder="House / Flat #"
                     value={formData.address.house}
                     onChange={(e) => setFormData({ ...formData, address: { ...formData.address, house: e.target.value } })}
-                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#1e293b', color: '#fff', fontSize: '0.8125rem' }}
+                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8125rem' }}
                   />
                   <input
                     type="text"
@@ -496,7 +498,7 @@ export default function PublicBookingPage() {
                     placeholder="Street / Road"
                     value={formData.address.street}
                     onChange={(e) => setFormData({ ...formData, address: { ...formData.address, street: e.target.value } })}
-                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#1e293b', color: '#fff', fontSize: '0.8125rem' }}
+                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8125rem' }}
                   />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -505,7 +507,7 @@ export default function PublicBookingPage() {
                     placeholder="Area / Locality"
                     value={formData.address.area}
                     onChange={(e) => setFormData({ ...formData, address: { ...formData.address, area: e.target.value } })}
-                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#1e293b', color: '#fff', fontSize: '0.8125rem' }}
+                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8125rem' }}
                   />
                   <input
                     type="text"
@@ -513,7 +515,7 @@ export default function PublicBookingPage() {
                     placeholder="Pincode"
                     value={formData.address.pincode}
                     onChange={(e) => setFormData({ ...formData, address: { ...formData.address, pincode: e.target.value } })}
-                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#1e293b', color: '#fff', fontSize: '0.8125rem' }}
+                    style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8125rem' }}
                   />
                 </div>
               </div>
@@ -522,28 +524,28 @@ export default function PublicBookingPage() {
 
           {/* Step 2: Date & Slot */}
           <div>
-            <h3 style={{ margin: '0 0 1rem 0', color: '#f8fafc', fontSize: '1.125rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.5rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.15rem', fontWeight: 800, borderBottom: '1px solid #f1e6ea', paddingBottom: '0.5rem' }}>
               2. Appointment Schedule
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Preferred Date</label>
+                <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Preferred Date</label>
                 <input
                   type="date"
                   required
                   min={new Date().toISOString().split('T')[0]}
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.875rem' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Time Slot</label>
+                <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Time Slot</label>
                 <select
                   value={formData.startTime}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.875rem' }}
                 >
                   {['10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map((t) => (
                     <option key={t} value={t}>
@@ -557,50 +559,50 @@ export default function PublicBookingPage() {
 
           {/* Step 3: Guest Contact Details */}
           <div>
-            <h3 style={{ margin: '0 0 1rem 0', color: '#f8fafc', fontSize: '1.125rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.5rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.15rem', fontWeight: 800, borderBottom: '1px solid #f1e6ea', paddingBottom: '0.5rem' }}>
               3. Guest Contact & Information
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Full Name *</label>
+                <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Full Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Priya Sharma"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.875rem' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Mobile Phone Number *</label>
+                <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Mobile Phone Number *</label>
                 <input
                   type="tel"
                   required
                   placeholder="e.g. 9876543210"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.875rem' }}
                 />
               </div>
             </div>
 
             <div style={{ marginTop: '1rem' }}>
-              <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Email Address (For Tax Invoice / Bill PDF)</label>
+              <label style={{ display: 'block', color: '#334155', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' }}>Email Address (For Tax Invoice / Bill PDF)</label>
               <input
                 type="email"
                 placeholder="priya@example.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff' }}
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.875rem' }}
               />
             </div>
           </div>
 
           {/* Step 4: Payment Option Selection */}
           <div>
-            <h3 style={{ margin: '0 0 1rem 0', color: '#f8fafc', fontSize: '1.125rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.5rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.15rem', fontWeight: 800, borderBottom: '1px solid #f1e6ea', paddingBottom: '0.5rem' }}>
               4. Payment & Billing Preference
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -609,8 +611,8 @@ export default function PublicBookingPage() {
                 style={{
                   padding: '16px',
                   borderRadius: '14px',
-                  border: formData.paymentMethod === 'PAY_ONLINE_UPI' ? '2px solid #ec4899' : '1px solid rgba(255,255,255,0.1)',
-                  background: formData.paymentMethod === 'PAY_ONLINE_UPI' ? 'rgba(236, 72, 153, 0.15)' : '#0f172a',
+                  border: formData.paymentMethod === 'PAY_ONLINE_UPI' ? '2px solid #be185d' : '1px solid #e2e8f0',
+                  background: formData.paymentMethod === 'PAY_ONLINE_UPI' ? '#fff1f2' : '#ffffff',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -619,8 +621,8 @@ export default function PublicBookingPage() {
               >
                 <span style={{ fontSize: '24px' }}>💳</span>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#ffffff' }}>Pay Online via UPI / Card</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Instant verification & confirmed token</div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Pay Online via UPI / Card</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Instant verification & confirmed token</div>
                 </div>
               </div>
 
@@ -629,8 +631,8 @@ export default function PublicBookingPage() {
                 style={{
                   padding: '16px',
                   borderRadius: '14px',
-                  border: formData.paymentMethod === 'PAY_AT_SALON' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
-                  background: formData.paymentMethod === 'PAY_AT_SALON' ? 'rgba(16, 185, 129, 0.15)' : '#0f172a',
+                  border: formData.paymentMethod === 'PAY_AT_SALON' ? '2px solid #059669' : '1px solid #e2e8f0',
+                  background: formData.paymentMethod === 'PAY_AT_SALON' ? '#ecfdf5' : '#ffffff',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -639,8 +641,8 @@ export default function PublicBookingPage() {
               >
                 <span style={{ fontSize: '24px' }}>💵</span>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#ffffff' }}>Pay Later at Salon</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Cash / Card on arrival after service</div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Pay Later at Parlour</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Cash / Card on arrival after service</div>
                 </div>
               </div>
             </div>
@@ -649,18 +651,18 @@ export default function PublicBookingPage() {
           {/* Pricing Summary & Submit */}
           <div
             style={{
-              background: 'rgba(15, 23, 42, 0.6)',
+              background: '#fff5f7',
               borderRadius: '16px',
               padding: '1.25rem',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid #fecdd3',
             }}
           >
             <div>
-              <div style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>Total Payable (Incl. 18% GST)</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#10b981' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>Total Payable (Incl. 18% GST)</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#be185d' }}>
                 ₹{grandTotal.toLocaleString()}
               </div>
             </div>
@@ -672,12 +674,12 @@ export default function PublicBookingPage() {
                 padding: '0.875rem 2rem',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                background: 'linear-gradient(135deg, #be185d, #e11d48)',
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: '1rem',
                 cursor: submitting ? 'not-allowed' : 'pointer',
-                boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)',
+                boxShadow: '0 8px 24px rgba(190, 24, 93, 0.3)',
               }}
             >
               {submitting ? 'Generating Official Bill...' : 'Confirm & Generate Instant Bill'}

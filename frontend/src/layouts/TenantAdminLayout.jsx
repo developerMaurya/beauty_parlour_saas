@@ -338,6 +338,18 @@ export const TenantAdminLayout = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Kashi Service Platform Hub */}
+            <a
+              href="/platform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-sm btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', textDecoration: 'none' }}
+              title="Kashi Service Platform Hub"
+            >
+              <span>⚡ Kashi Platform</span>
+            </a>
+
             {/* Live Website Preview Link */}
             <a
               href={buildTenantUrl(tenant, 'public')}

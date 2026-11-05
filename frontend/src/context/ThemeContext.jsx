@@ -11,9 +11,11 @@ const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('beautysaas_theme') || 'dark';
+      const stored = localStorage.getItem('beautysaas_theme');
+      if (stored === 'dark') return 'dark';
+      return 'light';
     }
-    return 'dark';
+    return 'light';
   });
 
   useEffect(() => {

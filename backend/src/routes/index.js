@@ -14,34 +14,51 @@ import customerRoutes from './customer.routes.js';
 import studentRoutes from './student.routes.js';
 import guestRoutes from './guest.routes.js';
 import uploadRoutes from './upload.routes.js';
+import platformRoutes from './platform.routes.js';
+import beautyParlourRoutes from '../modules/beauty-parlour/routes/beautyParlour.routes.js';
+import softwareRoutes from '../modules/software/routes/software.routes.js';
+import eventRoutes from '../modules/events/routes/event.routes.js';
+import plottingRoutes from '../modules/plotting/routes/plotting.routes.js';
+import rentRoutes from '../modules/rent/routes/rent.routes.js';
 
 const router = Router();
 
-// Mount common utility and health check routes
+// ── Master Platform & Service Marketplace Routes ──
+router.use('/platform', platformRoutes);
+router.use('/kashi', platformRoutes); // Backwards-compatible alias
+
+// ── 5 Direct Modular Monolith Vertical Routes ──
+router.use('/beauty-parlour', beautyParlourRoutes);
+router.use('/software', softwareRoutes);
+router.use('/events', eventRoutes);
+router.use('/plotting', plottingRoutes);
+router.use('/rent', rentRoutes);
+
+// ── Common utility and health check routes ──
 router.use('/common', commonRoutes);
 
-// Mount Cloudflare Images Upload routes (/api/v1/upload/image, /api/v1/upload/images)
+// ── Cloudflare Images Upload routes ──
 router.use('/upload', uploadRoutes);
 
-// Mount SuperAdmin portal routes
+// ── SuperAdmin portal routes ──
 router.use('/superadmin', superadminRoutes);
 
-// Mount Tenant Admin system routes
+// ── Tenant Admin system routes ──
 router.use('/admin', adminRoutes);
 
-// Mount Customer Public portal & booking routes
+// ── Customer Public portal & booking routes ──
 router.use('/public', publicRoutes);
 
-// Mount Guest portal & booking routes
+// ── Guest portal & booking routes ──
 router.use('/guest', guestRoutes);
 
-// Mount Staff field & mobile routes
+// ── Staff field & mobile routes ──
 router.use('/staff', staffRoutes);
 
-// Mount Customer live tracking routes
+// ── Customer live tracking routes ──
 router.use('/customer', customerRoutes);
 
-// Mount Student Academy portal routes
+// ── Student Academy portal routes ──
 router.use('/student', studentRoutes);
 
 export default router;

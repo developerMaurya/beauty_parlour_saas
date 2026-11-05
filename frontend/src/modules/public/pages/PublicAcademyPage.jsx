@@ -1,6 +1,7 @@
 /**
  * @file PublicAcademyPage.jsx
  * @description White-Label Cosmetology Academy & Beauty Training Courses Showcase.
+ * Pure Luxury White & Rose-Gold Aesthetic for Beauty Parlour Academy.
  * @module frontend/src/modules/public/pages/PublicAcademyPage
  */
 
@@ -42,7 +43,6 @@ export default function PublicAcademyPage() {
     loadData();
   }, []);
 
-  // Default curated curriculum if DB has no courses yet
   const displayCourses = courses.length > 0 ? courses : [
     {
       _id: 'c1',
@@ -56,7 +56,7 @@ export default function PublicAcademyPage() {
       certificateProvided: true,
       installmentOption: true,
       numberOfInstallments: 4,
-      servicesCovered: ['Skin Anatomy & Peels', 'Creative Hair Colouring', 'Bridal & Portfolio HD Makeup', 'Salon Management'],
+      servicesCovered: ['Skin Anatomy & Peels', 'Creative Hair Colouring', 'Bridal & Portfolio HD Makeup', 'Parlour Management'],
     },
     {
       _id: 'c2',
@@ -102,70 +102,100 @@ export default function PublicAcademyPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem', paddingBottom: '4rem', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header Banner */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem', paddingBottom: '4rem', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Header Banner (Clean Luminous Luxury White) */}
       <section
         style={{
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15)), #0f172a',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'linear-gradient(135deg, #fff5f7 0%, #fffbf8 50%, #fdf2f8 100%)',
+          border: '1px solid #fce7f3',
           borderRadius: '24px',
           padding: '4rem 2rem',
           textAlign: 'center',
           position: 'relative',
+          boxShadow: '0 8px 24px rgba(190, 24, 93, 0.04)',
         }}
       >
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '20px', background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.3)', color: '#c084fc', fontSize: '12.5px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.25rem' }}>
-          🎓 Internationally Accredited Academy
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 16px',
+            borderRadius: '20px',
+            background: '#ffffff',
+            border: '1px solid #fecdd3',
+            color: '#be185d',
+            fontSize: '12.5px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: '1.25rem',
+            boxShadow: '0 2px 6px rgba(190, 24, 93, 0.06)',
+          }}
+        >
+          🎓 Internationally Accredited Cosmetology Academy
         </div>
-        <h1 style={{ fontSize: '2.75rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.025em', maxWidth: '850px', margin: '0 auto', lineHeight: 1.2 }}>
-          Launch Your High-Fashion Cosmetology Career
+        <h1
+          style={{
+            fontSize: 'clamp(2.2rem, 5vw, 3.2rem)',
+            fontWeight: 900,
+            color: '#0f172a',
+            letterSpacing: '-0.025em',
+            maxWidth: '850px',
+            margin: '0 auto',
+            lineHeight: 1.2,
+          }}
+        >
+          Launch Your Professional Beauty & Cosmetology Career
         </h1>
-        <p style={{ color: '#cbd5e1', fontSize: '1.05rem', maxWidth: '720px', margin: '1.25rem auto 0', lineHeight: 1.6 }}>
-          Learn directly inside functioning luxury salons alongside celebrity stylists. Hands-on clinical mannequins, real client live models, professional kit provided, and 100% placement support.
+        <p
+          style={{
+            color: '#475569',
+            fontSize: '1.05rem',
+            maxWidth: '720px',
+            margin: '1.25rem auto 0',
+            lineHeight: 1.6,
+            fontWeight: 400,
+          }}
+        >
+          Learn directly inside functioning luxury beauty parlours alongside certified master beauticians. Hands-on clinical mannequins, real live models, complete starter kit provided, and government-recognized certification.
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.25rem', flexWrap: 'wrap' }}>
           <NavLink
             to="/contact"
             style={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: 'linear-gradient(135deg, #be185d 0%, #e11d48 100%)',
               color: '#ffffff',
               padding: '12px 28px',
               borderRadius: '12px',
               textDecoration: 'none',
               fontWeight: 700,
               fontSize: '14.5px',
-              boxShadow: '0 8px 24px rgba(139, 92, 246, 0.35)',
+              boxShadow: '0 8px 20px rgba(190, 24, 93, 0.25)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
             }}
           >
-            Request Academy Prospectus & Fee Plan
-          </NavLink>
-          <NavLink
-            to="/student/login"
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#f8fafc',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              padding: '12px 28px',
-              borderRadius: '12px',
-              textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: '14.5px',
-            }}
-          >
-            Enrolled Student Portal ➔
+            <span>Request Academy Prospectus & Fee Plan</span>
+            <ArrowRight size={16} />
           </NavLink>
         </div>
       </section>
 
-      {/* Courses Grid */}
+      {/* Courses Grid (Crisp White High-Contrast Cards) */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         <div>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>Diploma & Masterclass Curriculum</h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.5rem' }}>Select a program below to review duration, certification, and flexible installment options.</p>
+          <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+            Diploma & Masterclass Curriculum
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '0.5rem' }}>
+            Select an accredited program below to review duration, certification, and flexible installment options.
+          </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem' }}>
           {displayCourses.map((c) => {
             const price = c.finalPrice || c.price;
             const originalPrice = c.price > price ? c.price : null;
@@ -174,50 +204,60 @@ export default function PublicAcademyPage() {
               <div
                 key={c._id || c.code}
                 style={{
-                  background: 'rgba(15, 23, 42, 0.65)',
-                  border: '1px solid rgba(255, 255, 255, 0.09)',
+                  background: '#ffffff',
+                  border: '1px solid #f1e6ea',
                   borderRadius: '20px',
                   padding: '2rem',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
-                  transition: 'transform 0.2s ease, border-color 0.2s ease',
+                  boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', letterSpacing: '0.05em' }}>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: '#fff1f2',
+                        color: '#be185d',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       {c.code || 'ACADEMY COURSE'}
                     </span>
-                    <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Award className="w-3.5 h-3.5" /> Certified
+                    <span style={{ fontSize: '12px', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Award size={15} /> Accredited Certificate
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f8fafc', margin: 0, lineHeight: 1.35 }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.35 }}>
                     {c.name}
                   </h3>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px', fontSize: '12.5px', color: '#94a3b8' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <Clock className="w-4 h-4 text-pink-400" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px', fontSize: '13px', color: '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={15} color="#be185d" />
                       <span>{c.durationMonths ? `${c.durationMonths} Months` : '4 Weeks'}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <BookOpen className="w-4 h-4 text-purple-400" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <BookOpen size={15} color="#be185d" />
                       <span>{c.durationHours || 120} Hours Training</span>
                     </div>
                   </div>
 
-                  <p style={{ color: '#94a3b8', fontSize: '0.88rem', lineHeight: 1.6, margin: '1rem 0' }}>
+                  <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.6, margin: '1rem 0' }}>
                     {c.description}
                   </p>
 
                   {/* Modules covered */}
                   {c.servicesCovered?.length > 0 && (
-                    <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.07)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                    <div style={{ borderTop: '1px solid #f8e7eb', paddingTop: '1rem', marginBottom: '1.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                         Curriculum Highlights:
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -226,11 +266,12 @@ export default function PublicAcademyPage() {
                             key={idx}
                             style={{
                               fontSize: '11.5px',
-                              padding: '3px 9px',
+                              padding: '4px 10px',
                               borderRadius: '6px',
-                              background: 'rgba(255, 255, 255, 0.04)',
-                              color: '#cbd5e1',
-                              border: '1px solid rgba(255, 255, 255, 0.07)',
+                              background: '#fff5f7',
+                              color: '#881337',
+                              border: '1px solid #fecdd3',
+                              fontWeight: 600,
                             }}
                           >
                             ✓ {s}
@@ -241,16 +282,16 @@ export default function PublicAcademyPage() {
                   )}
                 </div>
 
-                <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.07)', paddingTop: '1.25rem' }}>
+                <div style={{ borderTop: '1px solid #f8e7eb', paddingTop: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Total Course Tuition</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Total Course Tuition</div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                        <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc' }}>
+                        <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>
                           ₹{price.toLocaleString('en-IN')}
                         </span>
                         {originalPrice && (
-                          <span style={{ fontSize: '1rem', color: '#64748b', textDecoration: 'line-through' }}>
+                          <span style={{ fontSize: '1rem', color: '#94a3b8', textDecoration: 'line-through' }}>
                             ₹{originalPrice.toLocaleString('en-IN')}
                           </span>
                         )}
@@ -258,7 +299,7 @@ export default function PublicAcademyPage() {
                     </div>
 
                     {c.installmentOption && (
-                      <span style={{ fontSize: '11px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '4px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                      <span style={{ fontSize: '11px', color: '#0284c7', background: '#e0f2fe', padding: '4px 8px', borderRadius: '6px', fontWeight: 700 }}>
                         EMI Available
                       </span>
                     )}
@@ -270,21 +311,21 @@ export default function PublicAcademyPage() {
                       width: '100%',
                       padding: '11px',
                       borderRadius: '10px',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      background: 'linear-gradient(135deg, #be185d 0%, #e11d48 100%)',
                       color: '#ffffff',
                       textDecoration: 'none',
-                      fontWeight: 600,
+                      fontWeight: 700,
                       fontSize: '13.5px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
                       boxSizing: 'border-box',
+                      boxShadow: '0 4px 12px rgba(190, 24, 93, 0.2)',
                     }}
                   >
                     <span>Enroll or Inquire</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight size={15} />
                   </NavLink>
                 </div>
               </div>
@@ -295,4 +336,3 @@ export default function PublicAcademyPage() {
     </div>
   );
 }
-

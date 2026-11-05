@@ -19,16 +19,16 @@ export const seedDemoTenant = async () => {
   console.log('[SEED] Connecting to MongoDB...');
   await connectCentralDB();
 
-  console.log('[SEED] Provisioning Demo Tenant: Blossom Luxury Salon & Spa (blossom-salon)...');
+  console.log('[SEED] Provisioning Demo Tenant: Blossom Luxury Beauty Parlour & Bridal Studio (blossom-salon)...');
 
   // 1. Create or Find Tenant
   let tenant = await Tenant.findOne({ slug: 'blossom-salon' });
   if (!tenant) {
     tenant = await Tenant.create({
-      name: 'Blossom Luxury Salon & Spa',
+      name: 'Blossom Luxury Beauty Parlour & Bridal Studio',
       slug: 'blossom-salon',
       code: 'BLOSSOM',
-      businessType: 'salon',
+      businessType: 'parlour',
       theme: 'rose_gold_glamour',
       ownerName: 'Pooja Verma',
       email: 'admin@parlour.local',
@@ -43,6 +43,7 @@ export const seedDemoTenant = async () => {
     });
     console.log('[SEED] Tenant created:', tenant.name, `(${tenant._id})`);
   } else {
+    tenant.name = 'Blossom Luxury Beauty Parlour & Bridal Studio';
     tenant.status = 'active';
     console.log('[SEED] Existing tenant found:', tenant.name, `(${tenant._id})`);
   }
@@ -349,7 +350,10 @@ export const seedDemoTenant = async () => {
   console.log('  Password:     SuperAdmin@Secure2026!');
   console.log('======================================================\n');
 
-  await disconnectCentralDB();
+  // Only disconnect if invoked directly as standalone script
+  if (process.argv[1] && process.argv[1].endsWith('seed-demo-tenant.js')) {
+    await disconnectCentralDB();
+  }
 };
 
 if (process.argv[1] && process.argv[1].endsWith('seed-demo-tenant.js')) {

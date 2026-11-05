@@ -1,0 +1,82 @@
+/**
+ * @file parlourPackages.js
+ * @description Curated High-Conversion Beauty Parlour Treatment Packages & Trial Vouchers
+ * @module frontend/src/modules/public/constants/parlourPackages
+ */
+
+export const PARLOUR_PACKAGES = [
+  {
+    id: 'pkg-bridal',
+    name: 'Royal Bridal Couture Makeover & HD Airbrush',
+    category: 'Bridal Artistry',
+    duration: '180 mins',
+    originalPrice: 16000,
+    price: 11999,
+    discount: '25% OFF',
+    icon: '👰',
+    features: ['HD Airbrush Makeup', 'Hairstyling & Draping', 'Nail Art & Lashes', 'Trial Consultation'],
+    popular: true,
+  },
+  {
+    id: 'pkg-gold-facial',
+    name: '24K Gold Glow & Hydra Facial Radiance',
+    category: 'Skin Care',
+    duration: '60 mins',
+    originalPrice: 3500,
+    price: 2499,
+    discount: '28% OFF',
+    icon: '✨',
+    features: ['Gold Leaf Infusion', 'Ultrasonic Deep Cleansing', 'Hydra Infusion', 'Rose Quartz Massage'],
+    popular: false,
+  },
+  {
+    id: 'pkg-hair-keratin',
+    name: 'Keratin Protein Hair Spa & Botox Treatment',
+    category: 'Hair Care',
+    duration: '90 mins',
+    originalPrice: 5000,
+    price: 3499,
+    discount: '30% OFF',
+    icon: '💇',
+    features: ['Protein Deep Conditioning', 'Split-End Rejuvenation', 'Blow-dry Styling', 'Serum Shield'],
+    popular: false,
+  },
+  {
+    id: 'pkg-gel-nails',
+    name: 'Gel Extensions & Luxury Rose Pedicure',
+    category: 'Nail Art',
+    duration: '75 mins',
+    originalPrice: 2800,
+    price: 1899,
+    discount: '32% OFF',
+    icon: '💅',
+    features: ['Custom Gel Polish & Chrome Art', 'Dead Skin Exfoliation', 'Aroma Foot Soak', 'Hand Massage'],
+    popular: false,
+  },
+  {
+    id: 'pkg-trial-voucher',
+    name: 'First-Visit Glow Trial Voucher',
+    category: 'Special Trial',
+    duration: '45 mins',
+    originalPrice: 1999,
+    price: 499,
+    discount: '75% OFF',
+    icon: '🎟️',
+    features: ['Instant Radiance Clean-up', 'Eyebrow & Upper Lip Threading', 'Fruit Pack', 'Beautician Consultation'],
+    trial: true,
+    popular: true,
+  },
+  {
+    id: 'pkg-pre-bridal',
+    name: 'Complete Pre-Bridal Glow Ritual (7-Day Plan)',
+    category: 'Bridal Rituals',
+    duration: 'Multiple Sessions',
+    originalPrice: 12000,
+    price: 8499,
+    discount: '29% OFF',
+    icon: '🌸',
+    features: ['Full Body Polishing', 'Organic Mehendi & Bleach', 'Deluxe Manicure/Pedicure', 'Hair Spa'],
+    popular: false,
+  },
+];
+

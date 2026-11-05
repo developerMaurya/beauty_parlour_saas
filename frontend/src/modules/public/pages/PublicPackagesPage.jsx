@@ -1,6 +1,6 @@
 /**
  * @file PublicPackagesPage.jsx
- * @description Public Packages & Bridal Bundles Showcase.
+ * @description Public Packages & Bridal Bundles Showcase (Luminous White & Rose Theme).
  * Displays curated wellness combinations, bridal regimens, and multi-session service bundles.
  * @module frontend/src/modules/public/pages/PublicPackagesPage
  */
@@ -8,10 +8,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as pkgApi from '../../../services/api/public/packageFetcher.js';
+import QuickParlourBuyModal, { PARLOUR_PACKAGES } from '../components/QuickParlourBuyModal.jsx';
+import { Sparkles, ShoppingBag, Calendar, CheckCircle2 } from 'lucide-react';
 
 export default function PublicPackagesPage() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [buyModalOpen, setBuyModalOpen] = useState(false);
+  const [selectedPkgId, setSelectedPkgId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,13 +24,17 @@ export default function PublicPackagesPage() {
         setLoading(true);
         const res = await pkgApi.getPackages();
         const data = res?.data?.packages || res?.data || res?.packages || res;
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setPackages(data);
-        } else if (Array.isArray(data?.data)) {
+        } else if (Array.isArray(data?.data) && data.data.length > 0) {
           setPackages(data.data);
+        } else {
+          // Fallback to high-converting parlour packages if database has none seeded
+          setPackages(PARLOUR_PACKAGES);
         }
       } catch (err) {
         console.error('Failed to load public packages', err);
+        setPackages(PARLOUR_PACKAGES);
       } finally {
         setLoading(false);
       }
@@ -35,30 +43,22 @@ export default function PublicPackagesPage() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '3rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '3rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.025em' }}>
-          Curated Treatment Packages
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#be185d', fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+          <Sparkles size={14} /> Luxury Beauty Bundles & Regimens
+        </div>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>
+          Curated Parlour & Bridal Packages
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '1rem', marginTop: '0.5rem', lineHeight: '1.5' }}>
+        <p style={{ color: '#475569', fontSize: '1rem', marginTop: '0.5rem', lineHeight: '1.5' }}>
           Save with our bridal, festival, and seasonal multi-session bundles designed for maximum radiance.
         </p>
       </div>
 
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>Loading salon packages...</div>
-      ) : packages.length === 0 ? (
-        <div style={{
-          padding: '4rem',
-          textAlign: 'center',
-          background: 'rgba(30, 41, 59, 0.4)',
-          borderRadius: '16px',
-          border: '1px dashed rgba(255, 255, 255, 0.1)',
-          color: '#94a3b8'
-        }}>
-          No packages are currently active. Check back soon for seasonal releases!
-        </div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>Loading parlour packages...</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.75rem' }}>
           {packages.map((pkg) => {
@@ -67,77 +67,111 @@ export default function PublicPackagesPage() {
               <div
                 key={pkgId}
                 style={{
-                  background: 'rgba(30, 41, 59, 0.6)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '20px',
+                  background: '#ffffff',
+                  border: '1px solid #f1e6ea',
+                  borderRadius: '22px',
                   padding: '1.75rem',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   gap: '1.5rem',
-                  position: 'relative',
-                  overflow: 'hidden'
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.03)',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#f8fafc', fontWeight: 800 }}>{pkg.name}</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>{pkg.name}</h3>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '1.375rem', color: '#10b981', fontWeight: 800 }}>₹{pkg.price || 0}</span>
+                      <span style={{ fontSize: '1.4rem', color: '#be185d', fontWeight: 900 }}>
+                        ₹{(pkg.price || 0).toLocaleString()}
+                      </span>
                       {pkg.originalPrice && pkg.originalPrice > pkg.price && (
-                        <div style={{ fontSize: '0.8125rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                          ₹{pkg.originalPrice}
+                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                          ₹{pkg.originalPrice.toLocaleString()}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <p style={{ margin: '0.75rem 0', color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.5' }}>
+                  <p style={{ margin: '0.75rem 0', color: '#64748b', fontSize: '0.875rem', lineHeight: '1.5' }}>
                     {pkg.description || 'Complete rejuvenation package featuring head-to-toe styling rituals.'}
                   </p>
 
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '1rem', marginTop: '1rem' }}>
-                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#ec4899', fontWeight: 700, letterSpacing: '0.05em' }}>
-                      Included Treatments ({pkg.services?.length || 0})
+                  <div style={{ borderTop: '1px solid #f1e6ea', paddingTop: '1rem', marginTop: '1rem' }}>
+                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#be185d', fontWeight: 800, letterSpacing: '0.05em' }}>
+                      Included Treatments ({pkg.features?.length || pkg.services?.length || 4})
                     </span>
-                    <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.25rem', color: '#cbd5e1', fontSize: '0.8125rem', lineHeight: '1.6' }}>
-                      {(pkg.services || []).slice(0, 4).map((srv, i) => (
-                        <li key={i}>{srv.name || srv.serviceId?.name || 'Signature Service'}</li>
+                    <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.25rem', color: '#334155', fontSize: '0.82rem', lineHeight: '1.6' }}>
+                      {(pkg.features || pkg.services || ['HD Airbrush Makeup', 'Hairstyling & Draping', 'Nail Art & Lashes', 'Trial Consultation']).slice(0, 4).map((srv, i) => (
+                        <li key={i}>{typeof srv === 'string' ? srv : srv.name || srv.serviceId?.name || 'Signature Ritual'}</li>
                       ))}
-                      {(pkg.services?.length || 0) > 4 && (
-                        <li style={{ color: '#ec4899' }}>+ {pkg.services.length - 4} more treatments</li>
-                      )}
                     </ul>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8125rem', color: '#94a3b8', marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8125rem', color: '#64748b', marginTop: '1rem' }}>
                     <span>Validity: <strong>{pkg.validityDays || 90} Days</strong></span>
                     <span>•</span>
-                    <span>All Salon Branches</span>
+                    <span style={{ color: '#059669', fontWeight: 700 }}>🏢 Studio & 🚗 Home Visit</span>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => navigate(`/book?packageId=${pkgId}`)}
-                  style={{
-                    width: '100%',
-                    padding: '0.875rem',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.9375rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Book Package Consultation
-                </button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setSelectedPkgId(pkgId);
+                      setBuyModalOpen(true);
+                    }}
+                    style={{
+                      padding: '0.8rem',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #be185d 0%, #e11d48 100%)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <ShoppingBag size={14} />
+                    <span>Buy (UPI/Card)</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/book?packageId=${pkgId}`)}
+                    style={{
+                      padding: '0.8rem',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      fontWeight: 700,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Calendar size={14} />
+                    <span>Book Slot</span>
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       )}
+
+      <QuickParlourBuyModal
+        isOpen={buyModalOpen}
+        onClose={() => setBuyModalOpen(false)}
+        initialPackageId={selectedPkgId}
+      />
     </div>
   );
 }

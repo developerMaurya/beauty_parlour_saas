@@ -219,6 +219,49 @@
   padding: 0;
 }
 
+/* ==========================================================================
+   Public White-Theme Platform & Storefront High-Contrast Rules
+   Ensures text, headings, and paragraphs are crystal clear dark slate on light backgrounds.
+   ========================================================================== */
+.public-layout-light,
+[data-theme='light'],
+.public-theme-light,
+div[data-theme='light'] {
+  --text-primary: #0F172A !important;
+  --text-secondary: #334155 !important;
+  --text-muted: #64748B !important;
+  --bg-app: #FFFFFF !important;
+  --border-subtle: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+.public-layout-light h1,
+.public-layout-light h2,
+.public-layout-light h3,
+.public-layout-light h4,
+.public-layout-light h5,
+.public-layout-light h6,
+[data-theme='light'] h1,
+[data-theme='light'] h2,
+[data-theme='light'] h3,
+[data-theme='light'] h4,
+[data-theme='light'] h5,
+[data-theme='light'] h6,
+div[data-theme='light'] h1,
+div[data-theme='light'] h2,
+div[data-theme='light'] h3,
+div[data-theme='light'] h4,
+div[data-theme='light'] h5,
+div[data-theme='light'] h6 {
+  color: #0F172A !important;
+}
+
+.public-layout-light p,
+[data-theme='light'] p,
+div[data-theme='light'] p {
+  color: #475569 !important;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-app);

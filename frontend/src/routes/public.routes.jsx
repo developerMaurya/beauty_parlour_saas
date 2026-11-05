@@ -27,31 +27,43 @@ import PublicBookingPage from '../modules/public/pages/PublicBookingPage.jsx';
 import PublicAboutPage from '../modules/public/pages/PublicAboutPage.jsx';
 import PublicContactPage from '../modules/public/pages/PublicContactPage.jsx';
 import PublicAcademyPage from '../modules/public/pages/PublicAcademyPage.jsx';
+import PlatformHubPage from '../modules/public/pages/PlatformHubPage.jsx';
+import MasterHomePage from '../modules/public/pages/MasterHomePage.jsx';
+import PlatformDocsPage from '../modules/public/pages/PlatformDocsPage.jsx';
 
 export const PublicRoutes = (
   <>
+    {/* Standalone Root: Clean Master Homepage with Single Header */}
+    <Route path="/" element={<MasterHomePage />} />
+
+    {/* Platform Hub Direct Routes */}
+    <Route path="/platform" element={<PlatformHubPage />} />
+    <Route path="/kashi" element={<PlatformHubPage />} />
+    <Route path="/kashiservice" element={<PlatformHubPage />} />
+    <Route path="/docs" element={<PlatformDocsPage />} />
+
     {/* Clean White-Label Public Website at Root Level (SaaS Subdomain or Custom Domain) */}
-    <Route path="/" element={<PublicLayout />}>
-      <Route index element={<PublicHomePage />} />
-      <Route path="services" element={<PublicServicesPage />} />
-      <Route path="services/:id" element={<PublicServicesPage />} />
-      <Route path="packages" element={<PublicPackagesPage />} />
-      <Route path="packages/:id" element={<PublicPackagesPage />} />
-      <Route path="offers" element={<PublicOffersPage />} />
-      <Route path="offers/:id" element={<PublicOffersPage />} />
-      <Route path="branches" element={<PublicBranchesPage />} />
-      <Route path="branches/:id" element={<PublicBranchesPage />} />
-      <Route path="about" element={<PublicAboutPage />} />
-      <Route path="about-us" element={<PublicAboutPage />} />
-      <Route path="contact" element={<PublicContactPage />} />
-      <Route path="contact-us" element={<PublicContactPage />} />
-      <Route path="academy" element={<PublicAcademyPage />} />
-      <Route path="courses" element={<PublicAcademyPage />} />
-      <Route path="training" element={<PublicAcademyPage />} />
-      <Route path="book" element={<PublicBookingPage />} />
-      <Route path="booking" element={<PublicBookingPage />} />
-      <Route path="book/checkout" element={<PublicBookingPage />} />
-      <Route path="book/success" element={<PublicBookingPage />} />
+    <Route element={<PublicLayout />}>
+      <Route path="/storefront" element={<PublicHomePage />} />
+      <Route path="/services" element={<PublicServicesPage />} />
+      <Route path="/services/:id" element={<PublicServicesPage />} />
+      <Route path="/packages" element={<PublicPackagesPage />} />
+      <Route path="/packages/:id" element={<PublicPackagesPage />} />
+      <Route path="/offers" element={<PublicOffersPage />} />
+      <Route path="/offers/:id" element={<PublicOffersPage />} />
+      <Route path="/branches" element={<PublicBranchesPage />} />
+      <Route path="/branches/:id" element={<PublicBranchesPage />} />
+      <Route path="/about" element={<PublicAboutPage />} />
+      <Route path="/about-us" element={<PublicAboutPage />} />
+      <Route path="/contact" element={<PublicContactPage />} />
+      <Route path="/contact-us" element={<PublicContactPage />} />
+      <Route path="/academy" element={<PublicAcademyPage />} />
+      <Route path="/courses" element={<PublicAcademyPage />} />
+      <Route path="/training" element={<PublicAcademyPage />} />
+      <Route path="/book" element={<PublicBookingPage />} />
+      <Route path="/booking" element={<PublicBookingPage />} />
+      <Route path="/book/checkout" element={<PublicBookingPage />} />
+      <Route path="/book/success" element={<PublicBookingPage />} />
     </Route>
 
     {/* Direct IP / Localhost Path Preview: /site/:tenantSlug */}

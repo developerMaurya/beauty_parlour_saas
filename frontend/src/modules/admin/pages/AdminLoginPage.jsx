@@ -25,18 +25,45 @@ export const AdminLoginPage = () => {
   const [demoData, setDemoData] = useState(null);
   const [isCopied, setIsCopied] = useState(false);
 
-  // Dynamically load active demo credentials directly from Database
+  // Dynamically load active demo credentials directly from Database or URL query
   useEffect(() => {
     let isMounted = true;
+    const params = new URLSearchParams(window.location.search);
+    const qTenant = params.get('tenant');
+    const qEmail = params.get('email');
+    const qPass = params.get('pass') || params.get('password');
+    const autoLogin = params.get('autologin') === 'true';
+
+    if (qTenant) setTenantSlugOrId(qTenant);
+    if (qEmail) setEmail(qEmail);
+    if (qPass) setPassword(qPass);
+
     const fetchDemoCredentials = async () => {
       try {
         const res = await fetch('/api/v1/common/demo-credentials');
         const data = await res.json();
         if (isMounted && data?.success && data?.data) {
           setDemoData(data.data);
-          // If fields are empty, pre-populate slug from active DB tenant
-          if (!tenantSlugOrId && data.data.tenant?.slug) {
-            setTenantSlugOrId(data.data.tenant.slug);
+          const adminCreds = data.data.credentials?.admin;
+          const tenantVal = qTenant || tenantSlugOrId || adminCreds?.tenantSlug || data.data.tenant?.slug || 'blossom-salon';
+          const emailVal = qEmail || email || adminCreds?.email || 'admin@parlour.local';
+          const passVal = qPass || password || adminCreds?.password || 'Password@123';
+
+          setTenantSlugOrId(tenantVal);
+          setEmail(emailVal);
+          setPassword(passVal);
+
+          if (autoLogin) {
+            setIsLoading(true);
+            try {
+              await login({ tenantSlugOrId: tenantVal, email: emailVal, password: passVal });
+              toast.success('1-Click Demo Login Successful! Entering Admin Dashboard...');
+              navigate('/admin/dashboard');
+            } catch (e) {
+              console.warn('Auto-login failed:', e);
+            } finally {
+              setIsLoading(false);
+            }
           }
         }
       } catch (err) {
@@ -49,6 +76,27 @@ export const AdminLoginPage = () => {
       isMounted = false;
     };
   }, []);
+
+  const handleInstantEnterDashboard = async () => {
+    const tSlug = tenantSlugOrId || demoData?.credentials?.admin?.tenantSlug || 'blossom-salon';
+    const tEmail = email || demoData?.credentials?.admin?.email || 'admin@parlour.local';
+    const tPass = password || demoData?.credentials?.admin?.password || 'Password@123';
+
+    setTenantSlugOrId(tSlug);
+    setEmail(tEmail);
+    setPassword(tPass);
+    setIsLoading(true);
+
+    try {
+      await login({ tenantSlugOrId: tSlug, email: tEmail, password: tPass });
+      toast.success('Welcome! Admin Dashboard authenticated.');
+      navigate('/admin/dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAutoFill = () => {
     if (demoData?.credentials?.admin) {
@@ -299,6 +347,33 @@ export const AdminLoginPage = () => {
             </div>
           </div>
 
+          {/* 1-Click Instant Demo Login Button */}
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={handleInstantEnterDashboard}
+            style={{
+              width: '100%',
+              marginTop: '0.75rem',
+              height: '46px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              fontSize: '0.95rem',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              boxShadow: '0 8px 18px rgba(79, 70, 229, 0.35)',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            <span>⚡ 1-Click Enter Admin Dashboard (Demo Auto-Login)</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -306,20 +381,20 @@ export const AdminLoginPage = () => {
             className="btn btn-primary"
             style={{
               marginTop: '0.5rem',
-              height: '46px',
+              height: '44px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.5rem',
-              fontSize: '0.95rem',
+              fontSize: '0.9rem',
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
-              border: 'none',
-              boxShadow: '0 10px 20px -5px rgba(236, 72, 153, 0.35)',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
+              color: '#f8fafc',
               cursor: isLoading ? 'not-allowed' : 'pointer',
             }}
           >
-            {isLoading ? 'Authenticating...' : 'Sign In to Workspace'}
+            {isLoading ? 'Authenticating...' : 'Sign In with Custom Credentials'}
             {!isLoading && <ArrowRight className="w-4 h-4" />}
           </button>
         </form>

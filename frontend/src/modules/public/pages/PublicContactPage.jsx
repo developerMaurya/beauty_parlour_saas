@@ -1,19 +1,25 @@
 /**
  * @file PublicContactPage.jsx
- * @description White-Label Contact Us & Appointment Inquiry Portal.
+ * @description White-Label Luxury Beauty Parlour Contact & Concierge Inquiry (Clean White Aesthetic).
  * @module frontend/src/modules/public/pages/PublicContactPage
  */
 
 import React, { useState, useEffect } from 'react';
 import * as bizApi from '../../../services/api/public/businessFetcher.js';
 import * as contactApi from '../../../services/api/public/contactFetcher.js';
-import { Phone, Mail, MapPin, Clock, Send, MessageCircle, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  Send,
+  CheckCircle2,
+  AlertCircle,
+  MessageCircle,
+} from 'lucide-react';
 
 export default function PublicContactPage() {
   const [business, setBusiness] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Inquiry Form
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -29,7 +35,6 @@ export default function PublicContactPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        setLoading(true);
         const res = await bizApi.getBusinessInfo();
         const data = res?.data?.data || res?.data || res;
         if (data && typeof data === 'object') {
@@ -40,8 +45,6 @@ export default function PublicContactPage() {
         }
       } catch (err) {
         console.error('Failed to load contact info', err);
-      } finally {
-        setLoading(false);
       }
     }
     loadData();
@@ -49,12 +52,11 @@ export default function PublicContactPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg('');
-    if (!formData.name.trim() || (!formData.phone.trim() && !formData.email.trim())) {
-      setErrorMsg('Please enter your name and either phone or email address.');
+    if (!formData.name || !formData.phone) {
+      setErrorMsg('Please provide your name and phone number');
       return;
     }
-
+    setErrorMsg('');
     setSubmitting(true);
     try {
       await contactApi.submitContactInquiry(formData);
@@ -67,23 +69,43 @@ export default function PublicContactPage() {
   };
 
   const phone = business?.websiteConfig?.contactPhone || business?.branches?.[0]?.phone || '+91 98765 43210';
-  const email = business?.websiteConfig?.contactEmail || business?.branches?.[0]?.email || 'concierge@glamouracademy.in';
-  const address = business?.websiteConfig?.address || business?.branches?.[0]?.address?.street || 'Plot 42, Ring Road, South Extension Part 2, New Delhi - 110049';
+  const email = business?.websiteConfig?.contactEmail || business?.branches?.[0]?.email || 'concierge@blossombeauty.in';
+  const address =
+    business?.websiteConfig?.address ||
+    business?.branches?.[0]?.address?.street ||
+    'Plot 42, Ring Road, South Extension Part 2, New Delhi - 110049';
   const hours = business?.websiteConfig?.openingHoursText || 'Mon - Sun: 9:00 AM - 9:00 PM';
   const cleanPhone = phone.replace(/[^0-9]/g, '');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '4rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '4rem', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '20px', background: 'rgba(236, 72, 153, 0.15)', border: '1px solid rgba(236, 72, 153, 0.3)', color: '#f472b6', fontSize: '12.5px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 16px',
+            borderRadius: '20px',
+            background: '#ffffff',
+            border: '1px solid #fecdd3',
+            color: '#be185d',
+            fontSize: '12.5px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: '1rem',
+            boxShadow: '0 2px 6px rgba(190, 24, 93, 0.06)',
+          }}
+        >
           📞 Concierge & Reservations
         </div>
-        <h1 style={{ fontSize: '2.75rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.025em', margin: 0 }}>
+        <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 3rem)', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.025em', margin: 0 }}>
           Connect With Our Specialists
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '1.05rem', marginTop: '0.75rem', lineHeight: 1.6 }}>
-          Whether booking a bridal styling suite, enrolling in our academy, or requesting customized hair and skincare counsel, our concierge team is at your service.
+        <p style={{ color: '#475569', fontSize: '1.05rem', marginTop: '0.75rem', lineHeight: 1.6 }}>
+          Whether booking a bridal styling suite, enrolling in our academy, or requesting doorstep parlour counsel, our concierge team is at your service.
         </p>
       </div>
 
@@ -92,102 +114,100 @@ export default function PublicContactPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div
             style={{
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
               borderRadius: '20px',
               padding: '2rem',
               display: 'flex',
               flexDirection: 'column',
               gap: '1.75rem',
+              boxShadow: '0 4px 18px rgba(0, 0, 0, 0.03)',
             }}
           >
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-              Salon Sanctuary Concierge
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              Parlour Sanctuary Concierge
             </h2>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(236, 72, 153, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ec4899', flexShrink: 0 }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#be185d', flexShrink: 0, border: '1px solid #fecdd3' }}>
                 <Phone className="w-5 h-5" />
               </div>
               <div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Direct Telephone</div>
-                <a href={`tel:${phone}`} style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', textDecoration: 'none', display: 'block', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Direct Telephone</div>
+                <a href={`tel:${phone}`} style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', textDecoration: 'none', display: 'block', marginTop: '2px' }}>
                   {phone}
                 </a>
-                <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '3px' }}>● Available Now (9 AM - 9 PM)</div>
+                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, marginTop: '3px' }}>● Available Now (9 AM - 9 PM)</div>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a78bfa', flexShrink: 0 }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0, border: '1px solid #ddd6fe' }}>
                 <Mail className="w-5 h-5" />
               </div>
               <div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>VIP Email Inquiries</div>
-                <a href={`mailto:${email}`} style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', textDecoration: 'none', display: 'block', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>VIP Email Inquiries</div>
+                <a href={`mailto:${email}`} style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', textDecoration: 'none', display: 'block', marginTop: '2px' }}>
                   {email}
                 </a>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', flexShrink: 0 }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', flexShrink: 0, border: '1px solid #bae6fd' }}>
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Flagship Sanctuary</div>
-                <div style={{ fontSize: '0.95rem', color: '#cbd5e1', lineHeight: 1.5, marginTop: '2px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Flagship Sanctuary</div>
+                <div style={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.5, marginTop: '2px' }}>
                   {address}
                 </div>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fbbf24', flexShrink: 0 }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0, border: '1px solid #a7f3d0' }}>
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Hospitality Hours</div>
-                <div style={{ fontSize: '0.95rem', color: '#cbd5e1', marginTop: '2px' }}>
-                  {hours}
-                </div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Opening Hours</div>
+                <div style={{ fontSize: '0.95rem', color: '#334155', marginTop: '2px' }}>{hours}</div>
               </div>
             </div>
 
-            {/* Instant WhatsApp Action */}
+            {/* Quick WhatsApp Action */}
             <a
-              href={`https://wa.me/${cleanPhone}?text=Hello%2C%20I%20would%20like%20to%20inquire%20about%20salon%20appointments%20and%20academy%20courses.`}
+              href={`https://wa.me/${cleanPhone}?text=Hello%20Blossom%20Beauty%20Parlour%2C%20I%20would%20like%20to%20inquire%20about%20a%20service`}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: '#ffffff',
-                textDecoration: 'none',
-                padding: '12px 20px',
-                borderRadius: '12px',
-                fontWeight: 700,
-                fontSize: '14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)',
-                marginTop: '0.5rem',
+                padding: '12px 20px',
+                borderRadius: '12px',
+                background: '#25D366',
+                color: '#fff',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '14px',
+                boxShadow: '0 4px 14px rgba(37, 211, 102, 0.25)',
               }}
             >
               <MessageCircle className="w-5 h-5" />
-              <span>Chat Directly on WhatsApp</span>
+              <span>Chat with Concierge on WhatsApp</span>
             </a>
 
             {/* Embedded Google Maps Location */}
             <div
               style={{
-                marginTop: '1.25rem',
+                marginTop: '0.75rem',
                 borderRadius: '16px',
                 overflow: 'hidden',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                height: '240px',
-                background: '#0f172a',
+                border: '1px solid #e2e8f0',
+                height: '220px',
+                background: '#f8fafc',
               }}
             >
               <iframe
@@ -210,18 +230,19 @@ export default function PublicContactPage() {
         {/* Interactive Inquiry Form */}
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
             borderRadius: '20px',
             padding: '2.25rem',
             display: 'flex',
             flexDirection: 'column',
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.03)',
           }}
         >
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#f8fafc', margin: 0, marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0, marginBottom: '0.5rem' }}>
             Send An Inquiry or Request
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: 0, marginBottom: '1.5rem', lineHeight: 1.5 }}>
+          <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0, marginBottom: '1.5rem', lineHeight: 1.5 }}>
             Fill in your preferred dates and interests. A dedicated coordinator will reach out within 30 minutes.
           </p>
 
@@ -230,8 +251,8 @@ export default function PublicContactPage() {
               style={{
                 padding: '2.5rem',
                 textAlign: 'center',
-                background: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
                 borderRadius: '16px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -239,25 +260,26 @@ export default function PublicContactPage() {
                 gap: '1rem',
               }}
             >
-              <CheckCircle2 className="w-12 h-12 text-emerald-400" />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 Inquiry Successfully Dispatched!
               </h3>
-              <p style={{ color: '#cbd5e1', fontSize: '0.9rem', maxWidth: '380px', margin: 0, lineHeight: 1.6 }}>
-                Thank you for reaching out. Our salon manager has received your note and will confirm your request via phone or WhatsApp.
+              <p style={{ color: '#475569', fontSize: '0.9rem', maxWidth: '380px', margin: 0, lineHeight: 1.6 }}>
+                Thank you for reaching out. Our parlour manager has received your note and will confirm your request via phone or WhatsApp.
               </p>
               <button
                 type="button"
                 onClick={() => setSubmitted(false)}
                 style={{
                   marginTop: '0.5rem',
-                  background: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#0f172a',
                   padding: '8px 18px',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '13px',
+                  fontWeight: 700,
                 }}
               >
                 Send Another Note
@@ -266,55 +288,55 @@ export default function PublicContactPage() {
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {errorMsg && (
-                <div style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', color: '#fca5a5', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Your Full Name *</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Your Full Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Ayesha Sharma"
                   value={formData.name}
                   onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Mobile Number *</label>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Mobile Number *</label>
                   <input
                     type="tel"
                     required
                     placeholder="9876543210"
                     value={formData.phone}
                     onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Email Address</label>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Email Address</label>
                   <input
                     type="email"
                     placeholder="name@email.com"
                     value={formData.email}
                     onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Interest / Service</label>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Interest / Service</label>
                   <select
                     value={formData.serviceInterest}
                     onChange={(e) => setFormData((p) => ({ ...p, serviceInterest: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                   >
                     <option value="Bridal & Party Makeup">Bridal & Party Makeup</option>
                     <option value="Hair Cut, Color & Spa">Hair Cut, Color & Spa</option>
@@ -327,11 +349,11 @@ export default function PublicContactPage() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Preferred Branch</label>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Preferred Branch</label>
                   <select
                     value={formData.preferredBranch}
                     onChange={(e) => setFormData((p) => ({ ...p, preferredBranch: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                   >
                     {business?.branches?.map((b) => (
                       <option key={b._id || b.code || b.name} value={b.name}>
@@ -343,13 +365,13 @@ export default function PublicContactPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Special Requests / Message</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Special Requests / Message</label>
                 <textarea
                   rows={4}
                   placeholder="Tell us about your preferred timing, group size, or skin/hair requirements..."
                   value={formData.message}
                   onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '14px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '14px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -357,7 +379,7 @@ export default function PublicContactPage() {
                 type="submit"
                 disabled={submitting}
                 style={{
-                  background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
+                  background: 'linear-gradient(135deg, #be185d 0%, #e11d48 100%)',
                   color: '#fff',
                   border: 'none',
                   padding: '13px 24px',
@@ -369,7 +391,7 @@ export default function PublicContactPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 6px 20px rgba(236, 72, 153, 0.35)',
+                  boxShadow: '0 6px 20px rgba(190, 24, 93, 0.25)',
                 }}
               >
                 <Send className="w-4 h-4" />
@@ -382,4 +404,3 @@ export default function PublicContactPage() {
     </div>
   );
 }
-
