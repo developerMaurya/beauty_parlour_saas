@@ -30,6 +30,7 @@ import PublicAcademyPage from '../modules/public/pages/PublicAcademyPage.jsx';
 import PlatformHubPage from '../modules/public/pages/PlatformHubPage.jsx';
 import MasterHomePage from '../modules/public/pages/MasterHomePage.jsx';
 import PlatformDocsPage from '../modules/public/pages/PlatformDocsPage.jsx';
+import CustomerJourneyPage from '../modules/public/pages/CustomerJourneyPage.jsx';
 
 export const PublicRoutes = (
   <>
@@ -41,6 +42,9 @@ export const PublicRoutes = (
     <Route path="/kashi" element={<PlatformHubPage />} />
     <Route path="/kashiservice" element={<PlatformHubPage />} />
     <Route path="/docs" element={<PlatformDocsPage />} />
+    <Route path="/onboarding" element={<CustomerJourneyPage />} />
+    <Route path="/get-started" element={<CustomerJourneyPage />} />
+    <Route path="/start" element={<CustomerJourneyPage />} />
 
     {/* Clean White-Label Public Website at Root Level (SaaS Subdomain or Custom Domain) */}
     <Route element={<PublicLayout />}>

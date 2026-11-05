@@ -45,7 +45,8 @@ export const databaseProvisioningService = {
         });
 
         // Step 3: Connect and instantiate database
-        const conn = await tenantConnectionManager.getConnection(databaseName);
+        const customUri = tenant.databaseConfig?.customUri || null;
+        const conn = await tenantConnectionManager.getConnection(databaseName, customUri);
         steps.push({
           step: 'ESTABLISH_CONNECTION',
           status: 'completed',
@@ -91,6 +92,7 @@ export const databaseProvisioningService = {
             tenantId: tenantIdStr,
             email: adminEmail,
             phone: adminUserPayload?.phone || tenant.phone || '',
+            dob: adminUserPayload?.dob || tenant.ownerDob || null,
             username: (adminUserPayload?.username || adminEmail.split('@')[0]).toLowerCase().trim(),
             passwordHash,
             role: 'ADMIN',
@@ -156,6 +158,7 @@ export const databaseProvisioningService = {
             tenantId: tenantIdStr,
             email: adminEmail,
             phone: adminUserPayload?.phone || tenant.phone || '',
+            dob: adminUserPayload?.dob || tenant.ownerDob || null,
             username: (adminUserPayload?.username || adminEmail.split('@')[0]).toLowerCase().trim(),
             passwordHash,
             role: 'ADMIN',

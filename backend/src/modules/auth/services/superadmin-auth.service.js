@@ -33,9 +33,30 @@ export const superAdminAuthService = {
     const identifier = (emailOrUsername || '').toLowerCase().trim();
 
     // Find Super Admin by email or username including passwordHash
-    const user = await SuperAdmin.findOne({
+    let user = await SuperAdmin.findOne({
       $or: [{ email: identifier }, { username: identifier }],
     }).select('+passwordHash');
+
+    // Auto-bootstrap fail-safe: if default superadmin not yet in DB, create on first login
+    const bootstrapEmail = (env.SUPERADMIN_BOOTSTRAP_EMAIL || 'superadmin@beautysaas.local').toLowerCase();
+    const bootstrapUsername = (env.SUPERADMIN_BOOTSTRAP_USERNAME || 'superadmin').toLowerCase();
+    const bootstrapPassword = env.SUPERADMIN_BOOTSTRAP_PASSWORD || 'SuperAdmin@Secure2026!';
+
+    if (!user && (identifier === bootstrapEmail || identifier === bootstrapUsername)) {
+      if (password === bootstrapPassword) {
+        const passwordHash = await hashPassword(bootstrapPassword);
+        user = await SuperAdmin.create({
+          name: env.SUPERADMIN_BOOTSTRAP_NAME || 'Master Super Admin',
+          email: bootstrapEmail,
+          username: bootstrapUsername,
+          passwordHash,
+          role: ROLES.SUPER_ADMIN,
+          status: ACCOUNT_STATUS.ACTIVE,
+          isEmailVerified: true,
+        });
+        console.log('[AUTH] Auto-bootstrapped Master SuperAdmin user on login:', user.email);
+      }
+    }
 
     if (!user) {
       return {

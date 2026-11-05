@@ -30,6 +30,7 @@ import VerticalsList from '../modules/superadmin/pages/VerticalsList';
 import ThemesList from '../modules/superadmin/pages/ThemesList';
 import UnifiedAccessManagementCenter from '../modules/superadmin/pages/UnifiedAccessManagementCenter';
 import MasterDataManagement from '../modules/superadmin/pages/MasterDataManagement';
+import CustomerJourneyGovernanceView from '../modules/superadmin/pages/CustomerJourneyGovernanceView';
 
 export const SuperAdminRoutes = (
   <>
@@ -40,6 +41,9 @@ export const SuperAdminRoutes = (
     <Route path="/superadmin" element={<SuperAdminLayout />}>
       <Route index element={<Navigate to="/superadmin/dashboard" replace />} />
       <Route path="dashboard" element={<Dashboard />} />
+      <Route path="requests" element={<CustomerJourneyGovernanceView />} />
+      <Route path="verifications" element={<CustomerJourneyGovernanceView />} />
+      <Route path="governance" element={<CustomerJourneyGovernanceView />} />
       <Route path="tenants" element={<TenantsList />} />
       <Route path="tenants/create" element={<TenantCreateWizard />} />
       <Route path="tenants/:tenantId" element={<TenantDetail />} />

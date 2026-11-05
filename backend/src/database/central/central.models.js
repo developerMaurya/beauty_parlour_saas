@@ -26,6 +26,7 @@ export { ProvisioningJob } from '../../modules/superadmin/provisioning/models/pr
 export { BusinessVertical } from '../../modules/superadmin/verticals/models/business-vertical.model.js';
 export { ServiceTemplate } from '../../modules/superadmin/templates/models/service-template.model.js';
 export { WhiteLabelTheme } from '../../modules/superadmin/themes/models/whitelabel-theme.model.js';
+export { BusinessVerification, TenantRequest } from '../../modules/superadmin/verifications/models/verification.model.js';
 
 export default {};
 

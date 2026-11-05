@@ -256,7 +256,7 @@ export default function ServiceDetailModal({ service, onClose, onStartTrial }) {
                         cursor: 'pointer',
                       }}
                     >
-                      Start 14-Day Trial
+                      💳 Buy Plan
                     </button>
                   </div>
                 ))}
@@ -308,7 +308,7 @@ export default function ServiceDetailModal({ service, onClose, onStartTrial }) {
             }}
           >
             <Sparkles size={16} />
-            <span>Start 14-Day Free Trial</span>
+            <span>💳 Buy SaaS License</span>
           </button>
         </div>
       </div>

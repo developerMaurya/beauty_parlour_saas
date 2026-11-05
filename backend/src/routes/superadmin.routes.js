@@ -28,6 +28,7 @@ import { verticalController } from '../modules/superadmin/verticals/controllers/
 import { templateController } from '../modules/superadmin/templates/controllers/template.controller.js';
 import { themeController } from '../modules/superadmin/themes/controllers/theme.controller.js';
 import { masterController } from '../modules/superadmin/masters/controllers/master.controller.js';
+import { verificationController } from '../modules/superadmin/verifications/controllers/verification.controller.js';
 
 import {
   authenticateAccessToken,
@@ -86,6 +87,12 @@ router.post('/tenants/:tenantId/database/backup', databaseController.backupTenan
 router.post('/tenants/:tenantId/database/restore', databaseController.restoreTenantDatabase);
 router.post('/tenants/:tenantId/database/migrate', databaseController.migrateTenantDatabase);
 router.get('/tenants/:tenantId/database/health', tenantController.getTenantDatabase);
+
+// Tenant Inbound Requests & KYC Verifications
+router.get('/tenant-requests', verificationController.listTenantRequests);
+router.patch('/tenant-requests/:requestId', verificationController.updateTenantRequest);
+router.get('/business-verifications', verificationController.listBusinessVerifications);
+router.patch('/business-verifications/:verificationId', verificationController.reviewBusinessVerification);
 
 // C. Tenant Provisioning APIs
 router.post('/provisioning/:tenantId/start', provisioningController.startProvisioning);

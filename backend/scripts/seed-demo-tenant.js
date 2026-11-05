@@ -13,6 +13,7 @@
 import bcrypt from 'bcrypt';
 import { connectCentralDB, disconnectCentralDB } from '../src/database/central/central.connection.js';
 import { Tenant } from '../src/modules/superadmin/tenants/models/tenant.model.js';
+import { SuperAdmin } from '../src/modules/auth/models/super-admin.model.js';
 import { getTenantModel } from '../src/database/tenant/tenantModels.js';
 
 export const seedDemoTenant = async () => {
@@ -325,6 +326,36 @@ export const seedDemoTenant = async () => {
       validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
     });
     console.log('[SEED] Coupon created: GLOW20');
+  }
+
+  // 9. Seed Master SuperAdmin User
+  try {
+    const superEmail = 'superadmin@beautysaas.local';
+    const superPassword = 'SuperAdmin@Secure2026!';
+    const passwordHash = await bcrypt.hash(superPassword, 10);
+    let superadmin = await SuperAdmin.findOne({ email: superEmail });
+    if (!superadmin) {
+      superadmin = await SuperAdmin.create({
+        name: 'Master Super Admin',
+        email: superEmail,
+        username: 'superadmin',
+        passwordHash,
+        role: 'superadmin',
+        status: 'active',
+        isEmailVerified: true,
+      });
+      console.log('[SEED] ✅ Master SuperAdmin seeded in MongoDB:', superadmin.email);
+    } else {
+      superadmin.passwordHash = passwordHash;
+      superadmin.role = 'superadmin';
+      superadmin.status = 'active';
+      superadmin.isLocked = false;
+      superadmin.failedLoginAttempts = 0;
+      await superadmin.save();
+      console.log('[SEED] ✅ Master SuperAdmin refreshed in MongoDB:', superadmin.email);
+    }
+  } catch (saErr) {
+    console.warn('[SEED] SuperAdmin seeding warning:', saErr.message);
   }
 
   console.log('\n======================================================');

@@ -46,7 +46,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import InstantTrialModal from '../components/InstantTrialModal.jsx';
-import SaaSPurchaseModal from '../components/SaaSPurchaseModal.jsx';
+import CustomerJourneyWizardModal from '../components/CustomerJourneyWizardModal.jsx';
 import { useToast } from '@/context/ToastContext.jsx';
 
 export default function PlatformDocsPage() {
@@ -1362,9 +1362,9 @@ export default function PlatformDocsPage() {
       )}
 
       {purchaseService && (
-        <SaaSPurchaseModal
+        <CustomerJourneyWizardModal
           isOpen={Boolean(purchaseService)}
-          service={purchaseService}
+          initialService={purchaseService}
           onClose={() => setPurchaseService(null)}
         />
       )}

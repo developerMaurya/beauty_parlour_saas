@@ -59,6 +59,7 @@ export const TenantCreateWizard = () => {
     slug: '',
     businessType: 'SALON',
     ownerName: '',
+    ownerDob: '',
     email: '',
     phone: '',
     address: '',
@@ -74,6 +75,7 @@ export const TenantCreateWizard = () => {
     // Step 3: Database
     databaseMode: 'SHARED', // 'SHARED' or 'SEPARATE'
     databaseName: '',
+    customDatabaseUri: '',
 
     // Step 4: Domain
     domainMode: 'subdomain',
@@ -152,6 +154,18 @@ export const TenantCreateWizard = () => {
         error('Business Email is required');
         return false;
       }
+      if (!formData.adminPassword || !formData.adminPassword.trim()) {
+        error('Administrator Password is required');
+        return false;
+      }
+      if (formData.adminPassword.length < 6) {
+        error('Password must be at least 6 characters');
+        return false;
+      }
+      if (formData.confirmPassword && formData.adminPassword !== formData.confirmPassword) {
+        error('Passwords do not match');
+        return false;
+      }
     }
     if (step === 4) {
       if (!formData.subdomain.trim()) {
@@ -198,6 +212,7 @@ export const TenantCreateWizard = () => {
         slug: formData.slug,
         businessType: formData.businessType,
         ownerName: formData.ownerName || formData.name,
+        ownerDob: formData.ownerDob || undefined,
         email: formData.email,
         phone: formData.phone,
         address: {
@@ -211,12 +226,14 @@ export const TenantCreateWizard = () => {
         trialDays: Number(formData.trialDays) || 0,
         databaseMode: formData.databaseMode,
         databaseName: formData.databaseName,
+        customDatabaseUri: formData.customDatabaseUri ? formData.customDatabaseUri.trim() : undefined,
         subdomain: formData.subdomain,
         customDomain: formData.customDomain || undefined,
         adminUser: {
           name: formData.adminName || formData.ownerName || 'Tenant Administrator',
           email: formData.adminEmail || formData.email,
           phone: formData.adminPhone || formData.phone,
+          dob: formData.ownerDob || undefined,
           password: formData.adminPassword,
         },
         adminPassword: formData.adminPassword,
@@ -237,6 +254,21 @@ export const TenantCreateWizard = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCopyClientCredentials = () => {
+    const text = `🏢 *${formData.name}* - SaaS Platform Credentials
+🌐 Website: ${formData.customDomain ? `https://${formData.customDomain}` : `https://${formData.subdomain || formData.slug}.kashiservice.com`}
+🏢 Salon Admin Login: ${formData.customDomain ? `https://${formData.customDomain}/admin/login` : `https://${formData.subdomain || formData.slug}.kashiservice.com/admin/login`}
+📧 Admin Email: ${formData.adminEmail}
+🔑 Password: ${formData.adminPassword}
+🎂 Owner DOB: ${formData.ownerDob || 'N/A'}
+🗄️ Database: ${formData.databaseName || 'beauty_saas_shared'}
+Salon ID: ${formData.slug}
+----------------------------------------
+Please change your password after initial login.`;
+    navigator.clipboard?.writeText(text);
+    success('Formatted client onboarding message copied to clipboard!');
   };
 
   const enabledPermissionsCount = Object.values(formData.permissions || {}).filter(Boolean).length;
@@ -374,6 +406,16 @@ export const TenantCreateWizard = () => {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Owner Date of Birth (DOB)</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={formData.ownerDob}
+                  onChange={(e) => setFormData((p) => ({ ...p, ownerDob: e.target.value }))}
+                />
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Primary Email *</label>
                 <input
                   type="email"
@@ -424,6 +466,85 @@ export const TenantCreateWizard = () => {
                     value={formData.state}
                     onChange={(e) => setFormData((p) => ({ ...p, state: e.target.value }))}
                   />
+                </div>
+              </div>
+
+              {/* Step 1 Tenant Admin Password Setup */}
+              <div
+                className="form-group"
+                style={{
+                  gridColumn: 'span 2',
+                  marginTop: '0.5rem',
+                  padding: '1.25rem',
+                  background: 'rgba(99, 102, 241, 0.05)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Key size={15} style={{ color: 'var(--primary)' }} />
+                    <span>Tenant Administrator Password Setup *</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const gen = `Pass@${Math.random().toString(36).slice(-4)}!${Math.floor(100 + Math.random() * 900)}`;
+                      setFormData((p) => ({ ...p, adminPassword: gen, confirmPassword: gen }));
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--primary)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Sparkles size={13} />
+                    <span>🎲 Generate Secure Password</span>
+                  </button>
+                </div>
+
+                <div className="grid-cols-2" style={{ gap: '1rem' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Administrator Password *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ fontFamily: 'var(--font-mono)' }}
+                      placeholder="Password@123"
+                      value={formData.adminPassword}
+                      onChange={(e) => setFormData((p) => ({ ...p, adminPassword: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Confirm Password *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        borderColor:
+                          formData.confirmPassword && formData.adminPassword !== formData.confirmPassword
+                            ? '#EF4444'
+                            : undefined,
+                      }}
+                      placeholder="Re-enter password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData((p) => ({ ...p, confirmPassword: e.target.value }))}
+                      required
+                    />
+                    {formData.confirmPassword && formData.adminPassword !== formData.confirmPassword && (
+                      <div style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '4px' }}>
+                        Passwords do not match
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -567,9 +688,50 @@ export const TenantCreateWizard = () => {
                 border: '1px solid var(--border-subtle)',
               }}
             >
-              <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Assigned Database Target:</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {formData.databaseName || 'beauty_saas_shared'}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>
+                  Assigned Database Target Name:
+                </label>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Custom DB Name</span>
+              </div>
+              <input
+                type="text"
+                className="form-input"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.95rem' }}
+                value={formData.databaseName}
+                onChange={(e) => setFormData((p) => ({ ...p, databaseName: e.target.value }))}
+                placeholder="e.g. beauty_tenant_mybrand or beauty_saas_shared"
+              />
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Super Admin can specify any custom MongoDB database identifier or use the automatically configured default.
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: '1rem',
+                padding: '1.25rem',
+                borderRadius: '8px',
+                background: 'rgba(0, 0, 0, 0.25)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>
+                  Custom MongoDB Cluster Connection URI (Optional):
+                </label>
+                <span style={{ fontSize: '0.75rem', color: '#10b981' }}>External Cluster Support</span>
+              </div>
+              <input
+                type="password"
+                className="form-input"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}
+                value={formData.customDatabaseUri}
+                onChange={(e) => setFormData((p) => ({ ...p, customDatabaseUri: e.target.value }))}
+                placeholder="mongodb+srv://admin:secret@cluster0.mongodb.net/ or mongodb://127.0.0.1:27017"
+              />
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Leave empty to use the platform's standard MongoDB cluster. If client has their own dedicated MongoDB Atlas cluster, paste the full URI here.
               </div>
             </div>
           </div>
@@ -742,6 +904,16 @@ export const TenantCreateWizard = () => {
                   placeholder="+91 9876543210"
                   value={formData.adminPhone}
                   onChange={(e) => setFormData((p) => ({ ...p, adminPhone: e.target.value }))}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Administrator Date of Birth (DOB)</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={formData.ownerDob}
+                  onChange={(e) => setFormData((p) => ({ ...p, ownerDob: e.target.value }))}
                 />
               </div>
 
@@ -1134,29 +1306,62 @@ export const TenantCreateWizard = () => {
                   Database collections created, domain routing established, permissions configured, and admin user initialized.
                 </p>
 
-                {/* Ready Credentials Box */}
+                {/* Ready Credentials Box with Full Details & 1-Click Copy */}
                 <div
                   style={{
-                    maxWidth: '440px',
+                    maxWidth: '520px',
                     margin: '0 auto 1.5rem auto',
-                    padding: '1rem',
-                    borderRadius: '8px',
+                    padding: '1.25rem',
+                    borderRadius: '12px',
                     background: 'rgba(0,0,0,0.3)',
                     border: '1px solid rgba(16, 185, 129, 0.3)',
                     textAlign: 'left',
                   }}
                 >
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#34D399', marginBottom: '0.5rem' }}>
-                    Salon Admin Login Credentials
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#34D399' }}>
+                      Client Provisioning & Login Credentials
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyClientCredentials}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: '#10b981',
+                        color: '#ffffff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Copy size={12} />
+                      <span>Copy Client Message</span>
+                    </button>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Admin Email: <strong style={{ color: '#fff' }}>{formData.adminEmail}</strong>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    Admin Password: <code style={{ color: '#38BDF8' }}>{formData.adminPassword}</code>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    Admin Portal: <code style={{ color: 'var(--primary)' }}>/admin/login</code>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <div>Business: <strong style={{ color: '#fff' }}>{formData.name}</strong></div>
+                    <div>Salon ID: <code style={{ color: '#38BDF8' }}>{formData.slug}</code></div>
+                    <div>Owner Name: <strong style={{ color: '#fff' }}>{formData.ownerName || 'Admin'}</strong></div>
+                    <div>Owner DOB: <strong style={{ color: '#f59e0b' }}>{formData.ownerDob || 'N/A'}</strong></div>
+                    <div>Admin Email: <strong style={{ color: '#fff' }}>{formData.adminEmail}</strong></div>
+                    <div>Admin Password: <code style={{ color: '#38BDF8' }}>{formData.adminPassword}</code></div>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      Database: <code style={{ color: '#c084fc' }}>{formData.databaseName || 'beauty_saas_shared'}</code> ({formData.databaseMode})
+                    </div>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      Subdomain: <code style={{ color: 'var(--primary)' }}>{formData.subdomain || formData.slug}.kashiservice.com</code>
+                    </div>
+                    {formData.customDomain && (
+                      <div style={{ gridColumn: 'span 2' }}>
+                        Custom Domain: <code style={{ color: '#34d399' }}>{formData.customDomain}</code>
+                      </div>
+                    )}
                   </div>
                 </div>
 

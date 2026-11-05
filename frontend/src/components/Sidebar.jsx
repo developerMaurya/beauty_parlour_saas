@@ -57,6 +57,8 @@ const NAV_GROUPS = [
     basePath: '/superadmin/tenants',
     items: [
       { name: 'All Tenants', path: '/superadmin/tenants' },
+      { name: 'Tenant Requests & Demos', path: '/superadmin/requests' },
+      { name: 'Business KYC Verification', path: '/superadmin/verifications' },
       { name: 'Provision Tenant Wizard', path: '/superadmin/tenants/create' },
       { name: 'Unified Control Center', path: '/superadmin/access-control' },
     ],

@@ -83,6 +83,142 @@ export default function PublicHomePage() {
   };
 
   const businessName = business?.name || 'Blossom Luxury Beauty Parlour & Bridal Studio';
+  const isDefaultNewTenant = Boolean(business?.slug && business.slug !== 'blossom-salon' && featuredServices.length === 0);
+
+  if (isDefaultNewTenant) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '3rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        {/* Clean Branded Default Storefront for New Tenants (Zero Pre-filled Services) */}
+        <section
+          style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%)',
+            border: '1px solid #e2e8f0',
+            borderRadius: '28px',
+            padding: '4.5rem 2rem',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.5rem',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          {business?.branding?.logoUrl || business?.websiteConfig?.logoUrl ? (
+            <div style={{ width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', background: '#ffffff', padding: '6px' }}>
+              <img src={business.branding?.logoUrl || business.websiteConfig?.logoUrl} alt={business.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+          ) : (
+            <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', color: '#ffffff', boxShadow: '0 8px 24px rgba(79, 70, 229, 0.25)' }}>
+              🏢
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.4rem 1rem',
+              borderRadius: '24px',
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              color: '#065f46',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            <CheckCircle2 size={14} className="text-emerald-600" />
+            <span>Storefront Activated & Live Online</span>
+          </div>
+
+          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: '#0f172a', margin: 0, lineHeight: 1.15 }}>
+            {business?.name || 'Welcome to Our Salon'}
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '650px', margin: 0, lineHeight: 1.6 }}>
+            {business?.tagline || 'Welcome to our official cloud website. Our customized service catalog, appointment booking schedule, and packages are currently being configured by our management team.'}
+          </p>
+
+          {/* Action CTAs */}
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1rem' }}>
+            <NavLink
+              to={`/admin/login?tenant=${business?.slug || ''}`}
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                color: '#ffffff',
+                textDecoration: 'none',
+                padding: '12px 28px',
+                borderRadius: '12px',
+                fontSize: '14.5px',
+                fontWeight: 700,
+                boxShadow: '0 6px 18px rgba(79, 70, 229, 0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>🏢 Manage Salon (Admin Login)</span>
+              <ArrowRight size={16} />
+            </NavLink>
+            {business?.phone && (
+              <a
+                href={`tel:${business.phone}`}
+                style={{
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  textDecoration: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  fontSize: '14.5px',
+                  fontWeight: 700,
+                  border: '1px solid #cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Phone size={16} className="text-slate-600" />
+                <span>Call {business.phone}</span>
+              </a>
+            )}
+          </div>
+        </section>
+
+        {/* Business Overview & Address Cards */}
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ fontSize: '2rem' }}>📍</div>
+            <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>Salon Location & Address</h3>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              {typeof business?.address === 'object' && business?.address
+                ? [business.address.street, business.address.city, business.address.state, business.address.postalCode].filter(Boolean).join(', ')
+                : business?.address || 'Address configured by owner'}
+            </p>
+          </div>
+
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ fontSize: '2rem' }}>⏰</div>
+            <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>Operating Hours</h3>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              Monday – Sunday: 09:00 AM – 09:00 PM<br />
+              Online appointment booking opening shortly.
+            </p>
+          </div>
+
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ fontSize: '2rem' }}>✨</div>
+            <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>Clean Default Website</h3>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              Zero placeholder demo services published. The salon administrator can log in to customize their full menu, staff profiles, and treatment packages.
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem', paddingBottom: '3rem', fontFamily: 'Inter, system-ui, sans-serif' }}>

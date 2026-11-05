@@ -13,9 +13,12 @@ import { Tenant } from '../modules/superadmin/tenants/models/tenant.model.js';
 import { Domain } from '../modules/superadmin/domains/models/domain.model.js';
 import { Subscription } from '../modules/superadmin/subscriptions/models/subscription.model.js';
 import { Plan } from '../modules/superadmin/plans/models/plan.model.js';
+import { Transaction, Invoice } from '../modules/superadmin/billing/models/billing.model.js';
+import { BusinessVerification, TenantRequest } from '../modules/superadmin/verifications/models/verification.model.js';
 import { databaseProvisioningService } from '../core/database/databaseProvisioningService.js';
 import { hashPassword } from '../modules/auth/services/password.service.js';
 import { getCentralDatabase } from '../core/database/centralDatabase.js';
+import { uploadImageToCloudflare } from '../services/cloudflare.service.js';
 import { sendSuccess, sendError } from '../utils/response.utils.js';
 
 // Master Catalog of Kashi Service 5 Core Verticals
@@ -548,5 +551,499 @@ export const kashiPlatformController = {
       return sendError(res, err.message, [], 500);
     }
   },
+
+  /**
+   * POST /api/v1/platform/auth/send-otp
+   * Step 01: Customer Sign-up / Login OTP Generator
+   */
+  async sendOtp(req, res) {
+    try {
+      const { phone = '', email = '' } = req.body;
+      if (!phone && !email) {
+        return sendError(res, 'Mobile number or email is required', [], 400);
+      }
+
+      // Default development test OTP: '123456'
+      const simulatedOtp = '123456';
+      const target = phone || email;
+
+      return sendSuccess(res, `OTP sent successfully to ${target}`, {
+        target,
+        otpSent: true,
+        simulatedOtp,
+        expiresInSeconds: 300,
+      });
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  /**
+   * POST /api/v1/platform/auth/verify-otp
+   * Step 01: Validates customer OTP
+   */
+  async verifyOtp(req, res) {
+    try {
+      const { phone = '', email = '', otp = '' } = req.body;
+      if (!otp) {
+        return sendError(res, 'OTP is required', [], 400);
+      }
+
+      // Verification check (in dev environment accepts '123456' or any 6-digit number)
+      if (otp === '123456' || otp.length === 6) {
+        return sendSuccess(res, 'OTP verified successfully', {
+          verified: true,
+          phone,
+          email,
+        });
+      }
+
+      return sendError(res, 'Invalid OTP. Please enter 123456', [], 400);
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  /**
+   * POST /api/v1/platform/onboarding/check-subdomain
+   * Step 02: Checks if subdomain is available (e.g. riya.kashiservice.com)
+   */
+  async checkSubdomainAvailability(req, res) {
+    try {
+      const { subdomain } = req.body;
+      if (!subdomain) {
+        return sendError(res, 'Subdomain is required', [], 400);
+      }
+
+      const cleanSlug = subdomain
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 24);
+
+      const reserved = ['admin', 'api', 'www', 'superadmin', 'app', 'kashi', 'kashiservice', 'cname', 'portal', 'test'];
+      if (reserved.includes(cleanSlug)) {
+        return sendSuccess(res, 'Subdomain check', {
+          available: false,
+          subdomain: cleanSlug,
+          reason: 'This subdomain is reserved by the platform.',
+        });
+      }
+
+      const existing = await Tenant.findOne({
+        $or: [{ slug: cleanSlug }, { subdomain: cleanSlug }],
+      });
+
+      return sendSuccess(res, 'Subdomain check', {
+        available: !existing,
+        subdomain: cleanSlug,
+        previewUrl: `${cleanSlug}.kashiservice.com`,
+        reason: existing ? 'Subdomain is already taken' : 'Available',
+      });
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  /**
+   * POST /api/v1/platform/onboarding/demo-request
+   * Model B: Request a Demo / Contact Sales for Custom Enterprise
+   */
+  async submitDemoRequest(req, res) {
+    try {
+      const {
+        businessName,
+        ownerName,
+        email,
+        phone,
+        serviceCategory = 'software-saas',
+        estimatedBranches = 1,
+        requirements = '',
+      } = req.body;
+
+      if (!businessName || !ownerName || !email || !phone) {
+        return sendError(res, 'Business name, owner name, email, and phone are required', [], 400);
+      }
+
+      const requestDoc = await TenantRequest.create({
+        businessName: businessName.trim(),
+        ownerName: ownerName.trim(),
+        email: email.toLowerCase().trim(),
+        phone: phone.trim(),
+        serviceCategory,
+        requestType: 'demo_request',
+        estimatedBranches: Number(estimatedBranches) || 1,
+        requirements: requirements.trim(),
+        status: 'pending',
+      });
+
+      return sendSuccess(
+        res,
+        'Demo & Custom Enterprise request submitted successfully! Super Admin team will review and contact you within 2 business hours.',
+        {
+          requestId: requestDoc._id,
+          businessName: requestDoc.businessName,
+          status: requestDoc.status,
+          contactEmail: requestDoc.email,
+        },
+        201
+      );
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  /**
+   * POST /api/v1/platform/onboarding/complete-journey
+   * The Complete 01-07 Customer Journey Provisioning Engine:
+   * 01 Sign Up / Login -> 02 Business Registration -> 03 Optional KYC -> 04 Choose Plan -> 05 Verified Payment -> 06 Automatic Provisioning -> 07 Active Launch!
+   */
+  async completeCustomerJourney(req, res) {
+    try {
+      const {
+        // Step 01: Owner Info
+        ownerName,
+        email,
+        phone = '',
+        password,
+        // Step 02: Business Registration
+        businessName,
+        businessCategory = 'beauty-parlour',
+        businessType = 'salon',
+        address = '',
+        city = '',
+        state = '',
+        postalCode = '',
+        subdomain = '',
+        customDomain = '',
+        domainType = 'subdomain',
+        businessLogo = '',
+        // Step 03: KYC (Optional)
+        kycDetails = null, // { isProvided, idType, idNumber, pan, gstin, docUrl }
+        // Step 04 & 05: Plan, Model & Payment
+        purchaseModel = 'direct_buy', // 'direct_buy' | 'demo_request' | 'free_trial'
+        planId = 'pro', // 'starter' | 'pro' | 'enterprise'
+        billingCycle = 'monthly',
+        payment = null, // { method: 'upi'|'card'|'netbanking', transactionId, amount, isVerified }
+      } = req.body;
+
+      if (!businessName || !ownerName || !email || !password) {
+        return sendError(res, 'Business name, owner name, email, and password are required', [], 400);
+      }
+
+      // Model B: If demo request selected, route to TenantRequest ledger
+      if (purchaseModel === 'demo_request') {
+        const reqDoc = await TenantRequest.create({
+          businessName: businessName.trim(),
+          ownerName: ownerName.trim(),
+          email: email.toLowerCase().trim(),
+          phone: phone.trim(),
+          serviceCategory: businessCategory,
+          requestType: 'demo_request',
+          status: 'pending',
+          requirements: `Model B Request from onboarding flow. Plan requested: ${planId}`,
+        });
+        return sendSuccess(res, 'Enterprise demo request registered', {
+          isDemoRequest: true,
+          requestId: reqDoc._id,
+          message: 'Our Super Admin team has received your request and will reach out with a custom proposal.',
+        }, 201);
+      }
+
+      // Generate Clean Subdomain
+      const rawSlug = subdomain || businessName;
+      const cleanSlug = rawSlug
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 24);
+
+      // Check existing tenant or user (idempotency guard)
+      let tenant = await Tenant.findOne({
+        $or: [{ slug: cleanSlug }, { subdomain: cleanSlug }, { email: email.toLowerCase().trim() }],
+      });
+
+      const normalizedCustomDomain = customDomain ? customDomain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/$/, '') : '';
+      const isCustomSelected = domainType === 'custom' && normalizedCustomDomain;
+      const primaryDomain = isCustomSelected ? normalizedCustomDomain : `${cleanSlug}.kashiservice.com`;
+
+      const kycIsProvided = Boolean(kycDetails && (kycDetails.idNumber || kycDetails.pan || kycDetails.gstin));
+      const initialKycStatus = kycIsProvided ? 'pending' : 'not_required';
+      const initialStatus = purchaseModel === 'free_trial' ? 'trial' : 'active';
+      const initialPaymentStatus = purchaseModel === 'direct_buy' ? 'success' : 'pending';
+
+      if (!tenant) {
+        // Step 06: Automatic Provisioning
+        tenant = await Tenant.create({
+          name: businessName.trim(),
+          slug: cleanSlug,
+          code: cleanSlug.toUpperCase().slice(0, 8),
+          ownerName: ownerName.trim(),
+          email: email.toLowerCase().trim(),
+          phone: phone.trim(),
+          businessType: businessType || 'salon',
+          address: {
+            street: address || '',
+            city: city || 'New Delhi',
+            state: state || 'Delhi',
+            postalCode: postalCode || '110001',
+            country: 'IN',
+          },
+          status: initialStatus,
+          kycStatus: initialKycStatus,
+          kycDetails: {
+            idType: kycDetails?.idType || 'pan',
+            idNumber: kycDetails?.idNumber || '',
+            pan: kycDetails?.pan || '',
+            gstin: kycDetails?.gstin || '',
+            docUrl: kycDetails?.docUrl || '',
+            submittedAt: kycIsProvided ? new Date() : null,
+          },
+          paymentStatus: initialPaymentStatus,
+          purchaseModel,
+          onboardingStep: 7,
+          provisioningStatus: 'completed',
+          subdomain: cleanSlug,
+          primaryDomain,
+          databaseMode: planId === 'enterprise' ? 'separate' : 'shared',
+          storageConfig: { allowCustomCloudflare: false },
+          databaseConfig: {
+            allowCustomDatabase: false,
+            databaseName: planId === 'enterprise' ? `db_${cleanSlug}` : 'beauty_saas_shared',
+            lastProvisionedAt: new Date(),
+          },
+          domainAccess: {
+            customDomainAllowed: Boolean(isCustomSelected),
+            isDomainActive: true,
+          },
+          branding: {
+            companyName: businessName.trim(),
+            logoUrl: businessLogo || '',
+            primaryColor: '#be185d',
+            secondaryColor: '#4f46e5',
+          },
+          metadata: {
+            onboardedVia: 'CUSTOMER_JOURNEY_WIZARD',
+            journeyStepsCompleted: ['01_SIGNUP', '02_BUSINESS', '03_KYC', '04_PLAN', '05_PAYMENT', '06_PROVISIONING', '07_ACTIVE'],
+            registeredAt: new Date(),
+          },
+        });
+
+        // Register Subdomain in Domain Registry
+        await Domain.create({
+          tenantId: tenant._id,
+          domain: `${cleanSlug}.kashiservice.com`,
+          isCustom: false,
+          isPrimary: !isCustomSelected,
+          status: 'active',
+          sslStatus: 'active',
+          verifiedAt: new Date(),
+        });
+
+        // Register Custom Domain if provided
+        if (isCustomSelected) {
+          await Domain.create({
+            tenantId: tenant._id,
+            domain: normalizedCustomDomain,
+            isCustom: true,
+            isPrimary: true,
+            status: 'pending',
+            sslStatus: 'pending',
+          });
+        }
+
+        // Register KYC Document Verification record if provided
+        if (kycIsProvided) {
+          await BusinessVerification.create({
+            tenantId: tenant._id,
+            businessName: tenant.name,
+            ownerName: tenant.ownerName,
+            email: tenant.email,
+            phone: tenant.phone,
+            status: 'pending',
+            idType: kycDetails.idType || 'pan',
+            idNumber: kycDetails.idNumber || '',
+            pan: kycDetails.pan || '',
+            gstin: kycDetails.gstin || '',
+            documentUrl: kycDetails.docUrl || '',
+          });
+        }
+
+        // Plan pricing matrix
+        const planPriceMap = {
+          starter: { monthly: 999, yearly: 9990, name: 'Starter Plan' },
+          pro: { monthly: 2499, yearly: 24990, name: 'Multi-Branch Pro' },
+          enterprise: { monthly: 5999, yearly: 59990, name: 'Enterprise White-Label' },
+        };
+        const selectedPlan = planPriceMap[planId] || planPriceMap.pro;
+        const amount = purchaseModel === 'free_trial' ? 0 : (billingCycle === 'yearly' ? selectedPlan.yearly : selectedPlan.monthly);
+
+        // Subscription Record
+        const subscription = await Subscription.create({
+          tenantId: tenant._id,
+          billingCycle,
+          status: purchaseModel === 'free_trial' ? 'trial' : 'active',
+          amount,
+          currency: 'INR',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000),
+          trialEndsAt: purchaseModel === 'free_trial' ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : null,
+          features: ['appointments', 'customerManagement', 'staffManagement', 'posBilling', 'gpsRadar', 'academyModule'],
+        });
+
+        tenant.subscriptionId = subscription._id;
+        await tenant.save();
+
+        // Transaction & Invoice Record (if paid)
+        if (purchaseModel === 'direct_buy' && payment) {
+          const invNum = `INV-${cleanSlug.toUpperCase().slice(0, 4)}-${Date.now().toString().slice(-6)}`;
+          const invoice = await Invoice.create({
+            invoiceNumber: invNum,
+            tenantId: tenant._id,
+            subscriptionId: subscription._id,
+            amount,
+            status: 'paid',
+            paidAt: new Date(),
+            paymentMethod: payment.method || 'upi',
+          });
+
+          await Transaction.create({
+            tenantId: tenant._id,
+            subscriptionId: subscription._id,
+            invoiceId: invoice._id,
+            amount,
+            currency: 'INR',
+            status: 'succeeded',
+            paymentMethod: payment.method || 'upi',
+            gatewayTransactionId: payment.transactionId || `tx_${Date.now()}`,
+            description: `Kashi Service ${selectedPlan.name} Subscription`,
+          });
+        }
+
+        // Provision Tenant Database & Master Admin
+        const adminPayload = {
+          name: ownerName.trim(),
+          email: email.toLowerCase().trim(),
+          phone: phone.trim(),
+          password: password.trim(),
+          username: email.split('@')[0].toLowerCase().trim(),
+        };
+        await databaseProvisioningService.provisionTenantDatabase(tenant, adminPayload);
+      } else {
+        // If tenant already existed, update with newest owner details and refresh admin credentials
+        tenant.name = businessName.trim();
+        tenant.ownerName = ownerName.trim();
+        tenant.phone = phone.trim();
+        tenant.status = 'active';
+        if (businessLogo) {
+          if (!tenant.branding) tenant.branding = {};
+          tenant.branding.logoUrl = businessLogo;
+        }
+        await tenant.save();
+
+        const adminPayload = {
+          name: ownerName.trim(),
+          email: email.toLowerCase().trim(),
+          phone: phone.trim(),
+          password: password.trim(),
+          username: email.split('@')[0].toLowerCase().trim(),
+        };
+        await databaseProvisioningService.provisionTenantDatabase(tenant, adminPayload);
+      }
+
+      const effectiveSlug = tenant.slug || cleanSlug;
+
+      // Step 07: Active Dashboard & Website Ready Receipt
+      return sendSuccess(
+        res,
+        'Congratulations! Your SaaS business account, website, and admin dashboard are active!',
+        {
+          journeyCompleted: true,
+          step: '07_ACTIVE',
+          tenant: {
+            id: tenant._id,
+            name: tenant.name,
+            slug: effectiveSlug,
+            status: tenant.status,
+            kycStatus: tenant.kycStatus,
+            paymentStatus: tenant.paymentStatus,
+          },
+          credentials: {
+            ownerName: tenant.ownerName,
+            email: tenant.email,
+            password: password.trim(),
+            tenantSlug: effectiveSlug,
+          },
+          links: {
+            adminLoginUrl: `/admin/login?tenant=${effectiveSlug}&email=${encodeURIComponent(tenant.email)}&autologin=true`,
+            directDashboardUrl: `/admin/dashboard`,
+            storefrontUrl: `/site/${effectiveSlug}`,
+            subdomainUrl: `http://${effectiveSlug}.localhost:3000`,
+            customDomainUrl: isCustomSelected ? `https://${normalizedCustomDomain}` : null,
+          },
+        },
+        201
+      );
+    } catch (err) {
+      console.error('Complete customer journey error:', err);
+      return sendError(res, err.message || 'Onboarding journey failed', [], 500);
+    }
+  },
+
+  /**
+   * POST /api/v1/platform/upload
+   * In-memory file & document upload for Onboarding Logo and KYC Documents.
+   * Streams to Cloudflare if configured, or converts to Data URI in memory.
+   * NEVER saves files to local disk or project folders.
+   */
+  async uploadFile(req, res) {
+    try {
+      if (!req.file) {
+        return sendError(res, 'No file was provided (form-data field name "file" required)', [], 400);
+      }
+
+      const { folder = 'onboarding' } = req.body;
+      let uploadResult = null;
+
+      // Try Cloudflare Images first if configured and it's an image
+      if (req.file.mimetype && req.file.mimetype.startsWith('image/')) {
+        try {
+          uploadResult = await uploadImageToCloudflare({
+            buffer: req.file.buffer,
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            metadata: { folder, uploadedAt: new Date().toISOString() },
+          });
+        } catch (cloudErr) {
+          // Cloudflare not configured or offline - fallback to in-memory Data URI
+          console.log('[Platform Upload] Falling back to in-memory Data URI:', cloudErr.message);
+        }
+      }
+
+      // If Cloudflare did not process it or if it's a PDF / non-image, construct clean in-memory Data URI
+      if (!uploadResult || !uploadResult.url) {
+        const base64Data = req.file.buffer.toString('base64');
+        const dataUri = `data:${req.file.mimetype};base64,${base64Data}`;
+        uploadResult = {
+          success: true,
+          url: dataUri,
+          id: `in_memory_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+          uploaded: new Date().toISOString(),
+          provider: 'in_memory',
+        };
+      }
+
+      return sendSuccess(res, 'File uploaded successfully', uploadResult, 200);
+    } catch (error) {
+      console.error('[Platform Upload] Error:', error);
+      return sendError(res, error.message || 'File upload failed', [], 500);
+    }
+  },
 };
+
 

@@ -41,6 +41,10 @@ const TenantSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    ownerDob: {
+      type: Date,
+      default: null,
+    },
     email: {
       type: String,
       required: true,
@@ -62,13 +66,44 @@ const TenantSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'inactive', 'trial', 'suspended'],
+      enum: ['active', 'inactive', 'trial', 'suspended', 'pending'],
       default: 'trial',
       index: true,
     },
     suspendedReason: {
       type: String,
       default: null,
+    },
+    kycStatus: {
+      type: String,
+      enum: ['not_required', 'pending', 'verified', 'rejected'],
+      default: 'not_required',
+      index: true,
+    },
+    kycDetails: {
+      idType: { type: String, default: '' },
+      idNumber: { type: String, default: '' },
+      pan: { type: String, default: '' },
+      gstin: { type: String, default: '' },
+      docUrl: { type: String, default: '' },
+      submittedAt: { type: Date, default: null },
+      reviewedAt: { type: Date, default: null },
+      reviewerNotes: { type: String, default: '' },
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'success', 'failed', 'refunded'],
+      default: 'pending',
+      index: true,
+    },
+    purchaseModel: {
+      type: String,
+      enum: ['direct_buy', 'demo_request', 'free_trial'],
+      default: 'direct_buy',
+    },
+    onboardingStep: {
+      type: Number,
+      default: 7,
     },
     databaseMode: {
       type: String,

@@ -46,7 +46,8 @@ import ServiceDetailModal from '../components/ServiceDetailModal.jsx';
 import TenantOnboardingWizardModal from '../components/TenantOnboardingWizardModal.jsx';
 import TenantProvisionedSuccessModal from '../components/TenantProvisionedSuccessModal.jsx';
 import InstantTrialModal from '../components/InstantTrialModal.jsx';
-import SaaSPurchaseModal from '../components/SaaSPurchaseModal.jsx';
+import CustomerJourneyWizardModal from '../components/CustomerJourneyWizardModal.jsx';
+import DemoPortalsSwitcherModal from '../components/DemoPortalsSwitcherModal.jsx';
 import EventServicesView from '@/modules/events/EventServicesView.jsx';
 import PlottingServicesView from '@/modules/plotting/PlottingServicesView.jsx';
 import RentServicesView from '@/modules/rent/RentServicesView.jsx';
@@ -67,7 +68,10 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
   const [receiptData, setReceiptData] = useState(null);
   const [instantTrialService, setInstantTrialService] = useState(null);
   const [purchaseService, setPurchaseService] = useState(null);
+  const [journeyModalService, setJourneyModalService] = useState(null);
   const [isDocsDropdownOpen, setIsDocsDropdownOpen] = useState(false);
+  const [isDemoPortalsModalOpen, setIsDemoPortalsModalOpen] = useState(false);
+  const [selectedDemoTenant, setSelectedDemoTenant] = useState('blossom-salon');
   const docsDropdownRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -114,10 +118,14 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
     setSelectedPlanForWizard(plan || service?.plans?.[0] || null);
   };
 
-  const handleLaunchDemoTenant = (slug) => {
-    sessionStorage.setItem('current_tenant_slug', slug);
-    localStorage.setItem('active_tenant_slug', slug);
-    navigate(`/site/${slug}`);
+  const handleLaunchDemoTenant = (slug = 'blossom-salon') => {
+    setSelectedDemoTenant(slug);
+    setIsDemoPortalsModalOpen(true);
+  };
+
+  const handleOpenDemoPortals = (slug = 'blossom-salon') => {
+    setSelectedDemoTenant(slug);
+    setIsDemoPortalsModalOpen(true);
   };
 
   const handleOpenInstantTrial = (service) => {
@@ -125,7 +133,11 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
   };
 
   const handleOpenPurchase = (service) => {
-    setPurchaseService(service || services[0] || { id: 'beauty-parlour', name: 'Beauty Parlour & Salon ERP' });
+    setJourneyModalService(service || services[0] || { id: 'beauty-parlour', name: 'Beauty Parlour & Salon ERP' });
+  };
+
+  const handleOpenCustomerJourney = (service = null) => {
+    setJourneyModalService(service || services[0] || { id: 'beauty-parlour', name: 'Beauty Parlour & Salon ERP' });
   };
 
   return (
@@ -416,6 +428,49 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
                 </div>
               )}
             </div>
+
+            {/* Single Request 14-Day Trial CTA */}
+            <button
+              onClick={() => handleOpenInstantTrial(services[0] || null)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: '1.5px solid #c7d2fe',
+                background: '#eef2ff',
+                color: '#4338ca',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span>📞 Request 14-Day Trial</span>
+            </button>
+
+            {/* Direct Get Started CTA */}
+            <button
+              onClick={() => handleOpenCustomerJourney(services[0] || null)}
+              style={{
+                padding: '7px 16px',
+                borderRadius: '8px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                border: 'none',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span>🚀 Buy SaaS</span>
+            </button>
           </nav>
         </div>
       </header>
@@ -503,28 +558,51 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
             }}
           >
             <button
-              onClick={() => handleOpenInstantTrial(services[0] || null)}
+              onClick={() => handleOpenCustomerJourney(services[0] || null)}
               style={{
-                padding: '14px 32px',
+                padding: '14px 28px',
                 borderRadius: '10px',
                 fontSize: '15px',
-                fontWeight: 700,
+                fontWeight: 800,
                 border: 'none',
-                background: '#4f46e5',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 color: '#ffffff',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 8px 24px rgba(79, 70, 229, 0.35)',
+                boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35)',
                 transition: 'all 0.2s',
               }}
-              onMouseOver={(e) => (e.currentTarget.style.background = '#4338ca')}
-              onMouseOut={(e) => (e.currentTarget.style.background = '#4f46e5')}
+              onMouseOver={(e) => (e.currentTarget.style.filter = 'brightness(1.05)')}
+              onMouseOut={(e) => (e.currentTarget.style.filter = 'none')}
             >
-              <Zap size={18} />
-              <span>Start 14-Day Free Trial (Auto-Login)</span>
+              <span>🚀 Get Started (7-Step Journey)</span>
               <ArrowRight size={18} />
+            </button>
+
+            <button
+              onClick={() => handleOpenInstantTrial(services[0] || null)}
+              style={{
+                padding: '14px 28px',
+                borderRadius: '10px',
+                fontSize: '15px',
+                fontWeight: 800,
+                border: '1.5px solid #c7d2fe',
+                background: '#eef2ff',
+                color: '#3730a3',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.15)',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.background = '#e0e7ff')}
+              onMouseOut={(e) => (e.currentTarget.style.background = '#eef2ff')}
+            >
+              <Zap size={18} color="#4f46e5" />
+              <span>📞 Apply for 14-Day Free Trial (Request Call)</span>
             </button>
 
             <button
@@ -853,52 +931,44 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
                   onClick={() => handleLaunchDemoTenant('blossom-salon')}
                   style={{
                     flex: 1,
-                    padding: '9px 6px',
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     border: '1px solid #cbd5e1',
                     background: '#ffffff',
                     color: '#0f172a',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  👁️ View Demo
-                </button>
-                <button
-                  onClick={() => handleOpenInstantTrial(services.find((s) => s.id === 'beauty-parlour') || { id: 'beauty-parlour', name: 'Beauty Parlour & Salon ERP' })}
-                  style={{
-                    flex: 1.2,
-                    padding: '9px 6px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: 'none',
-                    background: '#ec4899',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  ⚡ Start 14-Day Trial
+                  <Eye size={15} />
+                  <span>View Demo</span>
                 </button>
                 <button
                   onClick={() => handleOpenPurchase(services.find((s) => s.id === 'beauty-parlour') || { id: 'beauty-parlour', name: 'Beauty Parlour & Salon ERP' })}
                   style={{
-                    flex: 1,
-                    padding: '9px 6px',
+                    flex: 1.2,
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: '1px solid #fbcfe8',
-                    background: '#fdf2f8',
-                    color: '#be185d',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+                    color: '#ffffff',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.25)',
                   }}
                 >
-                  💳 Buy SaaS
+                  <span>💳 Buy SaaS</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -971,52 +1041,44 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
                   onClick={() => setActiveVerticalTab('SOFTWARE')}
                   style={{
                     flex: 1,
-                    padding: '9px 6px',
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     border: '1px solid #cbd5e1',
                     background: '#ffffff',
                     color: '#0f172a',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  Inspect Suite
-                </button>
-                <button
-                  onClick={() => handleOpenInstantTrial(services.find((s) => s.id === 'software-saas') || { id: 'software-saas', name: 'Software SaaS Suite' })}
-                  style={{
-                    flex: 1.2,
-                    padding: '9px 6px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: 'none',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  ⚡ Start 14-Day Trial
+                  <Eye size={15} />
+                  <span>Inspect Suite</span>
                 </button>
                 <button
                   onClick={() => handleOpenPurchase(services.find((s) => s.id === 'software-saas') || { id: 'software-saas', name: 'Software SaaS Suite' })}
                   style={{
-                    flex: 1,
-                    padding: '9px 6px',
+                    flex: 1.2,
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: '1px solid #bfdbfe',
-                    background: '#eff6ff',
-                    color: '#1d4ed8',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
                   }}
                 >
-                  💳 Buy SaaS
+                  <span>💳 Buy SaaS</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1089,52 +1151,44 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
                   onClick={() => setActiveVerticalTab('EVENTS')}
                   style={{
                     flex: 1,
-                    padding: '9px 6px',
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     border: '1px solid #cbd5e1',
                     background: '#ffffff',
                     color: '#0f172a',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  Try Gate Scanner
-                </button>
-                <button
-                  onClick={() => handleOpenInstantTrial(services.find((s) => s.id === 'event-services') || { id: 'event-services', name: 'Event Services & Stage Operations' })}
-                  style={{
-                    flex: 1.2,
-                    padding: '9px 6px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: 'none',
-                    background: '#ea580c',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  ⚡ Start 14-Day Trial
+                  <Eye size={15} />
+                  <span>Try Gate Scanner</span>
                 </button>
                 <button
                   onClick={() => handleOpenPurchase(services.find((s) => s.id === 'event-services') || { id: 'event-services', name: 'Event Services & Stage Operations' })}
                   style={{
-                    flex: 1,
-                    padding: '9px 6px',
+                    flex: 1.2,
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: '1px solid #fed7aa',
-                    background: '#fff7ed',
-                    color: '#c2410c',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+                    color: '#ffffff',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(234, 88, 12, 0.25)',
                   }}
                 >
-                  💳 Buy SaaS
+                  <span>💳 Buy SaaS</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1207,52 +1261,44 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
                   onClick={() => setActiveVerticalTab('PLOTTING')}
                   style={{
                     flex: 1,
-                    padding: '9px 6px',
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     border: '1px solid #cbd5e1',
                     background: '#ffffff',
                     color: '#0f172a',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  View Plot Layout
-                </button>
-                <button
-                  onClick={() => handleOpenInstantTrial(services.find((s) => s.id === 'plotting-services') || { id: 'plotting-services', name: 'Real Estate & Colony Plotting' })}
-                  style={{
-                    flex: 1.2,
-                    padding: '9px 6px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: 'none',
-                    background: '#059669',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  ⚡ Start 14-Day Trial
+                  <Eye size={15} />
+                  <span>View Plot Layout</span>
                 </button>
                 <button
                   onClick={() => handleOpenPurchase(services.find((s) => s.id === 'plotting-services') || { id: 'plotting-services', name: 'Real Estate & Colony Plotting' })}
                   style={{
-                    flex: 1,
-                    padding: '9px 6px',
+                    flex: 1.2,
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: '1px solid #a7f3d0',
-                    background: '#ecfdf5',
-                    color: '#047857',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#ffffff',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
                   }}
                 >
-                  💳 Buy SaaS
+                  <span>💳 Buy SaaS</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1325,52 +1371,44 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
                   onClick={() => setActiveVerticalTab('RENT')}
                   style={{
                     flex: 1,
-                    padding: '9px 6px',
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     border: '1px solid #cbd5e1',
                     background: '#ffffff',
                     color: '#0f172a',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  Generate UPI Bill
-                </button>
-                <button
-                  onClick={() => handleOpenInstantTrial(services.find((s) => s.id === 'rent-services') || { id: 'rent-services', name: 'Rental Properties & Asset Leasing' })}
-                  style={{
-                    flex: 1.2,
-                    padding: '9px 6px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: 'none',
-                    background: '#d97706',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  ⚡ Start 14-Day Trial
+                  <Eye size={15} />
+                  <span>Test Rent Portal</span>
                 </button>
                 <button
                   onClick={() => handleOpenPurchase(services.find((s) => s.id === 'rent-services') || { id: 'rent-services', name: 'Rental Properties & Asset Leasing' })}
                   style={{
-                    flex: 1,
-                    padding: '9px 6px',
+                    flex: 1.2,
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: '1px solid #fde68a',
-                    background: '#fef3c7',
-                    color: '#b45309',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                    color: '#ffffff',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)',
                   }}
                 >
-                  💳 Buy SaaS
+                  <span>💳 Buy SaaS</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1378,195 +1416,7 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
         )}
       </section>
 
-      {/* ── 4. Live Seeded Demo Tenants Section (White Theme) ── */}
-      <section
-        style={{
-          background: '#f8fafc',
-          borderTop: '1px solid #e2e8f0',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '4rem 2rem',
-        }}
-      >
-        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: '#4f46e5',
-                padding: '4px 12px',
-                borderRadius: '999px',
-                background: '#e0e7ff',
-              }}
-            >
-              Instant Sandbox Access
-            </span>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: '12px 0 6px' }}>
-              Test Drive Seeded Demo Businesses
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#64748b', margin: 0 }}>
-              Pre-configured demo environments with sample branches, staff GPS locations, bookings, and full admin permissions.
-            </p>
-          </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '1.5rem',
-            }}
-          >
-            {[
-              {
-                slug: 'blossom-salon',
-                name: 'Blossom Luxury Salon & Spa',
-                category: 'BEAUTY & SALON ERP',
-                color: '#ec4899',
-                branches: '3 Flagship Branches (Bandra, Cyber City, Connaught Place)',
-                staffCount: '18 Active Staff',
-                features: ['Live GPS Radar', 'POS Billing & GST', 'Doorstep Home Service'],
-                adminEmail: 'admin@parlour.local',
-                adminPass: 'Password@123',
-              },
-              {
-                slug: 'glamour-academy',
-                name: 'Glamour Cosmetology Academy',
-                category: 'ACADEMY & TRAINING INSTITUTE',
-                color: '#2563eb',
-                branches: '2 Campuses (Delhi South Ex, Gurugram)',
-                staffCount: '12 Senior Instructors',
-                features: ['Student Batch Timetable', 'Online Exams & Grading', 'Auto PDF Certificates'],
-                adminEmail: 'admin@glamour.com',
-                adminPass: 'Password@123',
-              },
-              {
-                slug: 'serene-spa',
-                name: 'Serene Wellness Sanctuary',
-                category: 'DAY SPA & AYURVEDA',
-                color: '#059669',
-                branches: 'Flagship Sanctuary Lounge',
-                staffCount: '8 Estheticians & Therapists',
-                features: ['Aromatherapy Rooms', 'Membership Passes', 'Online Booking Wizard'],
-                adminEmail: 'admin@serene.com',
-                adminPass: 'Password@123',
-              },
-            ].map((tenant, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '1.75rem',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        padding: '3px 10px',
-                        borderRadius: '999px',
-                        background: `${tenant.color}15`,
-                        color: tenant.color,
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {tenant.category}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>🟢 Live Online</span>
-                  </div>
-
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                    {tenant.name}
-                  </h3>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
-                    {tenant.branches} • {tenant.staffCount}
-                  </div>
-
-                  {/* Features Tag */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
-                    {tenant.features.map((feat, fi) => (
-                      <span
-                        key={fi}
-                        style={{
-                          fontSize: '11px',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          background: '#f1f5f9',
-                          color: '#475569',
-                          fontWeight: 500,
-                        }}
-                      >
-                        ✓ {feat}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Credentials Box */}
-                  <div
-                    style={{
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      padding: '10px 12px',
-                      fontSize: '11px',
-                      color: '#475569',
-                      marginBottom: '1.25rem',
-                    }}
-                  >
-                    <div><strong>Admin Login:</strong> <code style={{ color: '#0f172a' }}>{tenant.adminEmail}</code></div>
-                    <div><strong>Password:</strong> <code style={{ color: '#0f172a' }}>{tenant.adminPass}</code></div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => handleLaunchDemoTenant(tenant.slug)}
-                    style={{
-                      flex: 1,
-                      padding: '9px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      border: '1px solid #cbd5e1',
-                      background: '#ffffff',
-                      color: '#0f172a',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    🌐 Storefront
-                  </button>
-                  <NavLink
-                    to={`/admin/login?tenant=${tenant.slug}`}
-                    style={{
-                      flex: 1,
-                      padding: '9px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      border: 'none',
-                      background: '#4f46e5',
-                      color: '#ffffff',
-                      textDecoration: 'none',
-                      textAlign: 'center',
-                    }}
-                  >
-                    🏢 Admin Login
-                  </NavLink>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── 5. SaaS vs White-Label Architecture Table (White Theme) ── */}
       <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '4.5rem 2rem' }}>
@@ -1677,15 +1527,23 @@ export default function PlatformHubPage({ onSwitchToStorefront }) {
           isOpen={Boolean(instantTrialService)}
           service={instantTrialService}
           onClose={() => setInstantTrialService(null)}
-          onOpenCustomWizard={(srv) => handleStartOnboarding(srv)}
+          onOpenCustomWizard={(srv) => handleOpenCustomerJourney(srv)}
         />
       )}
 
-      {purchaseService && (
-        <SaaSPurchaseModal
-          isOpen={Boolean(purchaseService)}
-          service={purchaseService}
-          onClose={() => setPurchaseService(null)}
+      {journeyModalService && (
+        <CustomerJourneyWizardModal
+          isOpen={Boolean(journeyModalService)}
+          initialService={journeyModalService}
+          onClose={() => setJourneyModalService(null)}
+        />
+      )}
+
+      {isDemoPortalsModalOpen && (
+        <DemoPortalsSwitcherModal
+          isOpen={isDemoPortalsModalOpen}
+          defaultTenant={selectedDemoTenant}
+          onClose={() => setIsDemoPortalsModalOpen(false)}
         />
       )}
     </div>

@@ -25,12 +25,15 @@ export const tenantController = {
         name,
         slug,
         ownerName,
+        ownerDob,
         email,
         phone,
         businessType,
         address,
         planId,
         databaseMode = 'shared',
+        databaseName,
+        customDatabaseUri,
         customDomain,
         subdomain,
         adminUser,
@@ -59,6 +62,7 @@ export const tenantController = {
         slug: generatedSlug,
         code: generatedSlug.toUpperCase().slice(0, 8),
         ownerName,
+        ownerDob: ownerDob || adminUser?.dob || null,
         email: email.toLowerCase().trim(),
         phone: phone || '',
         businessType: businessType || 'salon',
@@ -74,8 +78,9 @@ export const tenantController = {
           allowCustomCloudflare: Boolean(permissions?.customCloudflare),
         },
         databaseConfig: {
-          allowCustomDatabase: Boolean(permissions?.customDatabase),
-          databaseName: databaseMode === 'separate' ? `beauty_tenant_${generatedSlug.replace(/-/g, '_')}` : 'beauty_saas_shared',
+          allowCustomDatabase: Boolean(permissions?.customDatabase || databaseName || customDatabaseUri),
+          databaseName: databaseName || (databaseMode === 'separate' ? `beauty_tenant_${generatedSlug.replace(/-/g, '_')}` : 'beauty_saas_shared'),
+          customUri: customDatabaseUri || '',
         },
         domainAccess: {
           customDomainAllowed: Boolean(permissions?.customDomain || customDomain),
@@ -154,6 +159,7 @@ export const tenantController = {
         name: adminUser?.name || ownerName || 'Tenant Administrator',
         email: adminUser?.email || email,
         phone: adminUser?.phone || phone || '',
+        dob: ownerDob || adminUser?.dob || null,
         password: adminUser?.password || req.body.adminPassword || req.body.password || 'Password@123',
       };
 
