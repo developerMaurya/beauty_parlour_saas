@@ -129,6 +129,7 @@ export const TenantUserSchema = new Schema(
       index: true,
     },
     customRoleId: { type: Schema.Types.ObjectId, ref: 'Role', default: null },
+    permissions: [{ type: String }],
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null },
     allowedBranches: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
     status: {
@@ -166,6 +167,7 @@ export const StaffSchema = new Schema(
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
     name: { type: String, required: true, trim: true },
     photo: { type: String, default: '' },
+    documentUrl: { type: String, default: '' },
     phone: { type: String, required: true, trim: true },
     email: { type: String, lowercase: true, trim: true, default: '' },
     gender: { type: String, enum: ['female', 'male', 'other'], default: 'female' },
@@ -345,11 +347,15 @@ export const StudentPlanSchema = new Schema(
     tenantId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true },
     code: { type: String, trim: true, uppercase: true },
+    category: { type: String, default: 'Master Diploma' },
+    imageUrl: { type: String, default: '' },
     description: { type: String, default: '' },
+    duration: { type: String, default: '6 Months' },
     durationMonths: { type: Number, default: 3 },
     durationHours: { type: Number, default: 120 },
     durationUnit: { type: String, default: 'months' },
     price: { type: Number, required: true },
+    monthlyFee: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
     taxRate: { type: Number, default: 0 },
     finalPrice: { type: Number, default: 0 },
@@ -364,6 +370,7 @@ export const StudentPlanSchema = new Schema(
     practicalHours: { type: Number, default: 80 },
     materialsIncluded: { type: Boolean, default: true },
     certificateProvided: { type: Boolean, default: true },
+    certificateIncluded: { type: Boolean, default: true },
     assessmentRequired: { type: Boolean, default: true },
     attendanceRequirementPercentage: { type: Number, default: 80 },
     features: [{ type: String }],
@@ -385,6 +392,7 @@ export const StudentSchema = new Schema(
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
     name: { type: String, required: true, trim: true },
     photo: { type: String, default: '' },
+    documentUrl: { type: String, default: '' },
     phone: { type: String, required: true, trim: true },
     email: { type: String, lowercase: true, trim: true, default: '' },
     gender: { type: String, enum: ['male', 'female', 'other'], default: 'female' },
@@ -804,6 +812,14 @@ export const AppointmentSchema = new Schema(
     durationMinutes: { type: Number, default: 60 },
     actualStartTime: { type: Date, default: null },
     actualEndTime: { type: Date, default: null },
+    tokenNumber: { type: Number, default: null },
+    tokenDisplay: { type: String, default: null },
+    chairOrStation: { type: String, default: 'Station 1' },
+    queueStatus: {
+      type: String,
+      enum: ['WAITING', 'CALLED', 'IN_SERVICE', 'COMPLETED', 'SKIPPED'],
+      default: 'WAITING',
+    },
     status: {
       type: String,
       enum: [
@@ -1378,6 +1394,27 @@ export const WebsiteConfigSchema = new Schema(
       text: { type: String, default: '' },
       isVisible: { type: Boolean, default: false },
       linkUrl: { type: String, default: '' },
+      badge: { type: String, default: 'SPECIAL OFFER' },
+      bgColor: { type: String, default: '#ec4899' },
+      textColor: { type: String, default: '#ffffff' },
+      isMarquee: { type: Boolean, default: false },
+    },
+    floatingCta: {
+      isVisible: { type: Boolean, default: true },
+      whatsappPhone: { type: String, default: '+91 98765 43210' },
+      whatsappMessage: { type: String, default: 'Hello! I would like to book a salon appointment.' },
+      directCallPhone: { type: String, default: '+91 98765 43210' },
+      greetingText: { type: String, default: 'Need help? Chat with our beauty consultants live!' },
+      position: { type: String, default: 'bottom-right' },
+    },
+    seo: {
+      metaTitle: { type: String, default: '' },
+      metaDescription: { type: String, default: '' },
+      metaKeywords: { type: String, default: '' },
+      ogImageUrl: { type: String, default: '' },
+      googleAnalyticsId: { type: String, default: '' },
+      facebookPixelId: { type: String, default: '' },
+      customCss: { type: String, default: '' },
     },
     dynamicCategories: [
       {
@@ -1413,6 +1450,9 @@ export const WebsiteConfigSchema = new Schema(
         rating: { type: Number, default: 5 },
         review: String,
         avatar: String,
+        service: { type: String, default: 'Luxury Salon Care' },
+        designation: { type: String, default: 'Verified Client' },
+        date: { type: String, default: '' },
       },
     ],
     faqs: [
@@ -1422,7 +1462,7 @@ export const WebsiteConfigSchema = new Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true, strict: false }
 );
 
 /**

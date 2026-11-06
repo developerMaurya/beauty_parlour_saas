@@ -61,6 +61,11 @@ export const createStaff = async (req, res) => {
     const existingUser = await TenantUser.findOne(userQuery);
     if (existingUser) {
       user = existingUser;
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        user.passwordHash = await bcrypt.hash(password, salt);
+        await user.save();
+      }
     } else {
       const defaultPassword = password || 'Staff@123';
       const salt = await bcrypt.genSalt(10);
@@ -73,8 +78,8 @@ export const createStaff = async (req, res) => {
         username: email ? email.split('@')[0] : `staff_${Date.now()}`,
         passwordHash,
         role: 'STAFF',
-        branchId,
-        allowedBranches: [branchId],
+        branchId: finalBranchId,
+        allowedBranches: [finalBranchId],
         status: 'active',
       });
     }
@@ -187,8 +192,24 @@ export const updateStaff = async (req, res) => {
     const staff = await Staff.findOne({ _id: req.params.staffId, tenantId: req.tenantId });
     if (!staff) return sendError(res, 'Staff member not found', [], 404);
 
-    Object.assign(staff, req.body);
+    const data = { ...req.body };
+    if (data.department) data.departmentId = data.department;
+    if (data.designation) data.designationId = data.designation;
+    if (data.branch) data.branchId = data.branch;
+    if (data.dob) data.dateOfBirth = new Date(data.dob);
+
+    Object.assign(staff, data);
     await staff.save();
+
+    // If name, phone, or email updated, sync TenantUser
+    if (staff.userId && (data.name || data.phone || data.email)) {
+      const TenantUser = getTenantModel(req, 'TenantUser');
+      const userUpdates = {};
+      if (data.name) userUpdates.name = data.name.trim();
+      if (data.phone) userUpdates.phone = data.phone.trim();
+      if (data.email) userUpdates.email = data.email.trim().toLowerCase();
+      await TenantUser.findByIdAndUpdate(staff.userId, userUpdates);
+    }
 
     await recordActivity({
       req,

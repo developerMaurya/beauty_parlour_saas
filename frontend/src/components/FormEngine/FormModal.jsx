@@ -14,6 +14,7 @@ export const FormModal = ({
   title,
   fields = [], // [{ name, label, type, required, options, placeholder, step, min, max, helpText, span: 1 | 2 }]
   initialData = {},
+  defaultValues,
   onSubmit,
   submitText = 'Save',
   size = 'default',
@@ -22,16 +23,58 @@ export const FormModal = ({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Helper to resolve prefilled value from either initialData or defaultValues
+  const resolveFieldValue = (data, fieldName, fieldType) => {
+    if (!data) return '';
+    let val = data[fieldName];
+
+    // Common alias lookups
+    if (val === undefined || val === null || val === '') {
+      if (fieldName === 'department') val = data.departmentId?._id || data.departmentId;
+      else if (fieldName === 'designation') val = data.designationId?._id || data.designationId;
+      else if (fieldName === 'branch') val = data.branchId?._id || data.branchId;
+      else if (fieldName === 'plan') val = data.planId?._id || data.planId;
+      else if (fieldName === 'dob') val = data.dateOfBirth;
+      else if (fieldName === 'dateOfBirth') val = data.dob;
+      else if (fieldName === 'anniversary') val = data.anniversaryDate;
+      else if (fieldName === 'userType') val = data.role || data.userType;
+      else if (fieldName === 'role') val = data.customRoleId?.code || data.role;
+      else if (fieldName === 'address' && typeof data.address === 'object') {
+        val = data.address?.street || data.address?.city || '';
+      }
+    }
+
+    // If populated object with _id
+    if (val && typeof val === 'object' && val._id) {
+      val = val._id;
+    }
+
+    // Format date strings to YYYY-MM-DD
+    if (fieldType === 'date' && val) {
+      try {
+        if (typeof val === 'string' && val.includes('T')) {
+          val = val.split('T')[0];
+        } else if (val instanceof Date) {
+          val = val.toISOString().split('T')[0];
+        }
+      } catch (e) {}
+    }
+
+    return val ?? '';
+  };
+
   useEffect(() => {
     if (isOpen) {
+      const src = (initialData && Object.keys(initialData).length > 0) ? initialData : (defaultValues || {});
       const initial = {};
       fields.forEach((f) => {
-        initial[f.name] = initialData[f.name] ?? f.defaultValue ?? '';
+        const resolved = resolveFieldValue(src, f.name, f.type);
+        initial[f.name] = (resolved !== '' && resolved !== undefined && resolved !== null) ? resolved : (f.defaultValue ?? '');
       });
       setFormData(initial);
       setErrors({});
     }
-  }, [isOpen, initialData, fields]);
+  }, [isOpen, initialData, defaultValues, fields]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

@@ -34,6 +34,7 @@ import NotificationsPage from '../modules/admin/pages/NotificationsPage.jsx';
 import SupportCenterPage from '../modules/admin/pages/SupportCenterPage.jsx';
 import AdminProfilePage from '../modules/admin/pages/AdminProfilePage.jsx';
 import LiveTrackingPage from '../modules/admin/pages/LiveTrackingPage.jsx';
+import ReceptionistFrontDeskPage from '../modules/admin/pages/ReceptionistFrontDeskPage.jsx';
 
 export const AdminRoutes = (
   <>
@@ -50,6 +51,8 @@ export const AdminRoutes = (
       <Route path="permissions" element={<RolePermissionPage />} />
       <Route path="users" element={<UserManagementPage />} />
       <Route path="crm" element={<CRMPage />} />
+      <Route path="receptionist" element={<ReceptionistFrontDeskPage />} />
+      <Route path="frontdesk" element={<ReceptionistFrontDeskPage />} />
       <Route path="tracking" element={<LiveTrackingPage />} />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="support" element={<SupportCenterPage />} />

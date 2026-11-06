@@ -195,6 +195,42 @@ export default function CustomerAppointmentsPage() {
                     <span>📍 {apt.branchId?.name || 'Central Salon'}</span>
                     {apt.staffId && <span>👤 {apt.staffId.name}</span>}
                   </div>
+
+                  {/* Live Salon Floor Token & Queue Turn Status */}
+                  {isPendingOrConfirmed && (
+                    <div
+                      style={{
+                        marginTop: '10px',
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span
+                        style={{
+                          background: '#10b981',
+                          color: '#fff',
+                          fontWeight: 800,
+                          fontSize: '0.75rem',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        {apt.tokenDisplay || 'Your Token #05'}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', color: '#6ee7b7', fontWeight: 600 }}>
+                        🟢 Live Floor: Serving Token #04 • You are 1 turn away (~10 mins)
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        📍 {apt.chairOrStation || 'Chair 3 (Facial Lounge)'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

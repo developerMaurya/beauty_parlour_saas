@@ -9,6 +9,53 @@ import { getTenantModel } from '../../../database/tenant/tenantModels.js';
 import { sendSuccess, sendError } from '../../../utils/response.utils.js';
 import { recordAuditLog } from '../../../utils/audit.utils.js';
 
+// ── Shared Runtime In-Salon Floor & Live Token Queue Engine ──────────────────
+let runtimeSalonFloor = {
+  nowServing: {
+    tokenNumber: 4,
+    tokenDisplay: 'Token #04',
+    customerName: 'Ananya Deshmukh',
+    customerPhone: '+91 98765 43210',
+    serviceName: 'Bridal HD Makeover & Hair Artistry',
+    chairOrStation: 'Chair 2 (Bridal Suite)',
+    stylistName: 'Sneha Sen',
+    startedAt: '11:15 AM',
+    durationMins: 60,
+    progressPercent: 65,
+    totalAmount: 5500,
+  },
+  stats: {
+    currentlyInService: 4,
+    visitedToday: 14,
+    waitingQueue: 3,
+    completedToday: 8,
+    avgWaitTimeMins: 12,
+    nextTokenNumber: 7,
+    totalChairs: 6,
+    availableChairs: 2,
+  },
+  chairs: [
+    { chairNumber: 1, name: 'Chair 1 • Hair Architect', status: 'IN_SERVICE', tokenDisplay: 'Token #02', customerName: 'Pooja Verma', serviceName: 'Balayage Color & Hair Spa', stylistName: 'Rohit Verma', elapsedMins: 35, totalMins: 90 },
+    { chairNumber: 2, name: 'Chair 2 • Bridal Suite', status: 'IN_SERVICE', tokenDisplay: 'Token #04', customerName: 'Ananya Deshmukh', serviceName: 'Bridal HD Makeover & Hair', stylistName: 'Sneha Sen', elapsedMins: 40, totalMins: 60 },
+    { chairNumber: 3, name: 'Chair 3 • Facial Lounge', status: 'IN_SERVICE', tokenDisplay: 'Token #05', customerName: 'Riya Kapoor', serviceName: 'O2 Hydra Radiance Facial', stylistName: 'Alisha Merchant', elapsedMins: 20, totalMins: 45 },
+    { chairNumber: 4, name: 'Chair 4 • Nail & Pedicure Bar', status: 'IN_SERVICE', tokenDisplay: 'Token #06', customerName: 'Megha Singhania', serviceName: 'Gel Extensions & Nail Art', stylistName: 'Aarti Saxena', elapsedMins: 15, totalMins: 45 },
+    { chairNumber: 5, name: 'Chair 5 • Mens / Styling Unit', status: 'AVAILABLE', tokenDisplay: null, customerName: null, serviceName: 'Ready for Next: Token #07', stylistName: 'Vikas Malhotra', elapsedMins: 0, totalMins: 0 },
+    { chairNumber: 6, name: 'Chair 6 • Relax & Spa Station', status: 'AVAILABLE', tokenDisplay: null, customerName: null, serviceName: 'Open for Walk-ins', stylistName: 'Priya Sharma', elapsedMins: 0, totalMins: 0 },
+  ],
+  todayRoster: [
+    { id: 'tok_01', tokenNumber: 1, tokenDisplay: 'Token #01', customerName: 'Aarav Patel', phone: '+91 98111 00111', serviceName: 'Executive Haircut & Beard', chairOrStation: 'Chair 5', stylistName: 'Vikas Malhotra', time: '10:00 AM', status: 'COMPLETED', billAmount: 950 },
+    { id: 'tok_02', tokenNumber: 2, tokenDisplay: 'Token #02', customerName: 'Pooja Verma', phone: '+91 98111 00222', serviceName: 'Balayage Color & Hair Spa', chairOrStation: 'Chair 1', stylistName: 'Rohit Verma', time: '10:30 AM', status: 'IN_SERVICE', billAmount: 4800 },
+    { id: 'tok_03', tokenNumber: 3, tokenDisplay: 'Token #03', customerName: 'Sonia Gupta', phone: '+91 98111 00333', serviceName: 'Threading & Clean-up Ritual', chairOrStation: 'Chair 3', stylistName: 'Alisha Merchant', time: '10:45 AM', status: 'COMPLETED', billAmount: 850 },
+    { id: 'tok_04', tokenNumber: 4, tokenDisplay: 'Token #04', customerName: 'Ananya Deshmukh', phone: '+91 98111 00444', serviceName: 'Bridal HD Makeover & Hair', chairOrStation: 'Chair 2', stylistName: 'Sneha Sen', time: '11:15 AM', status: 'IN_SERVICE', billAmount: 5500 },
+    { id: 'tok_05', tokenNumber: 5, tokenDisplay: 'Token #05', customerName: 'Riya Kapoor', phone: '+91 98111 00555', serviceName: 'O2 Hydra Radiance Facial', chairOrStation: 'Chair 3', stylistName: 'Alisha Merchant', time: '11:30 AM', status: 'IN_SERVICE', billAmount: 2800 },
+    { id: 'tok_06', tokenNumber: 6, tokenDisplay: 'Token #06', customerName: 'Megha Singhania', phone: '+91 98111 00666', serviceName: 'Gel Extensions & Nail Art', chairOrStation: 'Chair 4', stylistName: 'Aarti Saxena', time: '11:45 AM', status: 'IN_SERVICE', billAmount: 2200 },
+    { id: 'tok_07', tokenNumber: 7, tokenDisplay: 'Token #07', customerName: 'Sunita Roy', phone: '+91 98111 00777', serviceName: 'Party Makeup & Hair Curls', chairOrStation: 'Chair 2 (Next)', stylistName: 'Sneha Sen', time: '12:15 PM', status: 'WAITING', billAmount: 3200 },
+    { id: 'tok_08', tokenNumber: 8, tokenDisplay: 'Token #08', customerName: 'Tanvi Chopra', phone: '+91 98111 00888', serviceName: 'Blow Dry & Keratin Polish', chairOrStation: 'Chair 1 (Next)', stylistName: 'Rohit Verma', time: '12:45 PM', status: 'WAITING', billAmount: 1800 },
+  ],
+};
+
+export const getRuntimeSalonFloor = () => runtimeSalonFloor;
+
 export const getDashboardOverview = async (req, res) => {
   try {
     const Appointment = getTenantModel(req, 'Appointment');
@@ -535,6 +582,9 @@ export const getDashboardOverview = async (req, res) => {
       { category: 'Doorstep Grooming & Home Packages', count: 19, revenue: 76000, color: '#f43f5e', icon: '🚗', mode: 'HOME_ONLY' },
     ];
 
+    // 10. Live Salon Floor: Real-time Customer Service & Token Queue Status
+    const liveSalonFloor = getRuntimeSalonFloor();
+
     return sendSuccess(res, 'Master dashboard overview retrieved', {
       // Support nested KPI structure expected by modern frontend
       revenue: {
@@ -600,6 +650,7 @@ export const getDashboardOverview = async (req, res) => {
       staffMaterialAssignments,
       apiLogs,
       servicesBreakdown,
+      liveSalonFloor,
       staffMembers: allStaffList,
       productsList: allProductsList,
       branchesList: allBranchesList,
@@ -800,10 +851,155 @@ export const punchAttendance = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/v1/admin/dashboard/live-queue
+ * Get live salon floor, chair status & token queue
+ */
+export const getLiveQueueStatus = async (req, res) => {
+  try {
+    return sendSuccess(res, 'Live salon queue and floor status retrieved', runtimeSalonFloor);
+  } catch (error) {
+    return sendError(res, `Failed to load live queue: ${error.message}`, [], 500);
+  }
+};
+
+/**
+ * POST /api/v1/admin/dashboard/live-queue/call-next
+ * Call the next waiting customer token
+ */
+export const callNextToken = async (req, res) => {
+  try {
+    const { chairNumber } = req.body || {};
+    const nextWaiting = runtimeSalonFloor.todayRoster.find((t) => t.status === 'WAITING');
+
+    if (!nextWaiting) {
+      return sendSuccess(res, 'No more waiting tokens in queue', runtimeSalonFloor);
+    }
+
+    // Mark previous as in_service or completed
+    const targetChairNum = chairNumber || 1;
+    const targetChair = runtimeSalonFloor.chairs.find((c) => c.chairNumber === targetChairNum) || runtimeSalonFloor.chairs[0];
+
+    nextWaiting.status = 'IN_SERVICE';
+    nextWaiting.chairOrStation = targetChair.name;
+
+    runtimeSalonFloor.nowServing = {
+      tokenNumber: nextWaiting.tokenNumber,
+      tokenDisplay: nextWaiting.tokenDisplay,
+      customerName: nextWaiting.customerName,
+      customerPhone: nextWaiting.phone,
+      serviceName: nextWaiting.serviceName,
+      chairOrStation: nextWaiting.chairOrStation,
+      stylistName: nextWaiting.stylistName,
+      startedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      durationMins: 45,
+      progressPercent: 10,
+      totalAmount: nextWaiting.billAmount,
+    };
+
+    targetChair.status = 'IN_SERVICE';
+    targetChair.tokenDisplay = nextWaiting.tokenDisplay;
+    targetChair.customerName = nextWaiting.customerName;
+    targetChair.serviceName = nextWaiting.serviceName;
+    targetChair.elapsedMins = 0;
+
+    // Recalculate stats
+    runtimeSalonFloor.stats.waitingQueue = runtimeSalonFloor.todayRoster.filter((t) => t.status === 'WAITING').length;
+    runtimeSalonFloor.stats.currentlyInService = runtimeSalonFloor.todayRoster.filter((t) => t.status === 'IN_SERVICE').length;
+
+    return sendSuccess(res, `Token ${nextWaiting.tokenDisplay} called to ${targetChair.name}!`, runtimeSalonFloor);
+  } catch (error) {
+    return sendError(res, `Failed to call next token: ${error.message}`, [], 500);
+  }
+};
+
+/**
+ * POST /api/v1/admin/dashboard/live-queue/walkin-token
+ * Create instant walk-in token and assign station
+ */
+export const createWalkInToken = async (req, res) => {
+  try {
+    const { customerName, phone, serviceName, chairOrStation, stylistName, billAmount } = req.body;
+
+    if (!customerName || !phone) {
+      return sendError(res, 'Customer name and phone number are required', [], 400);
+    }
+
+    const nextNum = (runtimeSalonFloor.todayRoster.length > 0
+      ? Math.max(...runtimeSalonFloor.todayRoster.map((t) => t.tokenNumber))
+      : 0) + 1;
+
+    const tokenDisplay = `Token #${String(nextNum).padStart(2, '0')}`;
+    const newEntry = {
+      id: `tok_${String(nextNum).padStart(2, '0')}`,
+      tokenNumber: nextNum,
+      tokenDisplay,
+      customerName,
+      phone,
+      serviceName: serviceName || 'Walk-in Parlour Service',
+      chairOrStation: chairOrStation || 'Next Available Chair',
+      stylistName: stylistName || 'Salon Stylist',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'WAITING',
+      billAmount: Number(billAmount) || 1200,
+    };
+
+    runtimeSalonFloor.todayRoster.push(newEntry);
+    runtimeSalonFloor.stats.visitedToday += 1;
+    runtimeSalonFloor.stats.waitingQueue += 1;
+    runtimeSalonFloor.stats.nextTokenNumber = nextNum + 1;
+
+    return sendSuccess(res, `${tokenDisplay} issued for ${customerName}!`, {
+      token: newEntry,
+      floor: runtimeSalonFloor,
+    });
+  } catch (error) {
+    return sendError(res, `Failed to issue walk-in token: ${error.message}`, [], 500);
+  }
+};
+
+/**
+ * PATCH /api/v1/admin/dashboard/live-queue/:tokenId/status
+ * Update status of an individual token
+ */
+export const updateTokenQueueStatus = async (req, res) => {
+  try {
+    const { tokenId } = req.params;
+    const { status, chairOrStation } = req.body;
+
+    const token = runtimeSalonFloor.todayRoster.find((t) => t.id === tokenId || String(t.tokenNumber) === tokenId);
+    if (!token) {
+      return sendError(res, 'Token not found in today\'s roster', [], 404);
+    }
+
+    if (status) {
+      token.status = status;
+      if (status === 'COMPLETED') {
+        runtimeSalonFloor.stats.completedToday += 1;
+      }
+    }
+    if (chairOrStation) {
+      token.chairOrStation = chairOrStation;
+    }
+
+    // Refresh stats
+    runtimeSalonFloor.stats.waitingQueue = runtimeSalonFloor.todayRoster.filter((t) => t.status === 'WAITING').length;
+    runtimeSalonFloor.stats.currentlyInService = runtimeSalonFloor.todayRoster.filter((t) => t.status === 'IN_SERVICE').length;
+
+    return sendSuccess(res, `Token ${token.tokenDisplay} updated to ${status}`, runtimeSalonFloor);
+  } catch (error) {
+    return sendError(res, `Failed to update token: ${error.message}`, [], 500);
+  }
+};
+
 export default {
   getDashboardOverview,
   getOperationsQueue,
   assignProductToStaff,
   updateHomeServiceStatus,
   punchAttendance,
+  getLiveQueueStatus,
+  callNextToken,
+  createWalkInToken,
+  updateTokenQueueStatus,
 };

@@ -33,6 +33,7 @@ router.get('/website', publicCtrl.getPublicWebsite);
 router.get('/gallery', publicCtrl.getPublicGallery);
 router.get('/testimonials', publicCtrl.getPublicTestimonials);
 router.get('/faqs', publicCtrl.getPublicFaqs);
+router.get('/live-queue', publicCtrl.getPublicLiveQueue);
 
 // Availability
 router.get('/availability', aptCtrl.getGeneralAvailability);

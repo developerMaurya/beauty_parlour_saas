@@ -35,6 +35,18 @@ export const FormField = ({
     }
   };
 
+  // Safe formatting for date inputs to ensure HTML5 <input type="date"> works properly
+  let displayValue = value ?? '';
+  if (type === 'date' && displayValue) {
+    try {
+      if (typeof displayValue === 'string' && displayValue.includes('T')) {
+        displayValue = displayValue.split('T')[0];
+      } else if (displayValue instanceof Date) {
+        displayValue = displayValue.toISOString().split('T')[0];
+      }
+    } catch (e) {}
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '100%' }}>
       {label && (
@@ -140,7 +152,7 @@ export const FormField = ({
           type={type}
           id={name}
           name={name}
-          value={value ?? ''}
+          value={displayValue}
           onChange={handleChange}
           placeholder={placeholder}
           disabled={disabled}

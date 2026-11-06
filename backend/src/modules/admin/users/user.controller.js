@@ -132,8 +132,9 @@ export const updateUser = async (req, res) => {
     const user = await TenantUser.findOne({ _id: req.params.userId, tenantId: req.tenantId });
     if (!user) return sendError(res, 'User not found', [], 404);
 
-    const { email, phone, username, role, customRoleId, branchId, allowedBranches } = req.body;
+    const { name, email, phone, username, role, customRoleId, branchId, allowedBranches, permissions } = req.body;
 
+    if (name) user.name = name.trim();
     if (email) user.email = email.trim().toLowerCase();
     if (phone) user.phone = phone.trim();
     if (username) user.username = username.trim().toLowerCase();
@@ -141,6 +142,7 @@ export const updateUser = async (req, res) => {
     if (customRoleId !== undefined) user.customRoleId = customRoleId || null;
     if (branchId !== undefined) user.branchId = branchId || null;
     if (Array.isArray(allowedBranches)) user.allowedBranches = allowedBranches;
+    if (Array.isArray(permissions)) user.permissions = permissions;
 
     await user.save();
     const response = user.toObject();

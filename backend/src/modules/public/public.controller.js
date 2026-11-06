@@ -7,6 +7,7 @@
 
 import { getTenantModel } from '../../database/tenant/tenantModels.js';
 import { sendSuccess, sendError } from '../../utils/response.utils.js';
+import { getRuntimeSalonFloor } from '../admin/dashboard/dashboard.controller.js';
 
 export const getPublicBusiness = async (req, res) => {
   try {
@@ -447,6 +448,39 @@ export const getPublicHolidays = async (req, res) => {
   }
 };
 
+export const getPublicLiveQueue = async (req, res) => {
+  try {
+    const floor = getRuntimeSalonFloor();
+    const publicSafeFloor = {
+      nowServing: floor.nowServing ? {
+        tokenNumber: floor.nowServing.tokenNumber,
+        tokenDisplay: floor.nowServing.tokenDisplay,
+        serviceName: floor.nowServing.serviceName,
+        chairOrStation: floor.nowServing.chairOrStation,
+        stylistName: floor.nowServing.stylistName,
+        startedAt: floor.nowServing.startedAt,
+        durationMins: floor.nowServing.durationMins,
+        progressPercent: floor.nowServing.progressPercent,
+      } : null,
+      stats: floor.stats,
+      chairs: floor.chairs.map((c) => ({
+        chairNumber: c.chairNumber,
+        name: c.name,
+        status: c.status,
+        serviceName: c.serviceName,
+        tokenDisplay: c.tokenDisplay,
+        stylistName: c.stylistName,
+      })),
+      recentCompletedCount: floor.stats.completedToday,
+      estimatedWaitMins: floor.stats.avgWaitTimeMins,
+      nextTokenNumber: floor.stats.nextTokenNumber,
+    };
+    return sendSuccess(res, 'Public live salon floor queue status', publicSafeFloor);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
 export default {
   getPublicBusiness,
   getPublicBranches,
@@ -470,5 +504,6 @@ export default {
   createPublicBooking,
   getPublicAcademyCourses,
   submitPublicContact,
+  getPublicLiveQueue,
 };
 

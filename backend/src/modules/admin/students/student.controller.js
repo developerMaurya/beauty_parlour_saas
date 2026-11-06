@@ -28,9 +28,18 @@ export const createStudent = async (req, res) => {
 
     // Create user account
     let user = null;
-    const existing = await TenantUser.findOne({ tenantId: req.tenantId, phone: phone.trim() });
+    const studentQuery = { tenantId: req.tenantId, $or: [{ phone: phone.trim() }] };
+    if (email) studentQuery.$or.push({ email: email.trim().toLowerCase() });
+
+    const existing = await TenantUser.findOne(studentQuery);
     if (existing) {
       user = existing;
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        user.passwordHash = await bcrypt.hash(password, salt);
+        if (email) user.email = email.trim().toLowerCase();
+        await user.save();
+      }
     } else {
       const defaultPassword = password || 'Student@123';
       const salt = await bcrypt.genSalt(10);
@@ -40,7 +49,7 @@ export const createStudent = async (req, res) => {
         tenantId: req.tenantId,
         email: email ? email.trim().toLowerCase() : null,
         phone: phone.trim(),
-        username: `student_${Date.now()}`,
+        username: email ? email.split('@')[0] : `student_${Date.now()}`,
         passwordHash,
         role: 'STUDENT',
         branchId,
@@ -141,8 +150,23 @@ export const updateStudent = async (req, res) => {
     const student = await Student.findOne({ _id: req.params.studentId, tenantId: req.tenantId });
     if (!student) return sendError(res, 'Student not found', [], 404);
 
-    Object.assign(student, req.body);
+    const data = { ...req.body };
+    if (data.branch) data.branchId = data.branch;
+    if (data.plan) data.planId = data.plan;
+    if (data.dob) data.dateOfBirth = new Date(data.dob);
+
+    Object.assign(student, data);
     await student.save();
+
+    // If name, phone, or email updated, sync TenantUser
+    if (student.userId && (data.name || data.phone || data.email)) {
+      const TenantUser = getTenantModel(req, 'TenantUser');
+      const userUpdates = {};
+      if (data.name) userUpdates.name = data.name.trim();
+      if (data.phone) userUpdates.phone = data.phone.trim();
+      if (data.email) userUpdates.email = data.email.trim().toLowerCase();
+      await TenantUser.findByIdAndUpdate(student.userId, userUpdates);
+    }
 
     return sendSuccess(res, 'Student updated successfully', student);
   } catch (error) {
@@ -242,10 +266,14 @@ export const createStudentPlan = async (req, res) => {
     const {
       name,
       code,
+      category,
+      imageUrl,
+      duration,
       description,
       durationMonths,
       durationHours,
       price,
+      monthlyFee,
       discount,
       taxRate,
       courses,
@@ -254,6 +282,7 @@ export const createStudentPlan = async (req, res) => {
       practicalHours,
       materialsIncluded,
       certificateProvided,
+      certificateIncluded,
       features,
     } = req.body;
 
@@ -261,15 +290,25 @@ export const createStudentPlan = async (req, res) => {
       return sendError(res, 'Plan name and price are required', [], 400);
     }
 
+    const cleanFeatures = Array.isArray(features)
+      ? features
+      : typeof features === 'string'
+      ? features.split('\n').map(f => f.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean)
+      : [];
+
     const StudentPlan = getTenantModel(req, 'StudentPlan');
     const plan = await StudentPlan.create({
       tenantId: req.tenantId,
       name: name.trim(),
       code: code ? code.toUpperCase() : name.slice(0, 4).toUpperCase(),
+      category: category || 'Master Diploma',
+      imageUrl: imageUrl || '',
+      duration: duration || (durationMonths ? `${durationMonths} Months` : '6 Months'),
       description: description || '',
       durationMonths: Number(durationMonths) || 3,
       durationHours: Number(durationHours) || 120,
       price: Number(price),
+      monthlyFee: Number(monthlyFee) || 0,
       discount: Number(discount) || 0,
       taxRate: Number(taxRate) || 0,
       courses: Array.isArray(courses) ? courses : [],
@@ -277,8 +316,9 @@ export const createStudentPlan = async (req, res) => {
       theoryHours: Number(theoryHours) || 40,
       practicalHours: Number(practicalHours) || 80,
       materialsIncluded: materialsIncluded !== undefined ? materialsIncluded : true,
-      certificateProvided: certificateProvided !== undefined ? certificateProvided : true,
-      features: Array.isArray(features) ? features : [],
+      certificateProvided: certificateIncluded !== undefined ? certificateIncluded : (certificateProvided !== undefined ? certificateProvided : true),
+      certificateIncluded: certificateIncluded !== undefined ? certificateIncluded : true,
+      features: cleanFeatures,
       status: 'active',
     });
 
@@ -327,9 +367,19 @@ export const getStudentPlanById = async (req, res) => {
 export const updateStudentPlan = async (req, res) => {
   try {
     const StudentPlan = getTenantModel(req, 'StudentPlan');
+    const updateData = { ...req.body };
+    if (typeof updateData.features === 'string') {
+      updateData.features = updateData.features
+        .split('\n')
+        .map(f => f.replace(/^[•\-\*]\s*/, '').trim())
+        .filter(Boolean);
+    }
+    if (updateData.certificateIncluded !== undefined) {
+      updateData.certificateProvided = updateData.certificateIncluded;
+    }
     const plan = await StudentPlan.findOneAndUpdate(
       { _id: req.params.planId, tenantId: req.tenantId },
-      { $set: req.body },
+      { $set: updateData },
       { returnDocument: 'after' }
     );
     if (!plan) return sendError(res, 'Plan not found', [], 404);

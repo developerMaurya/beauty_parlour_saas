@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Globe,
   Sparkles,
@@ -36,6 +37,11 @@ import {
   Tag,
   Star,
   Compass,
+  Search,
+  Code,
+  Shield,
+  Palette,
+  ArrowRight,
 } from 'lucide-react';
 import DataTable from '../../../components/DataTable.jsx';
 import FormModal from '../../../components/FormEngine/FormModal.jsx';
@@ -47,8 +53,22 @@ import { buildTenantUrl } from '../../../utils/tenantDomain.js';
 export const WebsiteCMSPage = () => {
   const { tenant } = useTenantAdmin();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('branding'); // 'branding' | 'hero' | 'about' | 'menu' | 'contact' | 'services' | 'inquiries'
+  const activeTab = searchParams.get('tab') || 'branding';
+  const setActiveTab = (tab) => setSearchParams({ tab });
+
+  // Testimonial modal state
+  const [testimonialModalOpen, setTestimonialModalOpen] = useState(false);
+  const [editingTestimonial, setEditingTestimonial] = useState(null);
+  const [testimonialFormData, setTestimonialFormData] = useState({
+    name: '',
+    designation: '',
+    rating: 5,
+    service: '',
+    review: '',
+    avatar: '',
+  });
 
   const [websiteConfig, setWebsiteConfig] = useState({
     businessName: '',
@@ -56,6 +76,7 @@ export const WebsiteCMSPage = () => {
     logoUrl: '',
     faviconUrl: '',
     primaryColor: '#ec4899',
+    secondaryColor: '#8b5cf6',
     heroHeading: '',
     heroSubheading: '',
     banners: [
@@ -124,6 +145,49 @@ export const WebsiteCMSPage = () => {
       text: '✨ Special Privilege: 20% OFF on First Online Appointment Booking! Code: GLAM20',
       isVisible: true,
       linkUrl: '/book',
+      badge: 'LIMITED OFFER',
+      bgColor: '#ec4899',
+      textColor: '#ffffff',
+      isMarquee: false,
+    },
+    floatingCta: {
+      isVisible: true,
+      whatsappPhone: '+91 98765 43210',
+      whatsappMessage: 'Hello! I would like to book a VIP appointment at Blossom Luxury Salon.',
+      directCallPhone: '+91 98765 43210',
+      greetingText: '👋 Need instant beauty consultation? Chat with our specialists live!',
+      position: 'bottom-right',
+    },
+    testimonials: [
+      {
+        id: 't-1',
+        name: 'Riya Singhal',
+        designation: 'Bridal Makeover Client • Bandra West',
+        rating: 5,
+        service: 'HD Airbrush Bridal Couture',
+        review: 'The team arrived on time with completely sterilized travel kits. My bridal makeover remained pristine and glowing throughout the 14-hour wedding ceremony!',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        date: 'March 2026',
+      },
+      {
+        id: 't-2',
+        name: 'Meera Kapoor',
+        designation: 'VIP Regular Guest • DLF Phase 2',
+        rating: 5,
+        service: 'Organic Korean Glass Skin Ritual',
+        review: 'Hands down the most luxurious sanctuary in Delhi-NCR. Private suites, custom herbal aromas, and world-class certified estheticians.',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+        date: 'February 2026',
+      },
+    ],
+    seo: {
+      metaTitle: 'Blossom Luxury Beauty Parlour, Bridal Lounge & Academy',
+      metaDescription: 'Book top-tier bridal artistry, hair styling, organic skincare rituals, and cosmetology academy diplomas with certified master artists.',
+      metaKeywords: 'beauty parlour, bridal makeup, luxury salon, cosmetology academy, doorstep salon, hair styling, Delhi salon',
+      ogImageUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
+      googleAnalyticsId: 'G-7XYZ987600',
+      facebookPixelId: '123456789012345',
+      customCss: '',
     },
     dynamicCategories: [
       { name: 'Hair Care & Styling', slug: 'hair', icon: '✂️' },
@@ -328,65 +392,50 @@ export const WebsiteCMSPage = () => {
         </div>
       </div>
 
-      {/* ── Navigation Tabs ── */}
+      {/* ── Active CMS Section Breadcrumb (Navigated via Left Sidebar Sub-Menu) ── */}
       <div
         style={{
           display: 'flex',
-          gap: '0.5rem',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '0.5rem',
-          overflowX: 'auto',
+          paddingBottom: '0.75rem',
+          marginBottom: '0.5rem',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
         }}
       >
-        {[
-          { id: 'branding', label: 'Brand Logo & Theme', icon: Globe },
-          { id: 'hero', label: 'Multi-Banner Hero Slider', icon: Image, count: websiteConfig.banners?.length },
-          { id: 'menu', label: 'Dynamic Navigation Menu', icon: Menu, count: websiteConfig.navMenu?.length },
-          { id: 'about', label: 'About Us Heritage & Founder', icon: Award },
-          { id: 'contact', label: 'Contact, Embedded Map & Hours', icon: Phone },
-          { id: 'services', label: 'Services Showcase & Ribbons', icon: Sliders },
-          { id: 'inquiries', label: 'Customer Inquiries Inbox', icon: MessageSquare, count: websiteConfig.inquiries?.length || 0 },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.65rem 1.1rem',
-                borderRadius: '10px',
-                border: 'none',
-                background: isActive ? 'var(--primary-gradient)' : 'transparent',
-                color: isActive ? '#fff' : 'var(--text-secondary)',
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    padding: '1px 6px',
-                    borderRadius: '999px',
-                    background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)',
-                    color: isActive ? '#fff' : 'var(--text-muted)',
-                  }}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>CMS Control Section:</span>
+          <span
+            style={{
+              padding: '4px 12px',
+              borderRadius: '20px',
+              background: 'rgba(236, 72, 153, 0.15)',
+              color: '#ec4899',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            {activeTab === 'branding' && '🎨 Brand Logo, Favicon & Theme Palette'}
+            {activeTab === 'hero' && '🖼️ Multi-Banner Hero Slider'}
+            {activeTab === 'menu' && '📑 Dynamic Navigation Menu'}
+            {activeTab === 'about' && '🏛️ About Us Heritage & Founder'}
+            {activeTab === 'contact' && '📞 Contact, Map & Opening Hours'}
+            {activeTab === 'announcement' && '📢 Festive Announcement & Promo Bar'}
+            {activeTab === 'floating_cta' && '💬 WhatsApp & Call Floating Action Widget'}
+            {activeTab === 'testimonials' && '⭐ Customer Reviews & Verified Testimonials'}
+            {activeTab === 'seo' && '🔍 SEO, Meta Tags & Google Analytics'}
+            {activeTab === 'services' && '💈 Services Showcase & Ribbons'}
+            {activeTab === 'inquiries' && '📬 Customer Inquiries Inbox'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          <span>Switch CMS modules anytime via <strong>Left Navigation Sidebar</strong></span>
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
@@ -1209,6 +1258,779 @@ export const WebsiteCMSPage = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+      {/* ══════════════════════════════════════════════════════════════
+          TAB: FESTIVE ANNOUNCEMENT & PROMO BAR
+          ══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'announcement' && (
+        <form onSubmit={handleSaveConfig} className="card" style={{ padding: '1.5rem', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Megaphone className="w-5 h-5 text-pink-500" />
+                <span>Festive Announcement & Top Promo Bar</span>
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Display a luminous promotional ribbon or animated marquee banner at the very top of your salon website.
+              </p>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: 'rgba(236,72,153,0.1)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(236,72,153,0.3)' }}>
+              <input
+                type="checkbox"
+                checked={Boolean(websiteConfig.announcementBar?.isVisible)}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    announcementBar: {
+                      ...(websiteConfig.announcementBar || {}),
+                      isVisible: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#ec4899' }}>
+                {websiteConfig.announcementBar?.isVisible ? '🟢 Banner Active Live' : '⚪ Banner Hidden'}
+              </span>
+            </label>
+          </div>
+
+          {/* Live Preview Box */}
+          <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.25)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
+              Live Storefront Preview:
+            </div>
+            {websiteConfig.announcementBar?.isVisible ? (
+              <div
+                style={{
+                  background: websiteConfig.announcementBar?.bgColor || 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                  color: websiteConfig.announcementBar?.textColor || '#ffffff',
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                }}
+              >
+                {websiteConfig.announcementBar?.badge && (
+                  <span style={{ background: 'rgba(255,255,255,0.25)', padding: '2px 8px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>
+                    {websiteConfig.announcementBar.badge}
+                  </span>
+                )}
+                <span>{websiteConfig.announcementBar?.text || 'Your promotional banner text will appear here.'}</span>
+                {websiteConfig.announcementBar?.linkUrl && (
+                  <span style={{ textDecoration: 'underline', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    Claim Offer <ArrowRight size={13} />
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '10px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                Banner is currently disabled. Toggle switch above to activate it on your live website.
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label className="form-label">Promotional Announcement Text *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.announcementBar?.text || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    announcementBar: {
+                      ...(websiteConfig.announcementBar || {}),
+                      text: e.target.value,
+                    },
+                  })
+                }
+                placeholder="e.g. 🌸 Special Festive Privilege: Flat 25% OFF on Bridal Packages & Keratin Care! Code: GLAM25"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Badge Highlight Tag (Optional)</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.announcementBar?.badge || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    announcementBar: {
+                      ...(websiteConfig.announcementBar || {}),
+                      badge: e.target.value,
+                    },
+                  })
+                }
+                placeholder="e.g. LIMITED TIME, FESTIVE OFFER, NEW LAUNCH"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Click Destination URL / Route</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.announcementBar?.linkUrl || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    announcementBar: {
+                      ...(websiteConfig.announcementBar || {}),
+                      linkUrl: e.target.value,
+                    },
+                  })
+                }
+                placeholder="e.g. /book or /services or /packages"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Banner Background Color</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={websiteConfig.announcementBar?.bgColor || '#ec4899'}
+                  onChange={(e) =>
+                    setWebsiteConfig({
+                      ...websiteConfig,
+                      announcementBar: {
+                        ...(websiteConfig.announcementBar || {}),
+                        bgColor: e.target.value,
+                      },
+                    })
+                  }
+                  style={{ width: '42px', height: '38px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'transparent' }}
+                />
+                <input
+                  type="text"
+                  className="form-input"
+                  value={websiteConfig.announcementBar?.bgColor || '#ec4899'}
+                  onChange={(e) =>
+                    setWebsiteConfig({
+                      ...websiteConfig,
+                      announcementBar: {
+                        ...(websiteConfig.announcementBar || {}),
+                        bgColor: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Banner Text Color</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={websiteConfig.announcementBar?.textColor || '#ffffff'}
+                  onChange={(e) =>
+                    setWebsiteConfig({
+                      ...websiteConfig,
+                      announcementBar: {
+                        ...(websiteConfig.announcementBar || {}),
+                        textColor: e.target.value,
+                      },
+                    })
+                  }
+                  style={{ width: '42px', height: '38px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'transparent' }}
+                />
+                <input
+                  type="text"
+                  className="form-input"
+                  value={websiteConfig.announcementBar?.textColor || '#ffffff'}
+                  onChange={(e) =>
+                    setWebsiteConfig({
+                      ...websiteConfig,
+                      announcementBar: {
+                        ...(websiteConfig.announcementBar || {}),
+                        textColor: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button type="submit" disabled={isSaving} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Save size={16} />
+              <span>{isSaving ? 'Saving...' : 'Save Announcement Bar'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          TAB: WHATSAPP & DIRECT CALL FLOATING WIDGET
+          ══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'floating_cta' && (
+        <form onSubmit={handleSaveConfig} className="card" style={{ padding: '1.5rem', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Phone className="w-5 h-5 text-emerald-400" />
+                <span>WhatsApp & Direct Call Floating Action Widget</span>
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Empower your website visitors to chat on WhatsApp or call your reception with 1 tap from any device.
+              </p>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: 'rgba(16,185,129,0.1)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.3)' }}>
+              <input
+                type="checkbox"
+                checked={Boolean(websiteConfig.floatingCta?.isVisible ?? true)}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    floatingCta: {
+                      ...(websiteConfig.floatingCta || {}),
+                      isVisible: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#10b981' }}>
+                {(websiteConfig.floatingCta?.isVisible ?? true) ? '🟢 Widget Active' : '⚪ Widget Hidden'}
+              </span>
+            </label>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            <div className="form-group">
+              <label className="form-label">WhatsApp Business Number (with Country Code) *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.floatingCta?.whatsappPhone || websiteConfig.whatsappPhone || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    floatingCta: {
+                      ...(websiteConfig.floatingCta || {}),
+                      whatsappPhone: e.target.value,
+                    },
+                    whatsappPhone: e.target.value,
+                  })
+                }
+                placeholder="+91 98765 43210"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Direct Hotline Phone Number *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.floatingCta?.directCallPhone || websiteConfig.contactPhone || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    floatingCta: {
+                      ...(websiteConfig.floatingCta || {}),
+                      directCallPhone: e.target.value,
+                    },
+                    contactPhone: e.target.value,
+                  })
+                }
+                placeholder="+91 11 4123 4567"
+                required
+              />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label className="form-label">Default Pre-filled WhatsApp Booking Message</label>
+              <textarea
+                className="form-input"
+                rows={2}
+                value={websiteConfig.floatingCta?.whatsappMessage || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    floatingCta: {
+                      ...(websiteConfig.floatingCta || {}),
+                      whatsappMessage: e.target.value,
+                    },
+                  })
+                }
+                placeholder="e.g. Hello Blossom Luxury Salon! I would like to book a VIP appointment for hair styling and bridal makeup."
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Greeting Tooltip Message</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.floatingCta?.greetingText || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    floatingCta: {
+                      ...(websiteConfig.floatingCta || {}),
+                      greetingText: e.target.value,
+                    },
+                  })
+                }
+                placeholder="e.g. 👋 Need help? Chat with our master stylists live!"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Screen Position</label>
+              <select
+                className="form-input"
+                value={websiteConfig.floatingCta?.position || 'bottom-right'}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    floatingCta: {
+                      ...(websiteConfig.floatingCta || {}),
+                      position: e.target.value,
+                    },
+                  })
+                }
+              >
+                <option value="bottom-right">Bottom Right (Recommended)</option>
+                <option value="bottom-left">Bottom Left</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button type="submit" disabled={isSaving} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Save size={16} />
+              <span>{isSaving ? 'Saving...' : 'Save Floating Widget Settings'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          TAB: CUSTOMER REVIEWS & VERIFIED TESTIMONIALS
+          ══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'testimonials' && (
+        <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                <span>Customer Reviews & Verified Testimonials</span>
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Showcase verified ratings, photos, and heartfelt feedback from your bridal, salon, and spa guests.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                setEditingTestimonial(null);
+                setTestimonialFormData({
+                  name: '',
+                  designation: 'Verified Client',
+                  rating: 5,
+                  service: 'Luxury Bridal Care',
+                  review: '',
+                  avatar: '',
+                });
+                setTestimonialModalOpen(true);
+              }}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
+            >
+              <Plus size={16} />
+              <span>Add New Testimonial</span>
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+            {(websiteConfig.testimonials || []).map((t, idx) => (
+              <div
+                key={t.id || idx}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {t.avatar ? (
+                      <img src={t.avatar} alt={t.name} style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                        {t.name?.[0] || 'C'}
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{t.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.designation || 'Verified Guest'}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      onClick={() => {
+                        const updated = (websiteConfig.testimonials || []).filter((_, i) => i !== idx);
+                        setWebsiteConfig({ ...websiteConfig, testimonials: updated });
+                        toast.success('Testimonial removed');
+                      }}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                      title="Delete review"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#f59e0b', fontSize: '0.9rem' }}>
+                  {Array.from({ length: t.rating || 5 }).map((_, i) => (
+                    <span key={i}>⭐</span>
+                  ))}
+                  {t.service && (
+                    <span style={{ fontSize: '0.72rem', color: '#ec4899', marginLeft: '6px', fontWeight: 600 }}>
+                      • {t.service}
+                    </span>
+                  )}
+                </div>
+
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
+                  "{t.review}"
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button onClick={handleSaveConfig} disabled={isSaving} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Save size={16} />
+              <span>{isSaving ? 'Publishing...' : 'Save & Publish Reviews'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          TAB: SEO, META TAGS & GOOGLE ANALYTICS
+          ══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'seo' && (
+        <form onSubmit={handleSaveConfig} className="card" style={{ padding: '1.5rem', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Search className="w-5 h-5 text-indigo-400" />
+              <span>Search Engine Optimization (SEO) & Analytics Hub</span>
+            </h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              Configure your Google SERP snippets, OpenGraph social media preview cards, and tracking pixels.
+            </p>
+          </div>
+
+          {/* Google SERP Live Simulation Box */}
+          <div style={{ padding: '1.25rem', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#1f2937' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
+              Google Search Result Snippet Simulation:
+            </div>
+            <div style={{ fontSize: '13px', color: '#202124', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>https://{websiteConfig.businessName?.toLowerCase().replace(/\s+/g, '') || 'parlour'}.kashiservice.com</span>
+            </div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 500, color: '#1a0dab', textDecoration: 'underline', cursor: 'pointer', margin: '2px 0' }}>
+              {websiteConfig.seo?.metaTitle || websiteConfig.businessName || 'Luxury Beauty Parlour & Cosmetology Academy'}
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#4d5156', lineHeight: 1.4 }}>
+              {websiteConfig.seo?.metaDescription || 'Book certified bridal artists, hair styling, organic skincare rituals, and academy diplomas with sterilized kits and doorstep services.'}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label className="form-label">SEO Meta Page Title *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.seo?.metaTitle || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    seo: { ...(websiteConfig.seo || {}), metaTitle: e.target.value },
+                  })
+                }
+                placeholder="e.g. Blossom Luxury Beauty Parlour, Bridal Lounge & Academy | Delhi NCR"
+                required
+              />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label className="form-label">Google Meta Description *</label>
+              <textarea
+                className="form-input"
+                rows={2}
+                value={websiteConfig.seo?.metaDescription || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    seo: { ...(websiteConfig.seo || {}), metaDescription: e.target.value },
+                  })
+                }
+                placeholder="Brief 150-160 character description shown on Google search results."
+                required
+              />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label className="form-label">SEO Target Keywords (Comma Separated)</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.seo?.metaKeywords || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    seo: { ...(websiteConfig.seo || {}), metaKeywords: e.target.value },
+                  })
+                }
+                placeholder="e.g. beauty parlour, bridal makeup, luxury salon, hair stylist, doorstep salon, Delhi salon"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Social Share (OG) Image URL</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.seo?.ogImageUrl || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    seo: { ...(websiteConfig.seo || {}), ogImageUrl: e.target.value },
+                  })
+                }
+                placeholder="https://images.unsplash.com/..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Google Analytics 4 Measurement ID</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.seo?.googleAnalyticsId || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    seo: { ...(websiteConfig.seo || {}), googleAnalyticsId: e.target.value },
+                  })
+                }
+                placeholder="G-XXXXXXXXXX"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Meta / Facebook Pixel ID</label>
+              <input
+                type="text"
+                className="form-input"
+                value={websiteConfig.seo?.facebookPixelId || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    seo: { ...(websiteConfig.seo || {}), facebookPixelId: e.target.value },
+                  })
+                }
+                placeholder="123456789012345"
+              />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label className="form-label">Custom CSS Snippet Injection</label>
+              <textarea
+                className="form-input"
+                rows={3}
+                style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                value={websiteConfig.seo?.customCss || ''}
+                onChange={(e) =>
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    seo: { ...(websiteConfig.seo || {}), customCss: e.target.value },
+                  })
+                }
+                placeholder=":root { --primary-color: #ec4899; } /* Custom style rules */"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button type="submit" disabled={isSaving} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Save size={16} />
+              <span>{isSaving ? 'Saving...' : 'Save SEO & Analytics Configuration'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* ── ADD TESTIMONIAL MODAL ── */}
+      {testimonialModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              maxWidth: '500px',
+              width: '100%',
+              padding: '1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Add Verified Customer Review
+              </h3>
+              <button
+                onClick={() => setTestimonialModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="form-group">
+                <label className="form-label">Client Full Name *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={testimonialFormData.name}
+                  onChange={(e) => setTestimonialFormData({ ...testimonialFormData, name: e.target.value })}
+                  placeholder="e.g. Ananya Deshmukh"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Client Location / Badge</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={testimonialFormData.designation}
+                  onChange={(e) => setTestimonialFormData({ ...testimonialFormData, designation: e.target.value })}
+                  placeholder="e.g. Verified Bride • Connaught Place"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Service Availed</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={testimonialFormData.service}
+                  onChange={(e) => setTestimonialFormData({ ...testimonialFormData, service: e.target.value })}
+                  placeholder="e.g. Haute Couture Bridal Makeup"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Star Rating (1 - 5)</label>
+                <select
+                  className="form-input"
+                  value={testimonialFormData.rating}
+                  onChange={(e) => setTestimonialFormData({ ...testimonialFormData, rating: Number(e.target.value) })}
+                >
+                  <option value={5}>⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</option>
+                  <option value={4}>⭐⭐⭐⭐ (4 Stars - Great)</option>
+                  <option value={3}>⭐⭐⭐ (3 Stars - Average)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Review / Feedback Text *</label>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  value={testimonialFormData.review}
+                  onChange={(e) => setTestimonialFormData({ ...testimonialFormData, review: e.target.value })}
+                  placeholder="What did the customer say about their experience?"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Client Avatar URL (Optional)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={testimonialFormData.avatar}
+                  onChange={(e) => setTestimonialFormData({ ...testimonialFormData, avatar: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setTestimonialModalOpen(false)}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!testimonialFormData.name || !testimonialFormData.review) {
+                    toast.error('Please enter name and review text');
+                    return;
+                  }
+                  const newReview = {
+                    id: `t-${Date.now()}`,
+                    ...testimonialFormData,
+                    date: 'Recent',
+                  };
+                  setWebsiteConfig({
+                    ...websiteConfig,
+                    testimonials: [...(websiteConfig.testimonials || []), newReview],
+                  });
+                  setTestimonialModalOpen(false);
+                  toast.success('Testimonial added to list! Remember to Save & Publish.');
+                }}
+                className="btn btn-primary"
+              >
+                Add Testimonial
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

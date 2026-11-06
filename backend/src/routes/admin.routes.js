@@ -61,6 +61,10 @@ router.get('/dashboard/operations-queue', requirePermission('dashboard.view'), d
 router.post('/dashboard/assign-product', requirePermission('inventory.update'), dashCtrl.assignProductToStaff);
 router.patch('/dashboard/home-services/:appointmentId/status', requirePermission('appointments.update'), dashCtrl.updateHomeServiceStatus);
 router.post('/dashboard/attendance/punch', requirePermission('attendance.create'), dashCtrl.punchAttendance);
+router.get('/dashboard/live-queue', requirePermission('dashboard.view'), dashCtrl.getLiveQueueStatus);
+router.post('/dashboard/live-queue/call-next', requirePermission('dashboard.view'), dashCtrl.callNextToken);
+router.post('/dashboard/live-queue/walkin-token', requirePermission('dashboard.view'), dashCtrl.createWalkInToken);
+router.patch('/dashboard/live-queue/:tokenId/status', requirePermission('dashboard.view'), dashCtrl.updateTokenQueueStatus);
 
 // ==========================================
 // 3. DYNAMIC STRUCTURE: DEPARTMENTS, DESIGNATIONS, SKILLS

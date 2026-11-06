@@ -5,6 +5,7 @@
  * @module backend/src/modules/admin/customers/customer.controller
  */
 
+import bcrypt from 'bcrypt';
 import { getTenantModel } from '../../../database/tenant/tenantModels.js';
 import { sendSuccess, sendError, sendListResponse } from '../../../utils/response.utils.js';
 import { getPagination, getSort, buildTenantFilter } from '../../../utils/query.utils.js';
@@ -13,16 +14,24 @@ import { recordActivity } from '../../../utils/activity.utils.js';
 
 export const createCustomer = async (req, res) => {
   try {
-    const { name, phone, email, gender, dateOfBirth, anniversaryDate, address, membership, tags, notes, branchId } = req.body;
+    const { name, phone, email, password, gender, dateOfBirth, anniversaryDate, address, membership, tags, notes, branchId } = req.body;
     if (!name || !phone) {
       return sendError(res, 'Customer name and phone number are required', [], 400);
     }
 
     const Customer = getTenantModel(req, 'Customer');
+    const TenantUser = getTenantModel(req, 'TenantUser');
+
     const existing = await Customer.findOne({ tenantId: req.tenantId, phone: phone.trim() });
     if (existing) {
       return sendError(res, 'A customer with this phone number already exists', [], 409);
     }
+
+    const defaultPassword = password || 'Customer@123';
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(defaultPassword, salt);
+
+    const photoUrl = req.body.profilePhoto || req.body.photo || '';
 
     const customer = await Customer.create({
       tenantId: req.tenantId,
@@ -30,6 +39,8 @@ export const createCustomer = async (req, res) => {
       name: name.trim(),
       phone: phone.trim(),
       email: email ? email.trim().toLowerCase() : '',
+      profilePhoto: photoUrl,
+      passwordHash,
       gender: gender || 'female',
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       anniversaryDate: anniversaryDate ? new Date(anniversaryDate) : null,
@@ -39,6 +50,26 @@ export const createCustomer = async (req, res) => {
       notes: notes || '',
       status: 'active',
     });
+
+    // Also register or sync in TenantUser collection for dual-model login support
+    try {
+      const existingUser = await TenantUser.findOne({ tenantId: req.tenantId, phone: phone.trim() });
+      if (!existingUser) {
+        await TenantUser.create({
+          tenantId: req.tenantId,
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email ? email.trim().toLowerCase() : null,
+          username: email ? email.split('@')[0] : `cust_${phone.trim().slice(-4)}_${Date.now().toString().slice(-4)}`,
+          passwordHash,
+          role: 'CUSTOMER',
+          status: 'active',
+          branchId: branchId || null,
+        });
+      }
+    } catch (uErr) {
+      console.warn('TenantUser sync warning for customer:', uErr.message);
+    }
 
     await recordAuditLog({
       req,
@@ -109,8 +140,24 @@ export const updateCustomer = async (req, res) => {
     const customer = await Customer.findOne({ _id: req.params.customerId, tenantId: req.tenantId });
     if (!customer) return sendError(res, 'Customer not found', [], 404);
 
-    Object.assign(customer, req.body);
+    const data = { ...req.body };
+    if (data.branch) data.branchId = data.branch;
+    if (data.dob) data.dateOfBirth = new Date(data.dob);
+    if (data.anniversary) data.anniversaryDate = new Date(data.anniversary);
+    if (data.photo) data.profilePhoto = data.photo;
+
+    Object.assign(customer, data);
     await customer.save();
+
+    // If name, phone, or email updated, sync TenantUser
+    if (customer.userId && (data.name || data.phone || data.email)) {
+      const TenantUser = getTenantModel(req, 'TenantUser');
+      const userUpdates = {};
+      if (data.name) userUpdates.name = data.name.trim();
+      if (data.phone) userUpdates.phone = data.phone.trim();
+      if (data.email) userUpdates.email = data.email.trim().toLowerCase();
+      await TenantUser.findByIdAndUpdate(customer.userId, userUpdates);
+    }
 
     await recordActivity({
       req,
