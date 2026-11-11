@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { enrollmentFetcher } from '../../../api/student';
+import { enrollmentFetcher } from '../../../services/api/student';
 
 export default function StudentEnrollmentDetailPage() {
   const { id } = useParams();

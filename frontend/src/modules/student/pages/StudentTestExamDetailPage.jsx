@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { testFetcher } from '../../../api/student';
+import { testFetcher } from '../../../services/api/student';
 
 export default function StudentTestExamDetailPage() {
   const { id } = useParams();

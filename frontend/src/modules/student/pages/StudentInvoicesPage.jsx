@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { paymentFetcher } from '../../../api/student';
+import { paymentFetcher } from '../../../services/api/student';
 
 export default function StudentInvoicesPage() {
   const [invoices, setInvoices] = useState([]);

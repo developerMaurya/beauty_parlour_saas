@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { requestFetcher } from '../../../api/student';
+import { requestFetcher } from '../../../services/api/student';
 
 export default function StudentRequestsPage() {
   const [requests, setRequests] = useState([]);

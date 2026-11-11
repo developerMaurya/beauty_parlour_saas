@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { attendanceCorrectionFetcher } from '../../../api/student';
+import { attendanceCorrectionFetcher } from '../../../services/api/student';
 
 export default function StudentAttendanceCorrectionsPage() {
   const [requests, setRequests] = useState([]);

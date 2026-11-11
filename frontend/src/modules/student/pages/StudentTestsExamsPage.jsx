@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { testFetcher } from '../../../api/student';
+import { testFetcher } from '../../../services/api/student';
 
 export default function StudentTestsExamsPage() {
   const [tab, setTab] = useState('tests');

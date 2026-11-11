@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { settingsFetcher } from '../../../api/student';
+import { settingsFetcher } from '../../../services/api/student';
 
 export default function StudentSettingsPage() {
   const [settings, setSettings] = useState({

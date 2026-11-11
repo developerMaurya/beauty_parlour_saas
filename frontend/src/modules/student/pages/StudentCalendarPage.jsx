@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { calendarFetcher } from '../../../api/student';
+import { calendarFetcher } from '../../../services/api/student';
 
 export default function StudentCalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());

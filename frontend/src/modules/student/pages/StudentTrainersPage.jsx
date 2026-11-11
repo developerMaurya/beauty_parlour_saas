@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { trainerFetcher } from '../../../api/student';
+import { trainerFetcher } from '../../../services/api/student';
 
 export default function StudentTrainersPage() {
   const [trainers, setTrainers] = useState([]);

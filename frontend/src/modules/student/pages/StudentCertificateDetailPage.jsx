@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { certificateFetcher } from '../../../api/student';
+import { certificateFetcher } from '../../../services/api/student';
 
 export default function StudentCertificateDetailPage() {
   const { id } = useParams();

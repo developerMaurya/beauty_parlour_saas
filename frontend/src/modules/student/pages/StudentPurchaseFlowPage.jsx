@@ -5,7 +5,7 @@ import {
   courseFetcher,
   serviceFetcher,
   purchaseFetcher
-} from '../../../api/student';
+} from '../../../services/api/student';
 
 export default function StudentPurchaseFlowPage() {
   const location = useLocation();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { attendanceFetcher } from '../../../api/student';
+import { attendanceFetcher } from '../../../services/api/student';
 
 export default function StudentAttendancePage() {
   const [summary, setSummary] = useState(null);

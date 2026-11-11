@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { scheduleFetcher } from '../../../api/student';
+import { scheduleFetcher } from '../../../services/api/student';
 
 export default function StudentSchedulePage() {
   const [viewMode, setViewMode] = useState('upcoming');

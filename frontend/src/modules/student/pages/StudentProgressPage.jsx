@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { progressFetcher } from '../../../api/student';
+import { progressFetcher } from '../../../services/api/student';
 
 export default function StudentProgressPage() {
   const [summary, setSummary] = useState(null);

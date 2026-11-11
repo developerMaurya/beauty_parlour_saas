@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { announcementFetcher } from '../../../api/student';
+import { announcementFetcher } from '../../../services/api/student';
 
 export default function StudentAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState([]);

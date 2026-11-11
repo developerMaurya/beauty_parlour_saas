@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { chatFetcher } from '../../../api/student';
+import { chatFetcher } from '../../../services/api/student';
 
 export default function StudentChatPage() {
   const [chats, setChats] = useState([]);

@@ -1,9 +1,0 @@
-export * as businessFetcher from '../../services/api/public/businessFetcher.js';
-export * as branchFetcher from '../../services/api/public/branchFetcher.js';
-export * as serviceFetcher from '../../services/api/public/serviceFetcher.js';
-export * as categoryFetcher from '../../services/api/public/categoryFetcher.js';
-export * as packageFetcher from '../../services/api/public/packageFetcher.js';
-export * as offerFetcher from '../../services/api/public/offerFetcher.js';
-export * as staffFetcher from '../../services/api/public/staffFetcher.js';
-export * as availabilityFetcher from '../../services/api/public/availabilityFetcher.js';
-export * as workingHoursFetcher from '../../services/api/public/workingHoursFetcher.js';

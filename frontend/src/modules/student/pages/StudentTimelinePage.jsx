@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { timelineFetcher } from '../../../api/student';
+import { timelineFetcher } from '../../../services/api/student';
 
 export default function StudentTimelinePage() {
   const [timeline, setTimeline] = useState([]);

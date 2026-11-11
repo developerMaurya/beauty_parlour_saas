@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { certificateFetcher, progressFetcher, attendanceFetcher, paymentFetcher } from '../../../api/student';
+import { certificateFetcher, progressFetcher, attendanceFetcher, paymentFetcher } from '../../../services/api/student';
 
 export default function StudentCertificatesPage() {
   const [certificates, setCertificates] = useState([]);

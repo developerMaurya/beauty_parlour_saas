@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { securityFetcher, authFetcher } from '../../../api/student';
+import { securityFetcher, authFetcher } from '../../../services/api/student';
 
 export default function StudentSecurityPage() {
   const [sessions, setSessions] = useState([]);

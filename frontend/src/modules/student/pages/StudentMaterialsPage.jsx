@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { materialFetcher } from '../../../api/student';
+import { materialFetcher } from '../../../services/api/student';
 
 export default function StudentMaterialsPage() {
   const [materials, setMaterials] = useState([]);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { leaveFetcher } from '../../../api/student';
+import { leaveFetcher } from '../../../services/api/student';
 
 export default function StudentLeavesPage() {
   const [leaves, setLeaves] = useState([]);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { notificationFetcher } from '../../../api/student';
+import { notificationFetcher } from '../../../services/api/student';
 
 export default function StudentNotificationsPage() {
   const [notifications, setNotifications] = useState([]);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { documentFetcher } from '../../../api/student';
+import { documentFetcher } from '../../../services/api/student';
 
 export default function StudentDocumentsPage() {
   const [documents, setDocuments] = useState([]);

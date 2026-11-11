@@ -6,7 +6,7 @@ import {
   progressFetcher,
   attendanceFetcher,
   certificateFetcher
-} from '../../../api/student';
+} from '../../../services/api/student';
 
 export default function StudentCourseDetailPage() {
   const { id } = useParams();

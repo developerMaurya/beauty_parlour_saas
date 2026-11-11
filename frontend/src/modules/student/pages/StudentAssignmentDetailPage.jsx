@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { assignmentFetcher } from '../../../api/student';
+import { assignmentFetcher } from '../../../services/api/student';
 
 export default function StudentAssignmentDetailPage() {
   const { id } = useParams();
