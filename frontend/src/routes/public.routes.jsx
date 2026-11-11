@@ -41,8 +41,12 @@ export const PublicRoutes = (
 
     {/* Dedicated Jay Gurudev Event Decoration Futuristic Website */}
     <Route path="/jay-gurudev-events" element={<EventDecorationWebsite />} />
+    <Route path="/jay-gurudev" element={<EventDecorationWebsite />} />
     <Route path="/events" element={<EventDecorationWebsite />} />
+    <Route path="/event" element={<EventDecorationWebsite />} />
     <Route path="/event-decoration" element={<EventDecorationWebsite />} />
+    <Route path="/aadiyogi" element={<EventDecorationWebsite />} />
+    <Route path="/decor" element={<EventDecorationWebsite />} />
 
     {/* Dedicated Real Estate Plotting & Colonies Website */}
     <Route path="/plotting" element={<RealEstatePlottingWebsite />} />

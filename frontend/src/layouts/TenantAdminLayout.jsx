@@ -530,7 +530,7 @@ export const TenantAdminLayout = () => {
                 {[
                   { label: '💄 Golden Beauty Parlour', path: '/admin/golden-beauty-parlour' },
                   { label: '🏡 Kashi Plotting Services', path: '/admin/plotting' },
-                  { label: '🎉 Event & Decoration', path: '/admin/event-decoration' },
+                  { label: '🔱 Jay Gurudev Event & Management', path: '/admin/event-decoration' },
                   { label: '🔑 Office & Rent Commercial', path: '/admin/rent-office' },
                   { label: '💻 RB Software Hub', path: '/admin/rb-software' },
                   { label: '📊 Master Business Overview', path: '/admin/business-folders' },

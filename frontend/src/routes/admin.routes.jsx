@@ -20,7 +20,8 @@ import AdminDashboardPage from '../modules/admin/pages/AdminDashboardPage.jsx';
 
 const AdminParlourDashboard = GoldenBeautyAdminDashboard || GoldenBeautyAdminDashboardNamed;
 import BusinessDirectoryManager from '../modules/admin/pages/BusinessDirectoryManager.jsx';
-import EventDecorationDashboard from '../modules/admin/pages/EventDecorationDashboard.jsx';
+import EventDecorationDashboard, { EventDecorationDashboard as EventDecorationDashboardNamed } from '../modules/admin/pages/EventDecorationDashboard.jsx';
+const AdminEventDashboard = EventDecorationDashboard || EventDecorationDashboardNamed;
 import EventUsersManagement from '../modules/admin/pages/EventUsersManagement.jsx';
 import PlottingDashboard from '../modules/admin/pages/PlottingDashboard.jsx';
 import PlottingUsersManagement from '../modules/admin/pages/PlottingUsersManagement.jsx';
@@ -82,8 +83,10 @@ export const AdminRoutes = (
       <Route path="import-export" element={<ReportsPage />} />
 
       {/* ── 2. Jay Gurudev Event Decoration Sub-Routes ── */}
-      <Route path="event-decoration" element={<EventDecorationDashboard />} />
-      <Route path="events" element={<EventDecorationDashboard />} />
+      <Route path="event-decoration" element={<AdminEventDashboard />} />
+      <Route path="events" element={<AdminEventDashboard />} />
+      <Route path="jay-gurudev" element={<AdminEventDashboard />} />
+      <Route path="jay-gurudev-events" element={<AdminEventDashboard />} />
       <Route path="event-users" element={<EventUsersManagement />} />
       <Route path="event-clients" element={<EventUsersManagement />} />
 
