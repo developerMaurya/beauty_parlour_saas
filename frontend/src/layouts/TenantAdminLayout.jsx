@@ -61,7 +61,7 @@ export const TenantAdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Determine current active business vertical: 'PARLOUR' | 'PLOTTING' | 'RENT'
+  // Determine current active business vertical: 'PARLOUR' | 'PLOTTING' | 'RENT' | 'EVENTS'
   const isPlottingRoute =
     location.pathname.includes('plotting') ||
     location.pathname.includes('plot') ||
@@ -73,12 +73,20 @@ export const TenantAdminLayout = () => {
     location.pathname.includes('commercial') ||
     location.pathname.includes('godam');
 
+  const isEventsRoute =
+    location.pathname.includes('event') ||
+    location.pathname.includes('jay-gurudev') ||
+    location.pathname.includes('decor') ||
+    location.pathname.includes('aadiyogi');
+
   const [activeVertical, setActiveVertical] = useState(
-    isRentRoute ? 'RENT' : isPlottingRoute ? 'PLOTTING' : 'PARLOUR'
+    isEventsRoute ? 'EVENTS' : isRentRoute ? 'RENT' : isPlottingRoute ? 'PLOTTING' : 'PARLOUR'
   );
 
   useEffect(() => {
-    if (isRentRoute) {
+    if (isEventsRoute) {
+      setActiveVertical('EVENTS');
+    } else if (isRentRoute) {
       setActiveVertical('RENT');
     } else if (isPlottingRoute) {
       setActiveVertical('PLOTTING');
@@ -90,7 +98,7 @@ export const TenantAdminLayout = () => {
     ) {
       setActiveVertical('PARLOUR');
     }
-  }, [location.pathname, isPlottingRoute, isRentRoute]);
+  }, [location.pathname, isPlottingRoute, isRentRoute, isEventsRoute]);
 
   // Multi-vertical dropdown state
   const [verticalsDropdownOpen, setVerticalsDropdownOpen] = useState(false);
@@ -159,15 +167,55 @@ export const TenantAdminLayout = () => {
     { label: 'Support', path: '/admin/support', icon: Headphones },
   ];
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4. JAY GURUDEV EVENT & MANAGEMENT MENU (Crimson & Gold Royal Theme)
+  // ══════════════════════════════════════════════════════════════════════════
+  const eventsMenuItems = [
+    { label: 'Dashboard', path: '/admin/event-decoration', icon: LayoutDashboard },
+    { label: 'Aadiyogi Stages', path: '/admin/event-decoration?tab=stages', icon: Crown },
+    { label: 'Bridal Entries', path: '/admin/event-decoration?tab=entries', icon: Sparkles },
+    { label: 'Wedding Contracts', path: '/admin/event-decoration?tab=bookings', icon: Calendar },
+    { label: 'Proposals & Quotes', path: '/admin/event-decoration?tab=proposals', icon: FileText },
+    { label: 'Clients & Couples', path: '/admin/event-users', icon: Users },
+    { label: 'Hardware Inventory', path: '/admin/event-decoration?tab=inventory', icon: Box },
+    { label: 'Crew & Florists', path: '/admin/parlour-staff', icon: UserCheck },
+    { label: 'Payments Ledger', path: '/admin/parlour-billing', icon: CreditCard },
+    { label: 'Stage Blueprints', path: '/events#dimensions', icon: Image, isExternal: true },
+    { label: 'Public Website', path: '/events', icon: Globe, isExternal: true },
+    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
+    { label: 'Settings', path: '/admin/settings', icon: Settings },
+    { label: 'Notifications', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
+    { label: 'Support', path: '/admin/support', icon: Headphones },
+  ];
+
   // Colors & Configuration for Active Vertical
   const isParlour = activeVertical === 'PARLOUR';
   const isPlotting = activeVertical === 'PLOTTING';
   const isRent = activeVertical === 'RENT';
+  const isEvents = activeVertical === 'EVENTS';
 
-  const sidebarBg = isParlour ? '#241434' : isPlotting ? '#0a2618' : '#0d1b2a';
-  const activePillBg = isParlour ? '#7e22ce' : isPlotting ? '#16a34a' : '#facc15';
-  const activeTextColor = isRent ? '#0f172a' : '#ffffff';
-  const accentColor = isParlour ? '#c084fc' : isPlotting ? '#4ade80' : '#facc15';
+  const sidebarBg = isParlour
+    ? '#241434'
+    : isPlotting
+    ? '#0a2618'
+    : isRent
+    ? '#0d1b2a'
+    : '#180527'; // Deep royal twilight purple for Jay Gurudev Events
+  const activePillBg = isParlour
+    ? '#7e22ce'
+    : isPlotting
+    ? '#16a34a'
+    : isRent
+    ? '#facc15'
+    : '#facc15'; // Golden Yellow pill
+  const activeTextColor = isRent || isEvents ? '#0f172a' : '#ffffff';
+  const accentColor = isParlour
+    ? '#c084fc'
+    : isPlotting
+    ? '#4ade80'
+    : isRent
+    ? '#facc15'
+    : '#facc15';
 
   if (isLoading) {
     return (
@@ -270,7 +318,7 @@ export const TenantAdminLayout = () => {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : isRent ? (
             /* Prime Plots / Kashi Office & Godam Rent Header Matching Screenshot */
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
@@ -301,6 +349,38 @@ export const TenantAdminLayout = () => {
                 </div>
               </div>
             </div>
+          ) : (
+            /* Jay Gurudev Event & Management Header */
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              onClick={() => navigate('/admin/event-decoration')}
+            >
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#0f172a',
+                  boxShadow: '0 4px 14px rgba(250, 204, 21, 0.4)',
+                  flexShrink: 0,
+                  fontSize: '20px',
+                }}
+              >
+                🔱
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff', lineHeight: 1.1 }}>
+                  Jay Gurudev
+                </div>
+                <div style={{ fontSize: '9.5px', color: '#facc15', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
+                  EVENT & MANAGEMENT
+                </div>
+              </div>
+            </div>
           )}
 
           {mobileMenuOpen && (
@@ -313,28 +393,28 @@ export const TenantAdminLayout = () => {
           )}
         </div>
 
-        {/* ── 3-Vertical Switcher Buttons (Parlour ⟷ Plotting ⟷ Office/Godam Rent) ── */}
+        {/* ── 4-Vertical Switcher Buttons (Parlour ⟷ Plotting ⟷ Rent ⟷ Events) ── */}
         <div style={{ padding: '0.75rem 0.85rem 0.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', background: 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', background: 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '10px' }}>
             <button
               onClick={() => {
                 setActiveVertical('PARLOUR');
                 navigate('/admin/golden-beauty-parlour');
               }}
               style={{
-                padding: '6px 2px',
+                padding: '6px 1px',
                 borderRadius: '8px',
                 border: 'none',
                 background: isParlour ? '#7e22ce' : 'transparent',
                 color: isParlour ? '#ffffff' : '#94a3b8',
                 fontWeight: isParlour ? 800 : 600,
-                fontSize: '10px',
+                fontSize: '9.5px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
+                textAlign: 'center',
               }}
             >
-              💄 Parlour
+              💄 Salon
             </button>
             <button
               onClick={() => {
@@ -342,19 +422,19 @@ export const TenantAdminLayout = () => {
                 navigate('/admin/plotting');
               }}
               style={{
-                padding: '6px 2px',
+                padding: '6px 1px',
                 borderRadius: '8px',
                 border: 'none',
                 background: isPlotting ? '#16a34a' : 'transparent',
                 color: isPlotting ? '#ffffff' : '#94a3b8',
                 fontWeight: isPlotting ? 800 : 600,
-                fontSize: '10px',
+                fontSize: '9.5px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
+                textAlign: 'center',
               }}
             >
-              🏡 Plotting
+              🏡 Plot
             </button>
             <button
               onClick={() => {
@@ -362,26 +442,46 @@ export const TenantAdminLayout = () => {
                 navigate('/admin/rent-office');
               }}
               style={{
-                padding: '6px 2px',
+                padding: '6px 1px',
                 borderRadius: '8px',
                 border: 'none',
                 background: isRent ? '#facc15' : 'transparent',
                 color: isRent ? '#0f172a' : '#94a3b8',
                 fontWeight: isRent ? 800 : 600,
-                fontSize: '10px',
+                fontSize: '9.5px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
+                textAlign: 'center',
               }}
             >
               🏢 Rent
+            </button>
+            <button
+              onClick={() => {
+                setActiveVertical('EVENTS');
+                navigate('/admin/event-decoration');
+              }}
+              style={{
+                padding: '6px 1px',
+                borderRadius: '8px',
+                border: 'none',
+                background: isEvents ? '#facc15' : 'transparent',
+                color: isEvents ? '#0f172a' : '#94a3b8',
+                fontWeight: isEvents ? 800 : 600,
+                fontSize: '9.5px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                textAlign: 'center',
+              }}
+            >
+              🔱 Event
             </button>
           </div>
         </div>
 
         {/* ── Main Navigation Menu Items ── */}
         <div style={{ padding: '0.65rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
-          {(isParlour ? parlourMenuItems : isPlotting ? plottingMenuItems : rentMenuItems).map((item, idx) => {
+          {(isParlour ? parlourMenuItems : isPlotting ? plottingMenuItems : isRent ? rentMenuItems : eventsMenuItems).map((item, idx) => {
             const Icon = item.icon;
             const isActive =
               location.pathname === item.path ||
@@ -390,7 +490,9 @@ export const TenantAdminLayout = () => {
                   ? location.pathname === '/admin/dashboard' || location.pathname === '/admin/golden-beauty-parlour'
                   : isPlotting
                   ? location.pathname === '/admin/plotting'
-                  : location.pathname === '/admin/rent-office' || location.pathname === '/admin/rent'));
+                  : isRent
+                  ? location.pathname === '/admin/rent-office' || location.pathname === '/admin/rent'
+                  : location.pathname === '/admin/event-decoration' || location.pathname === '/admin/events'));
 
             if (item.isExternal) {
               return (
@@ -571,8 +673,10 @@ export const TenantAdminLayout = () => {
                 ? 'linear-gradient(135deg, #7e22ce 0%, #9333ea 50%, #a855f7 100%)'
                 : isPlotting
                 ? 'linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%)'
-                : 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
-              color: isRent ? '#0f172a' : '#ffffff',
+                : isRent
+                ? 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)'
+                : 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #b45309 100%)',
+              color: isRent || isEvents ? '#0f172a' : '#ffffff',
               border: 'none',
               fontWeight: 800,
               fontSize: '13px',
@@ -588,8 +692,8 @@ export const TenantAdminLayout = () => {
                 : '0 6px 18px rgba(250, 204, 21, 0.35)',
             }}
           >
-            {isParlour ? <Crown size={17} /> : isPlotting ? <Trees size={17} /> : <Building size={17} />}
-            <span>Upgrade Plan</span>
+            {isParlour ? <Crown size={17} /> : isPlotting ? <Trees size={17} /> : isRent ? <Building size={17} /> : <span style={{ fontSize: '15px', lineHeight: 1 }}>🔱</span>}
+            <span>{isEvents ? 'Visit Events Site' : 'Upgrade Plan'}</span>
           </button>
         </div>
       </aside>

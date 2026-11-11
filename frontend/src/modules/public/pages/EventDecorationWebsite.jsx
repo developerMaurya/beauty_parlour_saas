@@ -59,6 +59,8 @@ import {
 export default function EventDecorationWebsite() {
   // Navigation active tab
   const [activeNav, setActiveNav] = useState('HOME');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dedicatedPageMode, setDedicatedPageMode] = useState('ALL'); // 'ALL' | 'AADIYOGI' | 'DIMENSIONS' | 'SERVICES' | 'GALLERY' | 'PROPOSAL' | 'CONTACT'
 
   // Modals state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -175,8 +177,30 @@ export default function EventDecorationWebsite() {
     ? galleryItems
     : galleryItems.filter((item) => item.category === galleryFilter);
 
-  // Dispatch proposal to WhatsApp
+  // Dispatch proposal to WhatsApp & save to LocalStorage for Admin
   const handleSendToWhatsApp = () => {
+    try {
+      const newProp = {
+        id: `PROP-${Date.now().toString().slice(-4)}`,
+        clientName: proposalConfig.clientName || 'Website Client',
+        phone: proposalConfig.clientPhone || '+91 76519 72973',
+        eventType: proposalConfig.eventType,
+        date: proposalConfig.eventDate || 'Upcoming Wedding Date',
+        venue: proposalConfig.venueLocation,
+        stageSize: proposalConfig.stageSize,
+        includeAadiyogi: proposalConfig.includeAadiyogi,
+        bridalEntry: proposalConfig.bridalEntryArch,
+        effects: `${proposalConfig.fogEffect} + ${proposalConfig.crackerEffect}`,
+        amount: proposalSummary.total,
+        status: 'Pending Review',
+        createdDate: new Date().toLocaleDateString('en-GB'),
+      };
+      const existing = JSON.parse(localStorage.getItem('jay_gurudev_proposals') || '[]');
+      localStorage.setItem('jay_gurudev_proposals', JSON.stringify([newProp, ...existing]));
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+
     const text = `*🔱 JAY GURUDEV EVENT & MANAGEMENT — WEDDING PROPOSAL REQUEST*
 ---------------------------------------------
 *Event Type:* ${proposalConfig.eventType}
@@ -293,7 +317,7 @@ Please confirm availability and share final site visit schedule!`;
           </div>
         </div>
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs (Desktop) */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {[
             { id: 'HOME', label: 'Home' },
@@ -308,6 +332,7 @@ Please confirm availability and share final site visit schedule!`;
               key={item.id}
               onClick={() => {
                 setActiveNav(item.id);
+                setDedicatedPageMode(item.id);
                 const el = document.getElementById(item.id.toLowerCase());
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
@@ -328,8 +353,8 @@ Please confirm availability and share final site visit schedule!`;
           ))}
         </nav>
 
-        {/* Book Now Button */}
-        <div style={{ display: 'flex', gap: '10px' }}>
+        {/* Right Actions & Mobile Hamburger */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={() => setBookingModalOpen(true)}
             style={{
@@ -350,8 +375,139 @@ Please confirm availability and share final site visit schedule!`;
             <Sparkles size={16} />
             <span>Book Setup Now</span>
           </button>
+
+          {/* Mobile Menu Hamburger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#facc15',
+              padding: '8px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Sliders size={20} />}
+          </button>
         </div>
       </header>
+
+      {/* ── Mobile Navigation Drawer ── */}
+      {mobileMenuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '70px',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(10, 3, 18, 0.98)',
+            backdropFilter: 'blur(20px)',
+            zIndex: 49,
+            padding: '2rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+            NAVIGATION PAGES
+          </div>
+          {[
+            { id: 'HOME', label: '🏠 Home Overview' },
+            { id: 'AADIYOGI', label: '🔱 Aadiyogi Theme Package' },
+            { id: 'DIMENSIONS', label: '📐 20ft Architecture Blueprint' },
+            { id: 'SERVICES', label: '👑 Core Decor Services' },
+            { id: 'GALLERY', label: '📸 Real Wedding Gallery' },
+            { id: 'PROPOSAL', label: '📑 Instant Proposal Estimator' },
+            { id: 'CONTACT', label: '📞 Contact & Booking Office' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveNav(item.id);
+                setDedicatedPageMode(item.id);
+                setMobileMenuOpen(false);
+                const el = document.getElementById(item.id.toLowerCase());
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{
+                background: activeNav === item.id ? 'rgba(250, 204, 21, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                border: activeNav === item.id ? '1px solid #facc15' : '1px solid rgba(255, 255, 255, 0.1)',
+                color: activeNav === item.id ? '#facc15' : '#ffffff',
+                padding: '12px 18px',
+                borderRadius: '10px',
+                fontSize: '1rem',
+                fontWeight: 700,
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+
+          <div style={{ marginTop: 'auto', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '13px', color: '#cbd5e1', marginBottom: '8px' }}>
+              📍 Bhaisodi, Sarnath, Varanasi
+            </div>
+            <a
+              href="tel:7651972973"
+              style={{
+                display: 'block',
+                background: '#dc2626',
+                color: '#ffffff',
+                padding: '12px',
+                borderRadius: '10px',
+                fontWeight: 900,
+                textAlign: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              📞 Call Now: 76519 72973
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* ── Active Page Filter Strip ── */}
+      {dedicatedPageMode !== 'ALL' && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, #7e22ce 0%, #a855f7 100%)',
+            color: '#ffffff',
+            padding: '8px 2rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '12px',
+            fontWeight: 700,
+          }}
+        >
+          <span>
+            📌 Viewing Dedicated Page: <strong>{dedicatedPageMode}</strong>
+          </span>
+          <button
+            onClick={() => setDedicatedPageMode('ALL')}
+            style={{
+              background: '#ffffff',
+              color: '#7e22ce',
+              border: 'none',
+              padding: '3px 10px',
+              borderRadius: '6px',
+              fontWeight: 900,
+              fontSize: '11px',
+              cursor: 'pointer',
+            }}
+          >
+            Show Full Website →
+          </button>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
           3. HERO SECTION (DIVINE AADIYOGI & ROYAL BRIDAL ENTRY)
