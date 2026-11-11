@@ -39,6 +39,8 @@ router.post('/auth/login', authCtrl.login);
 router.post('/auth/refresh', authCtrl.refreshToken);
 router.post('/auth/forgot-password', authCtrl.forgotPassword);
 router.post('/auth/reset-password', authCtrl.resetPassword);
+router.post('/auth/google-login', authCtrl.googleLogin);
+router.post('/auth/google', authCtrl.googleLogin);
 
 // ==========================================
 // PROTECTED CUSTOMER ROUTES (Requires Valid Customer Bearer Token)

@@ -1,3 +1,5 @@
+import GlobalCustomerHeaderPill from '../../../components/common/GlobalCustomerHeaderPill.jsx';
+import { useCustomer } from '../../../context/CustomerContext.jsx';
 /**
  * @file RealEstatePlottingWebsite.jsx
  * @description Master Kashi Plotting Services Frontend Portal matching the reference design.
@@ -38,6 +40,7 @@ import {
 } from 'lucide-react';
 
 export default function RealEstatePlottingWebsite() {
+  const { isAuthenticated, customer, openAuthModal, submitServiceBooking } = useCustomer();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -65,6 +68,19 @@ export default function RealEstatePlottingWebsite() {
     if (!inquiryForm.name || !inquiryForm.phone) {
       alert('Please enter your name and phone number.');
       return;
+    }
+    try {
+      submitServiceBooking({
+        serviceType: 'plotting',
+        serviceName: inquiryForm.plotType || selectedPlot || 'Residential Land Plot',
+        customerName: inquiryForm.name || customer?.name,
+        customerPhone: inquiryForm.phone || customer?.phone,
+        eventDate: inquiryForm.preferredDate,
+        budget: inquiryForm.budget,
+        notes: inquiryForm.message,
+      });
+    } catch(err) {
+      console.warn(err);
     }
     setBookingSuccess(true);
     setTimeout(() => {
@@ -276,6 +292,9 @@ export default function RealEstatePlottingWebsite() {
               <Home size={14} />
               <span>🏠 Main Page</span>
             </button>
+
+            {/* Global Universal Customer Pill */}
+            <GlobalCustomerHeaderPill theme="light" />
 
             <a
               href="tel:+919876543210"

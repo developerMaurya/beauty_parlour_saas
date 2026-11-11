@@ -1,3 +1,4 @@
+import GlobalCustomerHeaderPill from '../../../components/common/GlobalCustomerHeaderPill.jsx';
 /**
  * @file PlatformHubPage.jsx
  * @description Customer-Facing Public Portal for Kashi Service Ecosystem.
@@ -8,8 +9,9 @@
  * @module frontend/src/modules/public/pages/PlatformHubPage
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import {
   Sparkles,
   ArrowRight,
@@ -39,7 +41,13 @@ import BeautyParlourModuleHub from '@/modules/beauty-parlour/BeautyParlourModule
 
 export default function PlatformHubPage() {
   const navigate = useNavigate();
-  const { customer, isAuthenticated, logout } = useCustomer();
+  const { customer, isAuthenticated, logout, openAuthModal } = useCustomer();
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('auth') === 'login' || searchParams.get('auth') === 'register') {
+      openAuthModal();
+    }
+  }, [searchParams]);
   const [activeVerticalTab, setActiveVerticalTab] = useState('ALL');
 
   const businessCards = [
@@ -317,132 +325,9 @@ export default function PlatformHubPage() {
             </button>
           </nav>
 
-          {/* ── Top Right: Customer Login / Customer Profile Pill with Red Circle Avatar & Settings ── */}
+          {/* ── Top Right: Global Universal Customer Header Pill ── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {isAuthenticated && customer ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                {/* Red Circle Customer Badge */}
-                <div
-                  onClick={() => navigate('/customer/profile')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '4px 12px 4px 6px',
-                    borderRadius: '999px',
-                    background: '#fef2f2',
-                    border: '1.5px solid #fecaca',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.1)',
-                  }}
-                  title="Customer Profile & Security"
-                >
-                  {/* Red Circle Avatar */}
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      fontSize: '13px',
-                      boxShadow: '0 2px 6px rgba(220, 38, 38, 0.35)',
-                    }}
-                  >
-                    {customer?.name ? customer.name.charAt(0).toUpperCase() : 'C'}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#991b1b', lineHeight: 1.2 }}>
-                      {customer?.name || 'Customer'}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#dc2626', fontWeight: 600 }}>Profile & Password</div>
-                  </div>
-                </div>
-
-                {/* Change Password / Settings Link */}
-                <button
-                  onClick={() => navigate('/customer/security')}
-                  style={{
-                    padding: '7px 10px',
-                    borderRadius: '8px',
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    border: '1px solid #e2e8f0',
-                    background: '#f8fafc',
-                    color: '#334155',
-                    cursor: 'pointer',
-                  }}
-                  title="Change Password & Security"
-                >
-                  Change Password
-                </button>
-
-                {/* Logout Button */}
-                <button
-                  onClick={logout}
-                  style={{
-                    padding: '7px 11px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    border: '1px solid #e2e8f0',
-                    background: '#ffffff',
-                    color: '#64748b',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                  }}
-                  title="Log out"
-                >
-                  <LogOut size={14} />
-                  <span>Logout</span>
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <button
-                  onClick={() => navigate('/customer/login')}
-                  style={{
-                    padding: '9px 18px',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
-                  }}
-                >
-                  <LogIn size={15} />
-                  <span>Customer Login</span>
-                </button>
-
-                <button
-                  onClick={() => navigate('/customer/forgot-password')}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    border: '1px solid #e2e8f0',
-                    background: '#ffffff',
-                    color: '#64748b',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Forgot Password?
-                </button>
-              </div>
-            )}
+            <GlobalCustomerHeaderPill theme="light" />
           </div>
         </div>
       </header>

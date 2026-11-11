@@ -1,3 +1,4 @@
+import AdminUnifiedRequestsPage from '../modules/admin/pages/AdminUnifiedRequestsPage.jsx';
 /**
  * @file admin.routes.jsx
  * @description Routing Definitions for Master Admin Panel & Multi-Vertical Business Dashboards.
@@ -67,6 +68,11 @@ export const AdminRoutes = (
 
       {/* ── 1. Golden Beauty Parlour Master View ── */}
       <Route path="dashboard" element={<AdminParlourDashboard />} />
+      {/* ── Global Customer Service Requests & Inquiries ── */}
+      <Route path="customer-requests" element={<AdminUnifiedRequestsPage />} />
+      <Route path="service-requests" element={<AdminUnifiedRequestsPage />} />
+      <Route path="inquiries" element={<AdminUnifiedRequestsPage />} />
+
       <Route path="golden-beauty-parlour" element={<AdminParlourDashboard />} />
       <Route path="ops-radar" element={<AdminDashboardPage />} />
       <Route path="parlour-users" element={<CustomerManagementPage />} />

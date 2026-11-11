@@ -1,3 +1,5 @@
+import GlobalCustomerHeaderPill from '../../../components/common/GlobalCustomerHeaderPill.jsx';
+import { useCustomer } from '../../../context/CustomerContext.jsx';
 /**
  * @file RBSoftwareWebsite.jsx
  * @description Dedicated Full-Width High-Tech Futuristic Software Agency, Cinema & Photography Studio Website.
@@ -64,6 +66,7 @@ import {
 } from 'lucide-react';
 
 export default function RBSoftwareWebsite() {
+  const { isAuthenticated, customer, openAuthModal, submitServiceBooking } = useCustomer();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -329,6 +332,17 @@ export default function RBSoftwareWebsite() {
       const existing = JSON.parse(localStorage.getItem('rb_tech_media_proposals') || '[]');
       existing.unshift(proposalData);
       localStorage.setItem('rb_tech_media_proposals', JSON.stringify(existing));
+      if (typeof submitServiceBooking === 'function') {
+        submitServiceBooking({
+          serviceType: calcSoftware !== 'none' ? 'software' : 'photography',
+          serviceName: `Tech: ${calcSoftware.toUpperCase()} | 4K Cinema: ${calcVideo.toUpperCase()} | Album: ${calcAlbumTier.toUpperCase()}`,
+          customerName: calcClientName || customer?.name || 'Client',
+          customerPhone: calcClientPhone || customer?.phone || '',
+          eventDate: calcEventDate || 'Target Launch',
+          budget: `₹${total.toLocaleString('en-IN')}`,
+          notes: `Drone: ${calcDroneTier} | Reels: ${calcAddonReels ? 'YES' : 'NO'}`,
+        });
+      }
     } catch (err) {
       console.warn('Storage sync error:', err);
     }
@@ -1256,6 +1270,9 @@ Please connect with me to confirm availability and schedule our consultation / b
               <Home size={15} />
               <span>🏠 Main Page</span>
             </button>
+
+            {/* Global Universal Customer Pill */}
+            <GlobalCustomerHeaderPill theme="dark" />
 
             <button
               onClick={() => handleTabChange('calculator')}

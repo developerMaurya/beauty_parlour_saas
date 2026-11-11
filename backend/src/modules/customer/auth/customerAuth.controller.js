@@ -445,6 +445,81 @@ export const revokeSession = async (req, res) => {
   }
 };
 
+/**
+ * Google Sign-In with Email for Customer
+ */
+export const googleLogin = async (req, res) => {
+  try {
+    const { email, name, picture, googleId, phone } = req.body;
+
+    if (!email) {
+      return sendError(res, 'Google email address is required', [], 400);
+    }
+
+    const CustomerModel = getTenantModel(req, 'Customer');
+    let customer = await CustomerModel.findOne({
+      tenantId: req.tenantId,
+      email: email.toLowerCase(),
+    });
+
+    if (!customer) {
+      // Auto-register new customer via Google Sign-In
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const customerNumber = `CUST-${randomSuffix}`;
+      const defaultPhone = phone || `G-${Date.now().toString().slice(-8)}`;
+
+      customer = await CustomerModel.create({
+        tenantId: req.tenantId,
+        customerNumber,
+        name: name || email.split('@')[0],
+        email: email.toLowerCase(),
+        phone: defaultPhone,
+        googleId: googleId || '',
+        profilePhoto: picture || '',
+        authProvider: 'GOOGLE',
+        status: 'ACTIVE',
+        isVerified: true,
+      });
+    } else {
+      if (picture && !customer.profilePhoto) customer.profilePhoto = picture;
+      if (googleId && !customer.googleId) customer.googleId = googleId;
+      customer.lastLoginAt = new Date();
+      await customer.save();
+    }
+
+    const tokenPayload = {
+      sub: customer._id,
+      customerId: customer._id,
+      role: 'CUSTOMER',
+      userType: 'CUSTOMER',
+      tenantId: req.tenantId,
+      name: customer.name,
+      email: customer.email,
+    };
+
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshTokenVal = generateRefreshToken(tokenPayload);
+
+    return sendSuccess(res, 'Google Sign-In successful', {
+      customer: {
+        _id: customer._id,
+        id: customer._id,
+        customerNumber: customer.customerNumber,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        profilePhoto: customer.profilePhoto,
+        status: customer.status,
+      },
+      accessToken,
+      refreshToken: refreshTokenVal,
+    });
+  } catch (err) {
+    console.error('[customerAuth.googleLogin] Error:', err);
+    return sendError(res, err.message || 'Google Login failed', [], 500);
+  }
+};
+
 export const refreshToken = refresh;
 export const revokeAllSessions = logoutAll;
 
@@ -463,4 +538,5 @@ export default {
   getSessionById,
   revokeSession,
   revokeAllSessions,
+  googleLogin,
 };

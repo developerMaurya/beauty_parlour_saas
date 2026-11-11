@@ -1,3 +1,5 @@
+import GlobalCustomerHeaderPill from '../../../components/common/GlobalCustomerHeaderPill.jsx';
+import { useCustomer } from '../../../context/CustomerContext.jsx';
 /**
  * @file GoldenBeautyWebsite.jsx
  * @description Master Luxury Portal for Golden Beauty Parlour & Salon, Academy & Virtual Bridal Try-On Studio.
@@ -63,6 +65,7 @@ import {
 } from 'lucide-react';
 
 export default function GoldenBeautyWebsite() {
+  const { isAuthenticated, customer, openAuthModal, submitServiceBooking } = useCustomer();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -426,6 +429,19 @@ export default function GoldenBeautyWebsite() {
       alert('Please enter your name and phone number.');
       return;
     }
+    try {
+      submitServiceBooking({
+        serviceType: 'parlour',
+        serviceName: selectedServiceForBooking || 'Beauty Parlour Appointment',
+        customerName: bookingForm.name || customer?.name,
+        customerPhone: bookingForm.phone || customer?.phone,
+        eventDate: bookingForm.date,
+        timeSlot: bookingForm.timeSlot,
+        notes: bookingForm.notes,
+      });
+    } catch (e) {
+      console.warn('Booking sync note:', e);
+    }
     setBookingSuccess(true);
     setTimeout(() => {
       setBookingModalOpen(false);
@@ -693,11 +709,21 @@ export default function GoldenBeautyWebsite() {
               <span>🏠 Main Page</span>
             </button>
 
+            {/* Global Universal Customer Pill */}
+            <GlobalCustomerHeaderPill theme="light" />
+
             <div className="desktop-nav-cta">
               <button
                 onClick={() => {
-                  setSelectedServiceForBooking('Royale Airbrush Bridal HD Makeover');
-                  setBookingModalOpen(true);
+                  if (!isAuthenticated) {
+                    openAuthModal(() => {
+                      setSelectedServiceForBooking('Royale Airbrush Bridal HD Makeover');
+                      setBookingModalOpen(true);
+                    }, 'Sign in or register to book your beauty appointment');
+                  } else {
+                    setSelectedServiceForBooking('Royale Airbrush Bridal HD Makeover');
+                    setBookingModalOpen(true);
+                  }
                 }}
                 style={{
                   padding: '9px 18px',

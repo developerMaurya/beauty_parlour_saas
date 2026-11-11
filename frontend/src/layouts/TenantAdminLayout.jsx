@@ -130,6 +130,7 @@ export const TenantAdminLayout = () => {
   const parlourMenuItems = [
     { label: 'Dashboard', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard },
     { label: 'Website', path: '/storefront', icon: Globe, isExternal: true },
+    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
     { label: 'Appointments', path: '/admin/parlour-appointments', icon: Calendar, badge: '12' },
     { label: 'Customers', path: '/admin/parlour-users', icon: Users },
     { label: 'Staff', path: '/admin/parlour-staff', icon: UserCheck },
@@ -152,6 +153,7 @@ export const TenantAdminLayout = () => {
   // ══════════════════════════════════════════════════════════════════════════
   const plottingMenuItems = [
     { label: 'Dashboard', path: '/admin/plotting', icon: LayoutDashboard },
+    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
     { label: 'Plots Management', path: '/admin/plotting', icon: Trees },
     { label: 'Bookings', path: '/admin/plotting', icon: Calendar },
     { label: 'Customers', path: '/admin/plotting-users', icon: Users },
@@ -172,6 +174,7 @@ export const TenantAdminLayout = () => {
   // ══════════════════════════════════════════════════════════════════════════
   const rentMenuItems = [
     { label: 'Dashboard', path: '/admin/rent-office', icon: LayoutDashboard },
+    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
     { label: 'Projects', path: '/admin/rent-office?tab=projects', icon: Building },
     { label: 'Plots', path: '/admin/rent-office?tab=spaces', icon: Layers },
     { label: 'Bookings', path: '/admin/rent-office?tab=bookings', icon: Calendar },
@@ -193,6 +196,7 @@ export const TenantAdminLayout = () => {
   // ══════════════════════════════════════════════════════════════════════════
   const eventsMenuItems = [
     { label: 'Dashboard', path: '/admin/event-decoration', icon: LayoutDashboard },
+    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
     { label: 'Aadiyogi Stages', path: '/admin/event-decoration?tab=stages', icon: Crown },
     { label: 'Bridal Entries', path: '/admin/event-decoration?tab=entries', icon: Sparkles },
     { label: 'Wedding Contracts', path: '/admin/event-decoration?tab=bookings', icon: Calendar },
@@ -214,6 +218,7 @@ export const TenantAdminLayout = () => {
   // ══════════════════════════════════════════════════════════════════════════
   const softwareMenuItems = [
     { label: 'Dashboard', path: '/admin/rb-software', icon: LayoutDashboard },
+    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
     { label: 'Cloud Microservices', path: '/admin/rb-software?tab=software', icon: Code2 },
     { label: 'Camera & Photo Studio', path: '/admin/rb-software?tab=media', icon: Camera },
     { label: '4K Drone & Video', path: '/admin/rb-software?tab=videography', icon: Video },

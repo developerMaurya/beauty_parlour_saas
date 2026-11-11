@@ -1,3 +1,5 @@
+import GlobalCustomerHeaderPill from '../../../components/common/GlobalCustomerHeaderPill.jsx';
+import { useCustomer } from '../../../context/CustomerContext.jsx';
 /**
  * @file EventDecorationWebsite.jsx
  * @description Master Luxury Event & Decoration Multi-Page Website for "Jay Gurudev Event & Management"
@@ -53,6 +55,7 @@ import {
 } from 'lucide-react';
 
 export default function EventDecorationWebsite() {
+  const { isAuthenticated, customer, openAuthModal, submitServiceBooking } = useCustomer();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -374,8 +377,11 @@ Please confirm date availability and schedule our venue visit!`;
             <span>🏠 Main Page</span>
           </button>
 
+          {/* Universal Global Customer Pill */}
+          <GlobalCustomerHeaderPill theme="dark" />
+
           <button
-            onClick={() => setBookingModalOpen(true)}
+            onClick={() => { if (!isAuthenticated) { openAuthModal(() => setBookingModalOpen(true), 'Sign in or register to book your event & stage decor'); } else { setBookingModalOpen(true); } }}
             style={{
               background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
               color: '#0f172a',
@@ -652,7 +658,7 @@ Please confirm date availability and schedule our venue visit!`;
                 {/* Direct Action Buttons */}
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                   <button
-                    onClick={() => setBookingModalOpen(true)}
+                    onClick={() => { if (!isAuthenticated) { openAuthModal(() => setBookingModalOpen(true), 'Sign in or register to book your event & stage decor'); } else { setBookingModalOpen(true); } }}
                     style={{
                       background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
                       color: '#0f172a',
@@ -1003,7 +1009,7 @@ Please confirm date availability and schedule our venue visit!`;
           {/* Book Callout */}
           <div style={{ textAlign: 'center' }}>
             <button
-              onClick={() => setBookingModalOpen(true)}
+              onClick={() => { if (!isAuthenticated) { openAuthModal(() => setBookingModalOpen(true), 'Sign in or register to book your event & stage decor'); } else { setBookingModalOpen(true); } }}
               style={{
                 background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
                 color: '#0f172a',
@@ -1545,7 +1551,7 @@ Please confirm date availability and schedule our venue visit!`;
 
                 <button
                   type="button"
-                  onClick={() => setBookingModalOpen(true)}
+                  onClick={() => { if (!isAuthenticated) { openAuthModal(() => setBookingModalOpen(true), 'Sign in or register to book your event & stage decor'); } else { setBookingModalOpen(true); } }}
                   style={{
                     background: 'transparent',
                     border: '1px solid rgba(250, 204, 21, 0.4)',
@@ -1638,7 +1644,7 @@ Please confirm date availability and schedule our venue visit!`;
 
               <div style={{ marginTop: '2rem' }}>
                 <button
-                  onClick={() => setBookingModalOpen(true)}
+                  onClick={() => { if (!isAuthenticated) { openAuthModal(() => setBookingModalOpen(true), 'Sign in or register to book your event & stage decor'); } else { setBookingModalOpen(true); } }}
                   style={{
                     width: '100%',
                     background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
@@ -1884,6 +1890,23 @@ Please confirm date availability and schedule our venue visit!`;
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                const form = e.target;
+                const nameVal = form.elements[0]?.value || customer?.name;
+                const phoneVal = form.elements[1]?.value || customer?.phone;
+                const dateVal = form.elements[2]?.value;
+                const notesVal = form.elements[3]?.value;
+                try {
+                  submitServiceBooking({
+                    serviceType: 'events',
+                    serviceName: 'Aadiyogi Theme Stage & Bridal Entry Decor',
+                    customerName: nameVal,
+                    customerPhone: phoneVal,
+                    eventDate: dateVal,
+                    notes: notesVal,
+                  });
+                } catch(err) {
+                  console.warn(err);
+                }
                 alert('Thank you! Your date reservation request has been submitted. Our manager will call you within 30 minutes.');
                 setBookingModalOpen(false);
               }}

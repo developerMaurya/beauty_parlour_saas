@@ -13,3 +13,5 @@ export const getSessions = () => client.get('/customer/auth/sessions');
 export const getSessionById = (id) => client.get(`/customer/auth/sessions/${id}`);
 export const revokeSession = (id) => client.delete(`/customer/auth/sessions/${id}`);
 export const revokeAllSessions = () => client.post('/customer/auth/sessions/revoke-all', {});
+
+export const googleLogin = (data) => client.post('/customer/auth/google-login', data);

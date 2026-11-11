@@ -1,3 +1,5 @@
+import GlobalCustomerHeaderPill from '../../../components/common/GlobalCustomerHeaderPill.jsx';
+import { useCustomer } from '../../../context/CustomerContext.jsx';
 /**
  * @file RentOfficeWebsite.jsx
  * @description Master Kashi Commercial Office & Godown Leasing Portal matching the Prime Plots design.
@@ -53,6 +55,7 @@ import {
 } from 'lucide-react';
 
 export default function RentOfficeWebsite() {
+  const { isAuthenticated, customer, openAuthModal, submitServiceBooking } = useCustomer();
   const navigate = useNavigate();
 
   // Active Tab: 'HOME' | 'PROJECTS' | 'SPACES' | 'AMENITIES' | 'GALLERY' | 'ABOUT' | 'CONTACT'
@@ -79,6 +82,18 @@ export default function RentOfficeWebsite() {
     if (!bookingForm.name || !bookingForm.phone) {
       alert('Please fill out your name and phone number.');
       return;
+    }
+    try {
+      submitServiceBooking({
+        serviceType: 'rent',
+        serviceName: selectedSpace || bookingForm.selectedFloor || 'Office / Godam Space',
+        customerName: bookingForm.name || customer?.name,
+        customerPhone: bookingForm.phone || customer?.phone,
+        eventDate: bookingForm.visitDate,
+        notes: `Duration: ${bookingForm.duration} - ${bookingForm.message}`,
+      });
+    } catch(err) {
+      console.warn(err);
     }
     setBookingSuccess(true);
     setTimeout(() => {
@@ -331,6 +346,9 @@ export default function RentOfficeWebsite() {
               <Home size={14} />
               <span>🏠 Main Page</span>
             </button>
+
+            {/* Global Universal Customer Pill */}
+            <GlobalCustomerHeaderPill theme="dark" />
 
             <button
               onClick={() => {
