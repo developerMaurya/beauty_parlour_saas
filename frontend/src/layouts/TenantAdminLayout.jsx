@@ -61,16 +61,26 @@ export const TenantAdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Determine current active business vertical: 'PARLOUR' | 'PLOTTING' | 'EVENTS' | 'RENT' | 'SOFTWARE'
+  // Determine current active business vertical: 'PARLOUR' | 'PLOTTING' | 'RENT'
   const isPlottingRoute =
     location.pathname.includes('plotting') ||
     location.pathname.includes('plot') ||
     location.pathname.includes('kashiplot');
 
-  const [activeVertical, setActiveVertical] = useState(isPlottingRoute ? 'PLOTTING' : 'PARLOUR');
+  const isRentRoute =
+    location.pathname.includes('rent') ||
+    location.pathname.includes('office') ||
+    location.pathname.includes('commercial') ||
+    location.pathname.includes('godam');
+
+  const [activeVertical, setActiveVertical] = useState(
+    isRentRoute ? 'RENT' : isPlottingRoute ? 'PLOTTING' : 'PARLOUR'
+  );
 
   useEffect(() => {
-    if (isPlottingRoute) {
+    if (isRentRoute) {
+      setActiveVertical('RENT');
+    } else if (isPlottingRoute) {
       setActiveVertical('PLOTTING');
     } else if (
       location.pathname.includes('parlour') ||
@@ -80,7 +90,7 @@ export const TenantAdminLayout = () => {
     ) {
       setActiveVertical('PARLOUR');
     }
-  }, [location.pathname, isPlottingRoute]);
+  }, [location.pathname, isPlottingRoute, isRentRoute]);
 
   // Multi-vertical dropdown state
   const [verticalsDropdownOpen, setVerticalsDropdownOpen] = useState(false);
@@ -128,11 +138,36 @@ export const TenantAdminLayout = () => {
     { label: 'Support', path: '/admin/support', icon: Headphones },
   ];
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 3. PRIME PLOTS / OFFICE & GODAM RENT MENU (Navy & Gold Theme Matching Image)
+  // ══════════════════════════════════════════════════════════════════════════
+  const rentMenuItems = [
+    { label: 'Dashboard', path: '/admin/rent-office', icon: LayoutDashboard },
+    { label: 'Projects', path: '/admin/rent-office?tab=projects', icon: Building },
+    { label: 'Plots', path: '/admin/rent-office?tab=spaces', icon: Layers },
+    { label: 'Bookings', path: '/admin/rent-office?tab=bookings', icon: Calendar },
+    { label: 'Customers', path: '/admin/rent-tenants', icon: Users },
+    { label: 'Enquiries', path: '/admin/rent-office?tab=enquiries', icon: MessageSquare },
+    { label: 'Payments', path: '/admin/parlour-billing', icon: CreditCard },
+    { label: 'Offers & Discounts', path: '/admin/offers', icon: Tag },
+    { label: 'Gallery', path: '/rent', icon: Image, isExternal: true },
+    { label: 'Website Content', path: '/rent', icon: Globe, isExternal: true },
+    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
+    { label: 'Users & Roles', path: '/admin/roles', icon: UserCog },
+    { label: 'Settings', path: '/admin/settings', icon: Settings },
+    { label: 'Notifications', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
+    { label: 'Support', path: '/admin/support', icon: Headphones },
+  ];
+
   // Colors & Configuration for Active Vertical
   const isParlour = activeVertical === 'PARLOUR';
-  const sidebarBg = isParlour ? '#241434' : '#0a2618';
-  const activePillBg = isParlour ? '#7e22ce' : '#16a34a';
-  const accentColor = isParlour ? '#c084fc' : '#4ade80';
+  const isPlotting = activeVertical === 'PLOTTING';
+  const isRent = activeVertical === 'RENT';
+
+  const sidebarBg = isParlour ? '#241434' : isPlotting ? '#0a2618' : '#0d1b2a';
+  const activePillBg = isParlour ? '#7e22ce' : isPlotting ? '#16a34a' : '#facc15';
+  const activeTextColor = isRent ? '#0f172a' : '#ffffff';
+  const accentColor = isParlour ? '#c084fc' : isPlotting ? '#4ade80' : '#facc15';
 
   if (isLoading) {
     return (
@@ -204,7 +239,7 @@ export const TenantAdminLayout = () => {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : isPlotting ? (
             /* Kashi Plotting Services Header Matching Screenshot */
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
@@ -235,6 +270,37 @@ export const TenantAdminLayout = () => {
                 </div>
               </div>
             </div>
+          ) : (
+            /* Prime Plots / Kashi Office & Godam Rent Header Matching Screenshot */
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              onClick={() => navigate('/admin/rent-office')}
+            >
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#0f172a',
+                  boxShadow: '0 4px 14px rgba(250, 204, 21, 0.4)',
+                  flexShrink: 0,
+                }}
+              >
+                <Building size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff', lineHeight: 1.1 }}>
+                  Prime Plots
+                </div>
+                <div style={{ fontSize: '9.5px', color: '#facc15', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
+                  ADMIN PANEL • 3 FLOORS
+                </div>
+              </div>
+            </div>
           )}
 
           {mobileMenuOpen && (
@@ -247,24 +313,25 @@ export const TenantAdminLayout = () => {
           )}
         </div>
 
-        {/* ── Vertical Switcher Buttons (Beauty Parlour ⟷ Plotting) ── */}
+        {/* ── 3-Vertical Switcher Buttons (Parlour ⟷ Plotting ⟷ Office/Godam Rent) ── */}
         <div style={{ padding: '0.75rem 0.85rem 0.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', background: 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '10px' }}>
             <button
               onClick={() => {
                 setActiveVertical('PARLOUR');
                 navigate('/admin/golden-beauty-parlour');
               }}
               style={{
-                padding: '6px 4px',
+                padding: '6px 2px',
                 borderRadius: '8px',
                 border: 'none',
                 background: isParlour ? '#7e22ce' : 'transparent',
                 color: isParlour ? '#ffffff' : '#94a3b8',
                 fontWeight: isParlour ? 800 : 600,
-                fontSize: '11px',
+                fontSize: '10px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
               💄 Parlour
@@ -275,32 +342,55 @@ export const TenantAdminLayout = () => {
                 navigate('/admin/plotting');
               }}
               style={{
-                padding: '6px 4px',
+                padding: '6px 2px',
                 borderRadius: '8px',
                 border: 'none',
-                background: !isParlour ? '#16a34a' : 'transparent',
-                color: !isParlour ? '#ffffff' : '#94a3b8',
-                fontWeight: !isParlour ? 800 : 600,
-                fontSize: '11px',
+                background: isPlotting ? '#16a34a' : 'transparent',
+                color: isPlotting ? '#ffffff' : '#94a3b8',
+                fontWeight: isPlotting ? 800 : 600,
+                fontSize: '10px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
               🏡 Plotting
+            </button>
+            <button
+              onClick={() => {
+                setActiveVertical('RENT');
+                navigate('/admin/rent-office');
+              }}
+              style={{
+                padding: '6px 2px',
+                borderRadius: '8px',
+                border: 'none',
+                background: isRent ? '#facc15' : 'transparent',
+                color: isRent ? '#0f172a' : '#94a3b8',
+                fontWeight: isRent ? 800 : 600,
+                fontSize: '10px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🏢 Rent
             </button>
           </div>
         </div>
 
         {/* ── Main Navigation Menu Items ── */}
         <div style={{ padding: '0.65rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
-          {(isParlour ? parlourMenuItems : plottingMenuItems).map((item, idx) => {
+          {(isParlour ? parlourMenuItems : isPlotting ? plottingMenuItems : rentMenuItems).map((item, idx) => {
             const Icon = item.icon;
             const isActive =
               location.pathname === item.path ||
               (item.label === 'Dashboard' &&
                 (isParlour
                   ? location.pathname === '/admin/dashboard' || location.pathname === '/admin/golden-beauty-parlour'
-                  : location.pathname === '/admin/plotting'));
+                  : isPlotting
+                  ? location.pathname === '/admin/plotting'
+                  : location.pathname === '/admin/rent-office' || location.pathname === '/admin/rent'));
 
             if (item.isExternal) {
               return (
@@ -351,7 +441,7 @@ export const TenantAdminLayout = () => {
                   borderRadius: '10px',
                   fontSize: '0.84rem',
                   fontWeight: isActive ? 800 : 600,
-                  color: isActive ? '#ffffff' : '#cbd5e1',
+                  color: isActive ? activeTextColor : '#cbd5e1',
                   background: isActive ? activePillBg : 'transparent',
                   textDecoration: 'none',
                   boxShadow: isActive ? `0 4px 14px ${activePillBg}55` : 'none',
@@ -371,7 +461,7 @@ export const TenantAdminLayout = () => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Icon size={17} color={isActive ? '#ffffff' : accentColor} />
+                  <Icon size={17} color={isActive ? activeTextColor : accentColor} />
                   <span>{item.label}</span>
                 </div>
 
@@ -479,8 +569,10 @@ export const TenantAdminLayout = () => {
               borderRadius: '12px',
               background: isParlour
                 ? 'linear-gradient(135deg, #7e22ce 0%, #9333ea 50%, #a855f7 100%)'
-                : 'linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%)',
-              color: '#ffffff',
+                : isPlotting
+                ? 'linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%)'
+                : 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
+              color: isRent ? '#0f172a' : '#ffffff',
               border: 'none',
               fontWeight: 800,
               fontSize: '13px',
@@ -489,10 +581,14 @@ export const TenantAdminLayout = () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              boxShadow: isParlour ? '0 6px 18px rgba(126, 34, 206, 0.45)' : '0 6px 18px rgba(22, 163, 74, 0.45)',
+              boxShadow: isParlour
+                ? '0 6px 18px rgba(126, 34, 206, 0.45)'
+                : isPlotting
+                ? '0 6px 18px rgba(22, 163, 74, 0.45)'
+                : '0 6px 18px rgba(250, 204, 21, 0.35)',
             }}
           >
-            <Trees size={17} />
+            {isParlour ? <Crown size={17} /> : isPlotting ? <Trees size={17} /> : <Building size={17} />}
             <span>Upgrade Plan</span>
           </button>
         </div>

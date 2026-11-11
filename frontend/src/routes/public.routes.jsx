@@ -54,6 +54,9 @@ export const PublicRoutes = (
     <Route path="/rent" element={<RentOfficeWebsite />} />
     <Route path="/office-rent" element={<RentOfficeWebsite />} />
     <Route path="/commercial" element={<RentOfficeWebsite />} />
+    <Route path="/godam" element={<RentOfficeWebsite />} />
+    <Route path="/office-godam" element={<RentOfficeWebsite />} />
+    <Route path="/kashi-office-godam" element={<RentOfficeWebsite />} />
 
     {/* Dedicated RB Software & Tech Hub Website */}
     <Route path="/software" element={<RBSoftwareWebsite />} />

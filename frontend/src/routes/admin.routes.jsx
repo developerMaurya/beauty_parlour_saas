@@ -24,7 +24,8 @@ import EventDecorationDashboard from '../modules/admin/pages/EventDecorationDash
 import EventUsersManagement from '../modules/admin/pages/EventUsersManagement.jsx';
 import PlottingDashboard from '../modules/admin/pages/PlottingDashboard.jsx';
 import PlottingUsersManagement from '../modules/admin/pages/PlottingUsersManagement.jsx';
-import RentOfficeDashboard from '../modules/admin/pages/RentOfficeDashboard.jsx';
+import RentOfficeDashboard, { RentOfficeDashboard as RentOfficeDashboardNamed } from '../modules/admin/pages/RentOfficeDashboard.jsx';
+const AdminRentDashboard = RentOfficeDashboard || RentOfficeDashboardNamed;
 import RentTenantsManagement from '../modules/admin/pages/RentTenantsManagement.jsx';
 import RBSoftwareDashboard from '../modules/admin/pages/RBSoftwareDashboard.jsx';
 import SoftwareClientsManagement from '../modules/admin/pages/SoftwareClientsManagement.jsx';
@@ -94,8 +95,10 @@ export const AdminRoutes = (
       <Route path="plotting-agents" element={<PlottingUsersManagement />} />
 
       {/* ── 4. Office & Commercial Rent Sub-Routes ── */}
-      <Route path="rent-office" element={<RentOfficeDashboard />} />
-      <Route path="office-rent" element={<RentOfficeDashboard />} />
+      <Route path="rent-office" element={<AdminRentDashboard />} />
+      <Route path="office-rent" element={<AdminRentDashboard />} />
+      <Route path="rent" element={<AdminRentDashboard />} />
+      <Route path="commercial" element={<AdminRentDashboard />} />
       <Route path="rent-tenants" element={<RentTenantsManagement />} />
       <Route path="tenants" element={<RentTenantsManagement />} />
 
