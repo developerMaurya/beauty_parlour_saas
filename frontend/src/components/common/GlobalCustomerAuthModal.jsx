@@ -28,9 +28,11 @@ export default function GlobalCustomerAuthModal() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Custom Client ID config
+  // Custom Client ID config (defaults to real Kashi Service Google Cloud Client ID)
   const [customClientId, setCustomClientId] = useState(
-    localStorage.getItem('kashi_google_client_id') || import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+    localStorage.getItem('kashi_google_client_id') ||
+      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+      '901658045362-7sct3vvcrgkradmpr2sm7ku89tavvdhe.apps.googleusercontent.com'
   );
 
   // Standard Login Fields

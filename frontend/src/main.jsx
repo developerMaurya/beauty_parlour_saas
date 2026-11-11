@@ -8,8 +8,11 @@ import ReactDOM from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App';
 
-// Google Client ID (configurable via VITE_GOOGLE_CLIENT_ID or localStorage for instant runtime setup)
-const defaultClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem('kashi_google_client_id') || '10829384756-google-oauth-demo.apps.googleusercontent.com';
+// Google Client ID (Official Kashi Service Google Cloud OAuth)
+const defaultClientId =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  localStorage.getItem('kashi_google_client_id') ||
+  '901658045362-7sct3vvcrgkradmpr2sm7ku89tavvdhe.apps.googleusercontent.com';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
