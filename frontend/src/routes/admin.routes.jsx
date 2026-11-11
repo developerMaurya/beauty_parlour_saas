@@ -86,6 +86,7 @@ export const AdminRoutes = (
 
       {/* ── 3. Real Estate Plotting Sub-Routes ── */}
       <Route path="plotting" element={<PlottingDashboard />} />
+      <Route path="kashiplot" element={<PlottingDashboard />} />
       <Route path="real-estate" element={<PlottingDashboard />} />
       <Route path="plotting-users" element={<PlottingUsersManagement />} />
       <Route path="plotting-agents" element={<PlottingUsersManagement />} />

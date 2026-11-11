@@ -1,618 +1,871 @@
+/**
+ * @file RealEstatePlottingWebsite.jsx
+ * @description Master Kashi Plotting Services Frontend Portal matching the reference design.
+ * Features:
+ *   - Top header with logo, navigation (Home, Plots, Services, Gallery, About Us, Testimonials, Contact), phone helpline & "Book Now" CTA
+ *   - Hero Section: "Your Dream Plot Our Priority" with CTA buttons & luxury villa backdrop
+ *   - Our Plotting Services: Residential, Commercial, Farmhouse, Investment & Property Consultation
+ *   - About Us: Transparency, 1000+ Happy Customers & verified legal titles
+ *   - Featured Plots Catalog (Residential, Commercial, Farmhouse) with "For Sale" badges & detail modals
+ *   - Let's Find Your Perfect Plot Today callout banner with Varanasi skyline
+ *   - Booking & Inquiry Modal with site visit scheduler
+ * @module frontend/src/modules/public/pages/RealEstatePlottingWebsite
+ */
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Compass,
+  Home,
   Building,
+  Trees,
+  TrendingUp,
+  Users,
   MapPin,
   CheckCircle2,
-  Calculator,
-  ShieldCheck,
-  FileText,
-  DollarSign,
-  ArrowRight,
-  ChevronRight,
   Phone,
+  ArrowRight,
+  Play,
+  X,
+  Send,
   Calendar,
-  Layers,
+  ShieldCheck,
   Award,
-  Users,
-  Sparkles,
+  Layers,
+  Search,
+  ExternalLink,
+  MessageCircle,
+  FileText,
 } from 'lucide-react';
 
 export default function RealEstatePlottingWebsite() {
   const navigate = useNavigate();
-  const [selectedColony, setSelectedColony] = useState('ALL');
-  
-  // EMI Calculator State
-  const [plotPrice, setPlotPrice] = useState(1850000);
-  const [downPayment, setDownPayment] = useState(350000);
-  const [tenureYears, setTenureYears] = useState(3);
-  const [interestRate, setInterestRate] = useState(8.5);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const calculateMonthlyEmi = () => {
-    const principal = plotPrice - downPayment;
-    if (principal <= 0) return 0;
-    const monthlyRate = interestRate / 12 / 100;
-    const totalMonths = tenureYears * 12;
-    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) / (Math.pow(1 + monthlyRate, totalMonths) - 1);
-    return Math.round(emi);
+  // Active Tab
+  const [activeTab, setActiveTab] = useState('HOME'); // 'HOME' | 'PLOTS' | 'SERVICES' | 'GALLERY' | 'ABOUT' | 'TESTIMONIALS' | 'CONTACT'
+
+  // Modals
+  const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [selectedPlot, setSelectedPlot] = useState(null);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  // Form State
+  const [inquiryForm, setInquiryForm] = useState({
+    name: '',
+    phone: '',
+    plotType: 'Residential Plot (Varanasi)',
+    preferredDate: '',
+    budget: '₹15,00,000 - ₹25,00,000',
+    message: '',
+  });
+
+  const handleBookingSubmit = (e) => {
+    e.preventDefault();
+    if (!inquiryForm.name || !inquiryForm.phone) {
+      alert('Please enter your name and phone number.');
+      return;
+    }
+    setBookingSuccess(true);
+    setTimeout(() => {
+      setBookModalOpen(false);
+      setBookingSuccess(false);
+    }, 2200);
   };
 
-  const coloniesList = [
+  // 5 Plotting Services
+  const servicesList = [
     {
-      colony: 'Kashi Green Valley City (Phase 1)',
-      location: 'Varanasi-Prayagraj 6-Lane Expressway Corridor',
-      type: 'TOWNSHIP',
-      reraNo: 'UPRERAAGT2026/89412',
-      plotsAvailable: '18 Plots Ready',
-      startingPrice: '₹14,500 / Sq Yd',
-      img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=700&q=80',
-      highlights: ['60-Ft Main Blacktop Road', 'Underground Drainage & Electricity', 'Park Facing Corner Plots', 'Immediate Registry & Mutation (Dakhil Kharij)'],
+      id: 'res',
+      name: 'Residential Plots',
+      icon: Home,
+      desc: 'Prime residential land inside approved gated townships with 30-40 ft blacktop roads, water pipeline, electricity & boundary demarcation.',
+      badge: 'Popular Choice',
     },
     {
-      colony: 'Ganga View Royal Enclave',
-      location: 'Near Ramnagar Fort & Riverfront Bypass, Varanasi',
-      type: 'LUXURY_RIVERFRONT',
-      reraNo: 'UPRERAAGT2026/91104',
-      plotsAvailable: '12 Plots Ready',
-      startingPrice: '₹17,200 / Sq Yd',
-      img: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=700&q=80',
-      highlights: ['Gated Security with CCTV Guard Room', 'Ganga Riverbank Breeze & Green Belt', 'LED Street Lighting & Water Pipeline', 'Clubhouse & Jogging Track'],
+      id: 'com',
+      name: 'Commercial Plots',
+      icon: Building,
+      desc: 'High-visibility highway frontage plots ideal for shopping arcades, showrooms, hospitals, hotels & office towers on 60-80 ft corridors.',
+      badge: 'High ROI',
     },
     {
-      colony: 'Royal Orchid Smart Township',
-      location: 'Airport Road, Babatpur Ring Road Junction, Varanasi',
-      type: 'HIGHWAY_SMART',
-      reraNo: 'UPRERAAGT2026/78231',
-      plotsAvailable: '14 Plots Ready',
-      startingPrice: '₹19,800 / Sq Yd',
-      img: 'https://images.unsplash.com/photo-1524813686514-a57563d77d66?auto=format&fit=crop&w=700&q=80',
-      highlights: ['Direct 4-Lane Ring Road Connectivity', 'Commercial Showroom & Retail Plots', 'Solar Powered Street Infrastructure', '100% Clear Legal Title Verified by Govt Bank'],
+      id: 'farm',
+      name: 'Farmhouse Plots',
+      icon: Trees,
+      desc: 'Serene green eco-living plots along river breeze zones with organic soil, fruit orchards, perimeter fencing and private club access.',
+      badge: 'Eco Living',
+    },
+    {
+      id: 'inv',
+      name: 'Investment Plots',
+      icon: TrendingUp,
+      desc: 'Strategic high-growth land corridors near upcoming ring roads, logistics parks & expressways offering 25-35% annual capital appreciation.',
+      badge: 'Max Growth',
+    },
+    {
+      id: 'cons',
+      name: 'Property Consultation',
+      icon: Users,
+      desc: 'Comprehensive 1-on-1 legal due diligence, title clearance, Khatauni mutation (Dakhil Kharij), RERA compliance & bank home-loan assistance.',
+      badge: 'Free Guidance',
     },
   ];
 
-  const plotInventory = [
-    { plotNo: 'Plot A-101', colony: 'Kashi Green Valley', size: '1200 Sq Ft (30x40)', facing: 'East Facing', price: '₹18,50,000', status: 'Available', badge: 'Ready' },
-    { plotNo: 'Plot A-102', colony: 'Kashi Green Valley', size: '1500 Sq Ft (30x50)', facing: 'North Corner', price: '₹23,20,000', status: 'Booked', badge: 'Hold' },
-    { plotNo: 'Plot B-205', colony: 'Ganga View Enclave', size: '1800 Sq Ft (36x50)', facing: 'Park Facing Corner', price: '₹31,00,000', status: 'Available', badge: 'Prime' },
-    { plotNo: 'Plot B-206', colony: 'Ganga View Enclave', size: '1200 Sq Ft (30x40)', facing: 'East Facing', price: '₹20,50,000', status: 'Available', badge: 'Ready' },
-    { plotNo: 'Plot C-310', colony: 'Royal Orchid Township', size: '2400 Sq Ft (40x60)', facing: 'Main 60-Ft Road', price: '₹42,00,000', status: 'Available', badge: 'Commercial' },
-    { plotNo: 'Plot C-311', colony: 'Royal Orchid Township', size: '1500 Sq Ft (30x50)', facing: 'North-East', price: '₹26,50,000', status: 'Available', badge: 'Ready' },
+  // Featured Plots
+  const featuredPlots = [
+    {
+      id: 'p1',
+      title: 'Residential Plot',
+      location: 'Varanasi, UP',
+      corridor: 'Near Naibazar & Sarnath Corridor',
+      price: '₹15,00,000',
+      size: '1,000 - 1,500 Sq Ft',
+      facing: 'East Facing, 30 Ft Wide Road',
+      status: 'For Sale',
+      img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      id: 'p2',
+      title: 'Commercial Plot',
+      location: 'Sarnath, Varanasi',
+      corridor: 'Main Ring Road Highway Frontage',
+      price: '₹35,00,000',
+      size: '2,200 - 3,500 Sq Ft',
+      facing: '60 Ft Highway Facing',
+      status: 'For Sale',
+      img: 'https://images.unsplash.com/photo-1524813686514-a57563d77d66?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      id: 'p3',
+      title: 'Farmhouse Plot',
+      location: 'Bhaisodi, Varanasi',
+      corridor: 'Greenbelt Riverfront Zone',
+      price: '₹22,00,000',
+      size: '4,500 - 6,000 Sq Ft',
+      facing: 'Corner Plot with Plantation',
+      status: 'For Sale',
+      img: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=700&q=80',
+    },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#0f172a', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* ── Top Ribbon ── */}
-      <div
-        style={{
-          background: 'linear-gradient(90deg, #064e3b 0%, #047857 50%, #065f46 100%)',
-          color: '#ffffff',
-          padding: '9px 2.5rem',
-          fontSize: '12px',
-          fontWeight: 700,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '8px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ background: '#a7f3d0', color: '#064e3b', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 900 }}>
-            100% RERA APPROVED
-          </span>
-          <span>🏡 Freehold Residential & Commercial Plots with Immediate Registry & Easy 12-60 Months EMI</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#d1fae5' }}>
-          <span>📍 Varanasi Expressway & Ring Road Junctions</span>
-          <span>📞 Land Advisory: +91 98765 22334</span>
-        </div>
-      </div>
+    <div style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', color: '#1e293b', background: '#f8fafc', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
+      {/* ── Scoped CSS ── */}
+      <style>{`
+        * { box-sizing: border-box; }
+        .kashiplot-container {
+          width: 100%;
+          max-width: 1540px;
+          margin-left: auto;
+          margin-right: auto;
+          padding-left: clamp(1rem, 3.5vw, 2.5rem);
+          padding-right: clamp(1rem, 3.5vw, 2.5rem);
+        }
+        .plot-nav-links {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        @media (max-width: 1024px) {
+          .plot-nav-links {
+            display: none;
+          }
+        }
+      `}</style>
 
-      {/* ── World-Class Real Estate Nav ── */}
+      {/* ── Top Navigation Bar Matching Image ── */}
       <nav
         style={{
-          padding: '1.25rem 2.5rem',
-          background: 'rgba(255, 255, 255, 0.98)',
-          backdropFilter: 'blur(20px)',
+          background: '#ffffff',
           borderBottom: '1px solid #e2e8f0',
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+          padding: '0.85rem 0',
         }}
       >
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-          onClick={() => navigate('/plotting')}
-        >
+        <div className="kashiplot-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Brand Logo: Green House/Tree Icon + "Kashi Plotting Services" */}
           <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 8px 18px rgba(5, 150, 105, 0.35)',
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            onClick={() => setActiveTab('HOME')}
           >
-            <Compass size={24} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#064e3b', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              KASHI PLOTTING & COLONIES
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+              }}
+            >
+              <Trees size={22} />
             </div>
-            <div style={{ fontSize: '10.5px', color: '#059669', fontWeight: 800, letterSpacing: '0.1em', marginTop: '2px' }}>
-              RESIDENTIAL TOWNSHIPS & FREEHOLD LANDS
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#064e3b', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                Ploting Services
+              </div>
+              <div style={{ fontSize: '10px', color: '#059669', fontWeight: 800, letterSpacing: '0.08em' }}>
+                KASHIPLOT • VARANASI
+              </div>
             </div>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', fontWeight: 700, fontSize: '13.5px' }}>
-          <span style={{ color: '#047857', cursor: 'pointer' }}>Colony Masterplans</span>
-          <span style={{ color: '#475569', cursor: 'pointer' }}>Available Plot Inventory</span>
-          <span style={{ color: '#475569', cursor: 'pointer' }}>EMI Calculator</span>
-          <span style={{ color: '#475569', cursor: 'pointer' }}>Legal & Registry</span>
-        </div>
+          {/* Navigation Links */}
+          <div className="plot-nav-links">
+            {[
+              { id: 'HOME', label: 'Home' },
+              { id: 'PLOTS', label: 'Plots' },
+              { id: 'SERVICES', label: 'Services' },
+              { id: 'GALLERY', label: 'Gallery' },
+              { id: 'ABOUT', label: 'About Us' },
+              { id: 'TESTIMONIALS', label: 'Testimonials' },
+              { id: 'CONTACT', label: 'Contact' },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: isActive ? '#059669' : 'transparent',
+                    color: isActive ? '#ffffff' : '#475569',
+                    fontWeight: isActive ? 800 : 600,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              background: '#f0fdf4',
-              color: '#064e3b',
-              border: '1.5px solid #bbf7d0',
-              fontWeight: 800,
-              fontSize: '12.5px',
-              cursor: 'pointer',
-            }}
-          >
-            ← Kashi Hub
-          </button>
+          {/* Right Helpline & Book Now CTA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <a
+              href="tel:+919876543210"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                color: '#065f46',
+                fontWeight: 800,
+                fontSize: '13px',
+                textDecoration: 'none',
+              }}
+            >
+              <Phone size={15} color="#059669" />
+              <span>+91 98765 43210</span>
+            </a>
+
+            <button
+              onClick={() => {
+                setSelectedPlot('Residential Plot (Varanasi)');
+                setBookModalOpen(true);
+              }}
+              style={{
+                padding: '9px 18px',
+                borderRadius: '8px',
+                background: '#059669',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+              }}
+            >
+              Book Now
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* ── Hero Showcase Section ── */}
+      {/* ── Hero Section (Matching Left Image) ── */}
       <section
         style={{
+          padding: 'clamp(2.5rem, 5vw, 4.5rem) 0',
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #ecfdf5 100%)',
+          borderBottom: '1px solid #d1fae5',
           position: 'relative',
-          padding: '5rem 2.5rem 4.5rem',
-          background: 'linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%)',
-          borderBottom: '1px solid #e2e8f0',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '3.5rem', alignItems: 'center' }}>
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: '#ffffff',
-                border: '1px solid #bbf7d0',
-                padding: '6px 16px',
-                borderRadius: '999px',
-                fontSize: '12px',
-                fontWeight: 800,
-                color: '#047857',
-                marginBottom: '1.5rem',
-                boxShadow: '0 2px 8px rgba(4, 120, 87, 0.08)',
-              }}
-            >
-              <Sparkles size={15} color="#059669" />
-              <span>UPRERA Registered • Clear Mutation & Immediate Registry</span>
-            </div>
+        <div className="kashiplot-container">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 440px), 1fr))',
+              gap: 'clamp(2rem, 4vw, 3.5rem)',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <h1 style={{ fontSize: 'clamp(2.4rem, 4.5vw, 3.6rem)', fontWeight: 900, color: '#064e3b', lineHeight: 1.15, margin: '0 0 1rem', letterSpacing: '-0.025em' }}>
+                Your Dream Plot <br />
+                <span style={{ color: '#059669' }}>Our Priority</span>
+              </h1>
+              <p style={{ fontSize: 'clamp(1rem, 1.6vw, 1.15rem)', color: '#475569', lineHeight: 1.6, margin: '0 0 2rem' }}>
+                Buy, Sell & Invest in the Best Locations with Trusted Plotting Services in Varanasi, Sarnath & Expressway Corridors.
+              </p>
 
-            <h1
-              style={{
-                fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-                fontWeight: 900,
-                color: '#064e3b',
-                lineHeight: 1.1,
-                letterSpacing: '-0.03em',
-                marginBottom: '1.25rem',
-              }}
-            >
-              Build Your Dream Home on Highway-Connected Prime Land
-            </h1>
-
-            <p style={{ fontSize: '1.12rem', color: '#475569', lineHeight: 1.65, maxWidth: '620px', marginBottom: '2.5rem' }}>
-              Gated residential colonies with 60-ft blacktop roads, underground electricity, boundary demarcation, immediate registry, and transparent bank-approved EMI financing.
-            </p>
-
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => {
-                  const el = document.getElementById('inventory-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                style={{
-                  padding: '14px 32px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 900,
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 8px 24px rgba(5, 150, 105, 0.35)',
-                }}
-              >
-                <span>Browse Available Plots</span>
-                <ArrowRight size={18} />
-              </button>
-
-              <button
-                onClick={() => {
-                  const el = document.getElementById('emi-calculator');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                style={{
-                  padding: '14px 28px',
-                  borderRadius: '12px',
-                  background: '#ffffff',
-                  color: '#064e3b',
-                  border: '2px solid #bbf7d0',
-                  fontWeight: 800,
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                }}
-              >
-                📊 Calculate Monthly EMI
-              </button>
-            </div>
-
-            {/* Micro Stats */}
-            <div style={{ display: 'flex', gap: '2.5rem', marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid #d1fae5' }}>
-              <div>
-                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#064e3b' }}>100%</div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Title Verified & Freehold</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#064e3b' }}>3</div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>RERA Approved Townships</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#064e3b' }}>44 Plots</div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Ready for Possession</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Image Showcase */}
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                width: '100%',
-                height: '480px',
-                borderRadius: '24px',
-                backgroundImage: 'url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                boxShadow: '0 20px 40px rgba(5, 150, 105, 0.2)',
-                border: '4px solid #ffffff',
-              }}
-            />
-
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '-20px',
-                left: '-20px',
-                background: '#ffffff',
-                padding: '1rem 1.25rem',
-                borderRadius: '16px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
-                border: '1px solid #bbf7d0',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck size={24} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>Direct Sub-Registrar Office Registry</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Zero Brokerage • 100% Legal Transparency</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Townships Master Showcase ── */}
-      <section style={{ padding: '4.5rem 2.5rem', maxWidth: '1280px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#064e3b', margin: '0 0 8px' }}>
-            Featured Residential & Commercial Townships
-          </h2>
-          <p style={{ fontSize: '0.95rem', color: '#64748b' }}>
-            Explore our highway-connected smart colony projects in Varanasi and expressway corridors.
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem' }}>
-          {coloniesList.map((col, idx) => (
-            <div
-              key={idx}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '20px',
-                overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div
-                style={{
-                  height: '220px',
-                  backgroundImage: `url("${col.img}")`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  position: 'relative',
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '12px',
-                    left: '12px',
-                    background: '#047857',
-                    color: '#ffffff',
-                    padding: '4px 12px',
-                    borderRadius: '20px',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                  }}
-                >
-                  {col.plotsAvailable}
-                </span>
-
-                <span
-                  style={{
-                    position: 'absolute',
-                    bottom: '12px',
-                    right: '12px',
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    color: '#f8fafc',
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 900,
-                  }}
-                >
-                  {col.startingPrice}
-                </span>
-              </div>
-
-              <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    RERA: {col.reraNo}
-                  </div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                    {col.colony}
-                  </h3>
-                  <div style={{ fontSize: '0.82rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '1.25rem' }}>
-                    <MapPin size={14} color="#059669" />
-                    <span>{col.location}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.5rem' }}>
-                    {col.highlights.map((h, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' }}>
-                        <CheckCircle2 size={15} color="#059669" />
-                        <span>{h}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
-                    const el = document.getElementById('inventory-section');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    const el = document.getElementById('featured-plots');
+                    el?.scrollIntoView({ behavior: 'smooth' });
                   }}
                   style={{
-                    width: '100%',
-                    padding: '11px',
+                    padding: '13px 26px',
                     borderRadius: '10px',
-                    background: '#047857',
+                    background: '#059669',
                     color: '#ffffff',
-                    border: 'none',
                     fontWeight: 800,
-                    fontSize: '13px',
+                    fontSize: '14px',
+                    border: 'none',
                     cursor: 'pointer',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
+                    gap: 8,
+                    boxShadow: '0 6px 18px rgba(5, 150, 105, 0.35)',
                   }}
                 >
-                  <span>View Plots in this Colony</span>
-                  <ChevronRight size={16} />
+                  <span>Explore Plots</span>
+                  <ArrowRight size={16} />
+                </button>
+
+                <button
+                  onClick={() => setVideoModalOpen(true)}
+                  style={{
+                    padding: '13px 24px',
+                    borderRadius: '10px',
+                    background: '#ffffff',
+                    color: '#065f46',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    border: '1.5px solid #a7f3d0',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Play size={15} fill="#059669" color="#059669" />
+                  <span>Watch Video</span>
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ── Available Plots Inventory Table Section ── */}
-      <section id="inventory-section" style={{ padding: '4.5rem 2.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-        <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#064e3b', margin: '0 0 6px' }}>
-              Immediate Possession Plot Inventory
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#64748b', margin: 0 }}>
-              Live availability with dimensions, road facing, and transparent fixed pricing.
-            </p>
-          </div>
-
-          <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.04)' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
-                <thead>
-                  <tr style={{ background: '#ecfdf5', borderBottom: '2px solid #bbf7d0', color: '#064e3b', fontWeight: 800 }}>
-                    <th style={{ padding: '14px 18px' }}>Plot Number</th>
-                    <th style={{ padding: '14px 18px' }}>Colony Township</th>
-                    <th style={{ padding: '14px 18px' }}>Dimension & Area</th>
-                    <th style={{ padding: '14px 18px' }}>Road Facing</th>
-                    <th style={{ padding: '14px 18px' }}>Total Price</th>
-                    <th style={{ padding: '14px 18px' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {plotInventory.map((p, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '14px 18px', fontWeight: 800, color: '#0f172a' }}>{p.plotNo}</td>
-                      <td style={{ padding: '14px 18px', color: '#047857', fontWeight: 700 }}>{p.colony}</td>
-                      <td style={{ padding: '14px 18px' }}>{p.size}</td>
-                      <td style={{ padding: '14px 18px', color: '#64748b' }}>{p.facing}</td>
-                      <td style={{ padding: '14px 18px', fontWeight: 900, color: '#064e3b' }}>{p.price}</td>
-                      <td style={{ padding: '14px 18px' }}>
-                        <span
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: '20px',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            background: p.status === 'Available' ? '#ecfdf5' : '#fef3c7',
-                            color: p.status === 'Available' ? '#047857' : '#d97706',
-                          }}
-                        >
-                          {p.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Interactive EMI Calculator Section ── */}
-      <section id="emi-calculator" style={{ padding: '4.5rem 2.5rem', maxWidth: '1000px', margin: '0 auto' }}>
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)',
-            color: '#ffffff',
-            borderRadius: '24px',
-            padding: '3rem 2.5rem',
-            boxShadow: '0 20px 40px rgba(6, 78, 59, 0.25)',
-          }}
-        >
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, margin: '0 0 6px', color: '#ffffff' }}>
-              Instant Plot EMI Calculator
-            </h2>
-            <p style={{ margin: 0, fontSize: '0.95rem', color: '#a7f3d0' }}>
-              Estimate your monthly instalment for 12 to 60 months with zero penalty prepayment.
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#d1fae5', marginBottom: '6px' }}>
-                Total Plot Price (₹)
-              </label>
-              <input
-                type="number"
-                value={plotPrice}
-                onChange={(e) => setPlotPrice(Number(e.target.value))}
-                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '1rem', fontWeight: 800, outline: 'none' }}
+            {/* Right Image: Luxury Villa & Plotted Greenery with Location Marker */}
+            <div style={{ position: 'relative' }}>
+              <img
+                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
+                alt="Dream Plot Villa"
+                style={{
+                  width: '100%',
+                  height: 'clamp(280px, 40vw, 440px)',
+                  objectFit: 'cover',
+                  borderRadius: '24px',
+                  boxShadow: '0 20px 40px rgba(5, 150, 105, 0.18)',
+                }}
               />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#d1fae5', marginBottom: '6px' }}>
-                Down Payment (₹)
-              </label>
-              <input
-                type="number"
-                value={downPayment}
-                onChange={(e) => setDownPayment(Number(e.target.value))}
-                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '1rem', fontWeight: 800, outline: 'none' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#d1fae5', marginBottom: '6px' }}>
-                Tenure (Years: 1 to 5)
-              </label>
-              <select
-                value={tenureYears}
-                onChange={(e) => setTenureYears(Number(e.target.value))}
-                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: '#064e3b', color: '#fff', fontSize: '1rem', fontWeight: 800, outline: 'none' }}
+              {/* Red Location Pin Badge */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '30%',
+                  left: '42%',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 20px rgba(239, 68, 68, 0.4)',
+                  border: '3px solid #ffffff',
+                }}
               >
-                <option value={1}>1 Year (12 Months)</option>
-                <option value={2}>2 Years (24 Months)</option>
-                <option value={3}>3 Years (36 Months)</option>
-                <option value={5}>5 Years (60 Months)</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px', padding: '1.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.9rem', color: '#a7f3d0', fontWeight: 700 }}>Estimated Monthly Instalment</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fef08a', margin: '6px 0' }}>
-              ₹{calculateMonthlyEmi().toLocaleString()} / month
-            </div>
-            <div style={{ fontSize: '0.8rem', color: '#d1fae5' }}>
-              Loan Amount: ₹{(plotPrice - downPayment).toLocaleString()} • Rate: {interestRate}% P.A. • No Hidden Charges
+                <MapPin size={24} />
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer style={{ background: '#022c22', color: '#d1fae5', padding: '3.5rem 2.5rem 2rem' }}>
-        <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2.5rem', marginBottom: '2.5rem' }}>
-          <div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginBottom: '8px' }}>KASHI REAL ESTATE PLOTTING</div>
-            <p style={{ fontSize: '0.85rem', color: '#a7f3d0', lineHeight: 1.6, margin: 0 }}>
-              Leading developer of RERA-approved gated townships, residential plots, and highway commercial spaces in Varanasi with direct sub-registrar office registration.
-            </p>
+      {/* ── Our Plotting Services (5 Cards Matching Screenshot) ── */}
+      <section style={{ padding: 'clamp(3rem, 5vw, 4.5rem) 0' }}>
+        <div className="kashiplot-container">
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              OUR PLOTING SERVICES
+            </span>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 3.2vw, 2.3rem)', fontWeight: 900, color: '#064e3b', margin: '6px 0 8px' }}>
+              Complete Solution for Your Land & Property Needs
+            </h2>
           </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#ffffff', marginBottom: '12px' }}>Site Office Address</div>
-            <div style={{ fontSize: '0.85rem', color: '#a7f3d0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div>📍 Green Valley Complex, Varanasi-Prayagraj 6-Lane Expressway</div>
-              <div>📞 Phone: +91 98765 22334 / 0542-221199</div>
-              <div>✉️ Email: sales@kashiplotting.com</div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.5rem' }}>
+            {servicesList.map((srv) => {
+              const SrvIcon = srv.icon;
+              return (
+                <div
+                  key={srv.id}
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '18px',
+                    padding: '2rem 1.5rem',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '12px',
+                    transition: 'transform 0.15s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '16px',
+                      background: '#ecfdf5',
+                      color: '#059669',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <SrvIcon size={30} />
+                  </div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#064e3b', margin: 0 }}>
+                    {srv.name}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.55, margin: 0 }}>
+                    {srv.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── About Us Section (Matching Screenshot) ── */}
+      <section style={{ padding: 'clamp(3rem, 5vw, 4.5rem) 0', background: '#f0fdf4', borderTop: '1px solid #d1fae5', borderBottom: '1px solid #d1fae5' }}>
+        <div className="kashiplot-container">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
+              gap: 'clamp(2rem, 4vw, 3.5rem)',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                ABOUT US
+              </span>
+              <h2 style={{ fontSize: 'clamp(1.9rem, 3.2vw, 2.5rem)', fontWeight: 900, color: '#064e3b', margin: '6px 0 12px' }}>
+                Trusted Name in Ploting Services
+              </h2>
+              <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.65, margin: '0 0 1.5rem' }}>
+                We provide the best plotting solutions with transparency, trust and professional support. Your dream property is our commitment. All our colonies have clear 143 conversion documents and bank loan facility.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '2rem' }}>
+                {[
+                  'Prime Location',
+                  'Clear Documents',
+                  'Secure Investment',
+                  'Excellent Support',
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13.5px', fontWeight: 700, color: '#064e3b' }}>
+                    <CheckCircle2 size={18} color="#059669" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedPlot('General Property Consultation');
+                  setBookModalOpen(true);
+                }}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  background: '#059669',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '13.5px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>Learn More</span>
+                <ArrowRight size={15} />
+              </button>
             </div>
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#ffffff', marginBottom: '12px' }}>Office Hours</div>
-            <div style={{ fontSize: '0.85rem', color: '#a7f3d0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div>Monday - Sunday: 09:00 AM - 07:00 PM</div>
-              <div>Site Visits: Daily free cab pick-and-drop from Varanasi Cantt</div>
+
+            {/* Right Plotted Land Image + 1000+ Happy Customers Badge */}
+            <div style={{ position: 'relative' }}>
+              <img
+                src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=700&q=80"
+                alt="Plotted Lands"
+                style={{
+                  width: '100%',
+                  height: 'clamp(280px, 38vw, 380px)',
+                  objectFit: 'cover',
+                  borderRadius: '20px',
+                  boxShadow: '0 16px 36px rgba(5, 150, 105, 0.15)',
+                }}
+              />
+              {/* Floating Badge */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: -15,
+                  right: 20,
+                  background: '#059669',
+                  color: '#ffffff',
+                  padding: '12px 22px',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  boxShadow: '0 10px 24px rgba(5, 150, 105, 0.35)',
+                }}
+              >
+                <Users size={24} />
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: '1.25rem', lineHeight: 1 }}>1000+</div>
+                  <div style={{ fontSize: '11px', fontWeight: 700 }}>Happy Customers</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </section>
 
-        <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '12px', color: '#a7f3d0' }}>
-          © 2026 Kashi Real Estate Plotting & Colonies. Real Estate Division of Kashi Service Enterprise Ecosystem.
+      {/* ── Featured Plots Section (Matching 3 Cards in Screenshot) ── */}
+      <section id="featured-plots" style={{ padding: 'clamp(3rem, 5vw, 4.5rem) 0' }}>
+        <div className="kashiplot-container">
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              FEATURED PLOTS
+            </span>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 3.2vw, 2.3rem)', fontWeight: 900, color: '#064e3b', margin: '6px 0 8px' }}>
+              Explore Our Top Featured Plots
+            </h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.75rem' }}>
+            {featuredPlots.map((plot) => (
+              <div
+                key={plot.id}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  overflow: 'hidden',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ height: '200px', position: 'relative' }}>
+                    <img src={plot.img} alt={plot.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        background: '#059669',
+                        color: '#ffffff',
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        padding: '4px 12px',
+                        borderRadius: '999px',
+                      }}
+                    >
+                      {plot.status}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '1.25rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#064e3b', margin: '0 0 4px' }}>
+                      {plot.title}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#64748b', fontSize: '12px', marginBottom: 12 }}>
+                      <MapPin size={13} color="#059669" />
+                      <span>{plot.location}</span>
+                    </div>
+
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#059669' }}>
+                      {plot.price}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ padding: '0 1.25rem 1.25rem' }}>
+                  <button
+                    onClick={() => {
+                      setSelectedPlot(`${plot.title} (${plot.location} - ${plot.price})`);
+                      setBookModalOpen(true);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      background: '#059669',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <span>View Details</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Green Callout Banner: "Let's Find Your Perfect Plot Today!" ── */}
+      <section
+        style={{
+          background: 'linear-gradient(90deg, #064e3b 0%, #047857 50%, #065f46 100%)',
+          color: '#ffffff',
+          padding: '2.5rem 0',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div className="kashiplot-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '26px',
+                flexShrink: 0,
+              }}
+            >
+              🤝
+            </div>
+            <div>
+              <h3 style={{ fontSize: 'clamp(1.25rem, 2.5vw, 1.6rem)', fontWeight: 900, margin: '0 0 4px', color: '#ffffff' }}>
+                Let's Find Your Perfect Plot Today!
+              </h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#a7f3d0' }}>
+                Get in touch with us for the best deals, immediate registry and expert legal guidance.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setSelectedPlot('Express Inquiry');
+              setBookModalOpen(true);
+            }}
+            style={{
+              padding: '11px 24px',
+              borderRadius: '999px',
+              background: '#facc15',
+              color: '#064e3b',
+              border: 'none',
+              fontWeight: 900,
+              fontSize: '13.5px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+            }}
+          >
+            <span>Contact Us</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      </section>
+
+      {/* ── Footer Matching Screenshot ── */}
+      <footer style={{ background: '#ffffff', borderTop: '1px solid #e2e8f0', padding: '2rem 0' }}>
+        <div className="kashiplot-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Trees size={20} color="#059669" />
+            <span style={{ fontWeight: 900, fontSize: '14px', color: '#064e3b' }}>Ploting Services</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '16px', fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>
+            <span style={{ cursor: 'pointer' }} onClick={() => setActiveTab('HOME')}>Home</span>
+            <span style={{ cursor: 'pointer' }} onClick={() => setActiveTab('PLOTS')}>Plots</span>
+            <span style={{ cursor: 'pointer' }} onClick={() => setActiveTab('ABOUT')}>About Us</span>
+            <span style={{ cursor: 'pointer' }} onClick={() => setActiveTab('GALLERY')}>Gallery</span>
+            <span style={{ cursor: 'pointer' }} onClick={() => setActiveTab('CONTACT')}>Contact</span>
+          </div>
+
+          <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+            © 2026 Ploting Services (KashiPlot). All Rights Reserved.
+          </div>
         </div>
       </footer>
+
+      {/* ── Booking / Inquiry Modal ── */}
+      {bookModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: '#ffffff', borderRadius: '20px', width: '100%', maxWidth: '460px', padding: '1.75rem', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#064e3b' }}>
+                  🏡 Book Plot / Site Visit
+                </h3>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>Kashi Plotting Services • Varanasi</div>
+              </div>
+              <button onClick={() => setBookModalOpen(false)} style={{ border: 'none', background: '#f1f5f9', borderRadius: '8px', padding: 6, cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {bookingSuccess ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <CheckCircle2 size={40} color="#059669" style={{ margin: '0 auto 10px' }} />
+                <h4 style={{ margin: '0 0 6px', fontWeight: 900, fontSize: '1.2rem', color: '#0f172a' }}>Inquiry Received!</h4>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                  Thank you <strong>{inquiryForm.name}</strong>. Our senior property advisor will call you on {inquiryForm.phone} to arrange a free site visit cab!
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleBookingSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    Your Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Rahul Sharma"
+                    value={inquiryForm.name}
+                    onChange={(e) => setInquiryForm({ ...inquiryForm, name: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    Phone Number (WhatsApp) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+91 98765 43210"
+                    value={inquiryForm.phone}
+                    onChange={(e) => setInquiryForm({ ...inquiryForm, phone: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    Selected Plot / Location
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedPlot || inquiryForm.plotType}
+                    onChange={(e) => setSelectedPlot(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#f8fafc' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Preferred Visit Date
+                    </label>
+                    <input
+                      type="date"
+                      value={inquiryForm.preferredDate}
+                      onChange={(e) => setInquiryForm({ ...inquiryForm, preferredDate: e.target.value })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Budget Range
+                    </label>
+                    <select
+                      value={inquiryForm.budget}
+                      onChange={(e) => setInquiryForm({ ...inquiryForm, budget: e.target.value })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    >
+                      <option>₹10 Lakh - ₹20 Lakh</option>
+                      <option>₹20 Lakh - ₹35 Lakh</option>
+                      <option>₹35 Lakh - ₹50 Lakh</option>
+                      <option>₹50 Lakh+</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
+                  <button type="button" onClick={() => setBookModalOpen(false)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Schedule Visit</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Video Tour Modal */}
+      {videoModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: '#000', borderRadius: '16px', overflow: 'hidden', width: '100%', maxWidth: '640px', position: 'relative' }}>
+            <button onClick={() => setVideoModalOpen(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '50%', padding: 6, cursor: 'pointer', zIndex: 10 }}>
+              <X size={20} />
+            </button>
+            <div style={{ padding: '3rem 2rem', textAlign: 'center', color: '#fff' }}>
+              <Trees size={48} color="#10b981" style={{ margin: '0 auto 1rem' }} />
+              <h3 style={{ margin: '0 0 8px', fontSize: '1.3rem', fontWeight: 900 }}>Kashi Plotting Video Walkthrough</h3>
+              <p style={{ color: '#94a3b8', fontSize: '13px', margin: 0 }}>Aerial drone tour of Kashi Green Valley, Sarnath Ring Road & Bhaisodi Farmhouse Townships.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

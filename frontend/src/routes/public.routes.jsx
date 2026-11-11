@@ -46,6 +46,7 @@ export const PublicRoutes = (
 
     {/* Dedicated Real Estate Plotting & Colonies Website */}
     <Route path="/plotting" element={<RealEstatePlottingWebsite />} />
+    <Route path="/kashiplot" element={<RealEstatePlottingWebsite />} />
     <Route path="/real-estate" element={<RealEstatePlottingWebsite />} />
     <Route path="/colonies" element={<RealEstatePlottingWebsite />} />
 
