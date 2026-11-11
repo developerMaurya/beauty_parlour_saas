@@ -105,9 +105,12 @@ export const AdminRoutes = (
       <Route path="rent-tenants" element={<RentTenantsManagement />} />
       <Route path="tenants" element={<RentTenantsManagement />} />
 
-      {/* ── 5. RB Software Hub Sub-Routes ── */}
+      {/* ── 5. RB Software & Media Hub Sub-Routes ── */}
       <Route path="rb-software" element={<RBSoftwareDashboard />} />
       <Route path="software" element={<RBSoftwareDashboard />} />
+      <Route path="media" element={<RBSoftwareDashboard />} />
+      <Route path="rb-media" element={<RBSoftwareDashboard />} />
+      <Route path="photography" element={<RBSoftwareDashboard />} />
       <Route path="software-clients" element={<SoftwareClientsManagement />} />
 
       {/* ── Business Overview Master Manager ── */}

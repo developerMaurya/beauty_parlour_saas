@@ -51,6 +51,8 @@ import {
   Image,
   MessageSquareQuote,
   FileText,
+  Camera,
+  Video,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -62,7 +64,7 @@ export const TenantAdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Determine current active business vertical: 'PARLOUR' | 'PLOTTING' | 'RENT' | 'EVENTS'
+  // Determine current active business vertical: 'PARLOUR' | 'PLOTTING' | 'RENT' | 'EVENTS' | 'SOFTWARE'
   const isPlottingRoute =
     location.pathname.includes('plotting') ||
     location.pathname.includes('plot') ||
@@ -80,12 +82,30 @@ export const TenantAdminLayout = () => {
     location.pathname.includes('decor') ||
     location.pathname.includes('aadiyogi');
 
+  const isSoftwareRoute =
+    location.pathname.includes('software') ||
+    location.pathname.includes('tech') ||
+    location.pathname.includes('media') ||
+    location.pathname.includes('photography') ||
+    location.pathname.includes('videography') ||
+    location.pathname.includes('camera');
+
   const [activeVertical, setActiveVertical] = useState(
-    isEventsRoute ? 'EVENTS' : isRentRoute ? 'RENT' : isPlottingRoute ? 'PLOTTING' : 'PARLOUR'
+    isSoftwareRoute
+      ? 'SOFTWARE'
+      : isEventsRoute
+      ? 'EVENTS'
+      : isRentRoute
+      ? 'RENT'
+      : isPlottingRoute
+      ? 'PLOTTING'
+      : 'PARLOUR'
   );
 
   useEffect(() => {
-    if (isEventsRoute) {
+    if (isSoftwareRoute) {
+      setActiveVertical('SOFTWARE');
+    } else if (isEventsRoute) {
       setActiveVertical('EVENTS');
     } else if (isRentRoute) {
       setActiveVertical('RENT');
@@ -99,7 +119,7 @@ export const TenantAdminLayout = () => {
     ) {
       setActiveVertical('PARLOUR');
     }
-  }, [location.pathname, isPlottingRoute, isRentRoute, isEventsRoute]);
+  }, [location.pathname, isPlottingRoute, isRentRoute, isEventsRoute, isSoftwareRoute]);
 
   // Multi-vertical dropdown state
   const [verticalsDropdownOpen, setVerticalsDropdownOpen] = useState(false);
@@ -189,11 +209,30 @@ export const TenantAdminLayout = () => {
     { label: 'Support', path: '/admin/support', icon: Headphones },
   ];
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 5. RB SOFTWARE & MEDIA TECH HUB (Cyber Slate & Electric Blue/Indigo Theme)
+  // ══════════════════════════════════════════════════════════════════════════
+  const softwareMenuItems = [
+    { label: 'Dashboard', path: '/admin/rb-software', icon: LayoutDashboard },
+    { label: 'Cloud Microservices', path: '/admin/rb-software?tab=software', icon: Code2 },
+    { label: 'Camera & Photo Studio', path: '/admin/rb-software?tab=media', icon: Camera },
+    { label: '4K Drone & Video', path: '/admin/rb-software?tab=videography', icon: Video },
+    { label: 'Equipment Inventory', path: '/admin/rb-software?tab=gear', icon: Box },
+    { label: 'Estimates & Quotes', path: '/admin/rb-software?tab=proposals', icon: FileText },
+    { label: 'Clients & Contracts', path: '/admin/software-clients', icon: Users },
+    { label: 'Public Tech Website', path: '/software', icon: Globe, isExternal: true },
+    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
+    { label: 'Settings', path: '/admin/settings', icon: Settings },
+    { label: 'Notifications', path: '/admin/notifications', icon: Bell, badge: '2', badgeColor: '#38bdf8' },
+    { label: 'Support', path: '/admin/support', icon: Headphones },
+  ];
+
   // Colors & Configuration for Active Vertical
   const isParlour = activeVertical === 'PARLOUR';
   const isPlotting = activeVertical === 'PLOTTING';
   const isRent = activeVertical === 'RENT';
   const isEvents = activeVertical === 'EVENTS';
+  const isSoftware = activeVertical === 'SOFTWARE';
 
   const sidebarBg = isParlour
     ? '#241434'
@@ -201,14 +240,18 @@ export const TenantAdminLayout = () => {
     ? '#0a2618'
     : isRent
     ? '#0d1b2a'
-    : '#180527'; // Deep royal twilight purple for Jay Gurudev Events
+    : isEvents
+    ? '#180527'
+    : '#0b0f19'; // Cyber slate obsidian for RB Software & Media
   const activePillBg = isParlour
     ? '#7e22ce'
     : isPlotting
     ? '#16a34a'
     : isRent
     ? '#facc15'
-    : '#facc15'; // Golden Yellow pill
+    : isEvents
+    ? '#facc15'
+    : '#6366f1'; // Indigo glow pill
   const activeTextColor = isRent || isEvents ? '#0f172a' : '#ffffff';
   const accentColor = isParlour
     ? '#c084fc'
@@ -216,7 +259,9 @@ export const TenantAdminLayout = () => {
     ? '#4ade80'
     : isRent
     ? '#facc15'
-    : '#facc15';
+    : isEvents
+    ? '#facc15'
+    : '#38bdf8';
 
   if (isLoading) {
     return (
@@ -350,7 +395,7 @@ export const TenantAdminLayout = () => {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : isEvents ? (
             /* Jay Gurudev Event & Management Header */
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
@@ -382,6 +427,37 @@ export const TenantAdminLayout = () => {
                 </div>
               </div>
             </div>
+          ) : (
+            /* RB Software & Media Tech Hub Header */
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              onClick={() => navigate('/admin/rb-software')}
+            >
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #38bdf8 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+                  flexShrink: 0,
+                }}
+              >
+                <Code2 size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff', lineHeight: 1.1 }}>
+                  RB Software & Media
+                </div>
+                <div style={{ fontSize: '9px', color: '#38bdf8', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
+                  TECH & CINEMA HUB
+                </div>
+              </div>
+            </div>
           )}
 
           {mobileMenuOpen && (
@@ -394,9 +470,9 @@ export const TenantAdminLayout = () => {
           )}
         </div>
 
-        {/* ── 4-Vertical Switcher Buttons (Parlour ⟷ Plotting ⟷ Rent ⟷ Events) ── */}
+        {/* ── 5-Vertical Switcher Buttons (Parlour ⟷ Plotting ⟷ Rent ⟷ Events ⟷ Software/Media) ── */}
         <div style={{ padding: '0.75rem 0.85rem 0.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', background: 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', background: 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '10px' }}>
             <button
               onClick={() => {
                 setActiveVertical('PARLOUR');
@@ -409,7 +485,7 @@ export const TenantAdminLayout = () => {
                 background: isParlour ? '#7e22ce' : 'transparent',
                 color: isParlour ? '#ffffff' : '#94a3b8',
                 fontWeight: isParlour ? 800 : 600,
-                fontSize: '9.5px',
+                fontSize: '9px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 textAlign: 'center',
@@ -429,7 +505,7 @@ export const TenantAdminLayout = () => {
                 background: isPlotting ? '#16a34a' : 'transparent',
                 color: isPlotting ? '#ffffff' : '#94a3b8',
                 fontWeight: isPlotting ? 800 : 600,
-                fontSize: '9.5px',
+                fontSize: '9px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 textAlign: 'center',
@@ -449,7 +525,7 @@ export const TenantAdminLayout = () => {
                 background: isRent ? '#facc15' : 'transparent',
                 color: isRent ? '#0f172a' : '#94a3b8',
                 fontWeight: isRent ? 800 : 600,
-                fontSize: '9.5px',
+                fontSize: '9px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 textAlign: 'center',
@@ -469,7 +545,7 @@ export const TenantAdminLayout = () => {
                 background: isEvents ? '#facc15' : 'transparent',
                 color: isEvents ? '#0f172a' : '#94a3b8',
                 fontWeight: isEvents ? 800 : 600,
-                fontSize: '9.5px',
+                fontSize: '9px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 textAlign: 'center',
@@ -477,12 +553,32 @@ export const TenantAdminLayout = () => {
             >
               🔱 Event
             </button>
+            <button
+              onClick={() => {
+                setActiveVertical('SOFTWARE');
+                navigate('/admin/rb-software');
+              }}
+              style={{
+                padding: '6px 1px',
+                borderRadius: '8px',
+                border: 'none',
+                background: isSoftware ? '#6366f1' : 'transparent',
+                color: isSoftware ? '#ffffff' : '#94a3b8',
+                fontWeight: isSoftware ? 800 : 600,
+                fontSize: '9px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                textAlign: 'center',
+              }}
+            >
+              💻 Tech
+            </button>
           </div>
         </div>
 
         {/* ── Main Navigation Menu Items ── */}
         <div style={{ padding: '0.65rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
-          {(isParlour ? parlourMenuItems : isPlotting ? plottingMenuItems : isRent ? rentMenuItems : eventsMenuItems).map((item, idx) => {
+          {(isParlour ? parlourMenuItems : isPlotting ? plottingMenuItems : isRent ? rentMenuItems : isEvents ? eventsMenuItems : softwareMenuItems).map((item, idx) => {
             const Icon = item.icon;
             const isActive =
               location.pathname === item.path ||
@@ -493,7 +589,9 @@ export const TenantAdminLayout = () => {
                   ? location.pathname === '/admin/plotting'
                   : isRent
                   ? location.pathname === '/admin/rent-office' || location.pathname === '/admin/rent'
-                  : location.pathname === '/admin/event-decoration' || location.pathname === '/admin/events'));
+                  : isEvents
+                  ? location.pathname === '/admin/event-decoration' || location.pathname === '/admin/events'
+                  : location.pathname === '/admin/rb-software' || location.pathname === '/admin/software'));
 
             if (item.isExternal) {
               return (

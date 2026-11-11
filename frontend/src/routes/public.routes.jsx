@@ -62,10 +62,15 @@ export const PublicRoutes = (
     <Route path="/office-godam" element={<RentOfficeWebsite />} />
     <Route path="/kashi-office-godam" element={<RentOfficeWebsite />} />
 
-    {/* Dedicated RB Software & Tech Hub Website */}
+    {/* Dedicated RB Software & Tech Hub / Media & Camera Studio Website */}
     <Route path="/software" element={<RBSoftwareWebsite />} />
     <Route path="/rb-software" element={<RBSoftwareWebsite />} />
     <Route path="/tech" element={<RBSoftwareWebsite />} />
+    <Route path="/media" element={<RBSoftwareWebsite />} />
+    <Route path="/photography" element={<RBSoftwareWebsite />} />
+    <Route path="/videography" element={<RBSoftwareWebsite />} />
+    <Route path="/camera" element={<RBSoftwareWebsite />} />
+    <Route path="/rb-media" element={<RBSoftwareWebsite />} />
 
     {/* Booking and Salon Inner Pages */}
     <Route element={<PublicLayout />}>
