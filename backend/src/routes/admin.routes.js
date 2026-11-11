@@ -57,6 +57,7 @@ router.use(branchContextMiddleware);
 // ==========================================
 router.get('/dashboard', requirePermission('dashboard.view'), dashCtrl.getDashboardOverview);
 router.get('/dashboard/overview', requirePermission('dashboard.view'), dashCtrl.getDashboardOverview);
+router.get('/dashboard/business-overview', requirePermission('dashboard.view'), dashCtrl.getBusinessOverview);
 router.get('/dashboard/operations-queue', requirePermission('dashboard.view'), dashCtrl.getOperationsQueue);
 router.post('/dashboard/assign-product', requirePermission('inventory.update'), dashCtrl.assignProductToStaff);
 router.patch('/dashboard/home-services/:appointmentId/status', requirePermission('appointments.update'), dashCtrl.updateHomeServiceStatus);

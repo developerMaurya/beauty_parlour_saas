@@ -40,6 +40,9 @@ export const createStaff = async (req, res) => {
       address,
       emergencyContact,
       notes,
+      businessVertical,
+      verticalRole,
+      customFields,
     } = req.body;
 
     const finalBranchId = branchId || branch;
@@ -110,6 +113,9 @@ export const createStaff = async (req, res) => {
       address: address || {},
       emergencyContact: emergencyContact || {},
       notes: notes || '',
+      businessVertical: (businessVertical || 'BEAUTY').toUpperCase(),
+      verticalRole: (verticalRole || 'STAFF').toUpperCase(),
+      customFields: customFields || {},
       status: 'active',
     });
 
@@ -144,6 +150,8 @@ export const getStaffList = async (req, res) => {
 
     if (req.query.departmentId) filter.departmentId = req.query.departmentId;
     if (req.query.designationId) filter.designationId = req.query.designationId;
+    if (req.query.businessVertical) filter.businessVertical = req.query.businessVertical.toUpperCase();
+    if (req.query.verticalRole) filter.verticalRole = req.query.verticalRole.toUpperCase();
 
     if (req.query.search) {
       filter.$or = [

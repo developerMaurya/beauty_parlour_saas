@@ -376,9 +376,6 @@ export const seedDemoTenant = async () => {
   console.log('\n--- 4. CUSTOMER PORTAL (/customer/login) ---');
   console.log('  Phone/Email:  9876543210  (or customer@blossom.com)');
   console.log('  Password:     Customer@123');
-  console.log('\n--- 5. SUPER ADMIN PORTAL (/superadmin/login) ---');
-  console.log('  Email:        superadmin@beautysaas.local');
-  console.log('  Password:     SuperAdmin@Secure2026!');
   console.log('======================================================\n');
 
   // Only disconnect if invoked directly as standalone script

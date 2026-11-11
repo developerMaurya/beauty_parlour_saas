@@ -220,6 +220,21 @@ export const StaffSchema = new Schema(
       default: 'active',
     },
     notes: { type: String, default: '' },
+    businessVertical: {
+      type: String,
+      enum: ['BEAUTY', 'EVENTS', 'PLOTTING', 'RENT', 'SOFTWARE', 'beauty', 'events', 'plotting', 'rent', 'software'],
+      default: 'BEAUTY',
+      index: true,
+    },
+    verticalRole: {
+      type: String,
+      default: 'STAFF', // 'STAFF' | 'CREW' | 'AGENT' | 'TECHNICIAN' | 'DEVELOPER'
+      index: true,
+    },
+    customFields: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 );
@@ -568,6 +583,21 @@ export const CustomerSchema = new Schema(
     blockReason: { type: String, default: '' },
     tags: [{ type: String }],
     notes: { type: String, default: '' },
+    businessVertical: {
+      type: String,
+      enum: ['BEAUTY', 'EVENTS', 'PLOTTING', 'RENT', 'SOFTWARE', 'beauty', 'events', 'plotting', 'rent', 'software'],
+      default: 'BEAUTY',
+      index: true,
+    },
+    verticalRole: {
+      type: String,
+      default: 'CLIENT', // 'CLIENT' | 'BUYER' | 'TENANT' | 'EVENT_HOST' | 'TECH_CLIENT'
+      index: true,
+    },
+    customFields: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 );

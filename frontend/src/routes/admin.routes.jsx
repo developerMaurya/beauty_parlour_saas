@@ -1,7 +1,12 @@
 /**
  * @file admin.routes.jsx
- * @description Routing Definitions for Tenant Admin Panel.
- * Conforms to Section 65 requirements.
+ * @description Routing Definitions for Master Admin Panel & Multi-Vertical Business Dashboards.
+ * Includes:
+ *   1. Golden Beauty Parlour: Users, Staff, Students, Appointments, Billing, Products, History
+ *   2. Jay Gurudev Event Decoration: Stage Decor, Lighting, Event Bookings, Clients & Crew
+ *   3. Real Estate Plotting: Colony Layouts, Available/Sold Plots, Buyers, Agents & Commissions
+ *   4. Office / Rent Commercial: Leased Units, Vacant Offices, Tenants & Rent Receipts
+ *   5. RB Software Hub: Microservices, APIs, Cloud Clusters & Software Portfolio
  * @module frontend/src/routes/admin.routes
  */
 
@@ -11,6 +16,16 @@ import { Route, Navigate } from 'react-router-dom';
 import TenantAdminLayout from '../layouts/TenantAdminLayout.jsx';
 import AdminLoginPage from '../modules/admin/pages/AdminLoginPage.jsx';
 import AdminDashboardPage from '../modules/admin/pages/AdminDashboardPage.jsx';
+import BusinessDirectoryManager from '../modules/admin/pages/BusinessDirectoryManager.jsx';
+import EventDecorationDashboard from '../modules/admin/pages/EventDecorationDashboard.jsx';
+import EventUsersManagement from '../modules/admin/pages/EventUsersManagement.jsx';
+import PlottingDashboard from '../modules/admin/pages/PlottingDashboard.jsx';
+import PlottingUsersManagement from '../modules/admin/pages/PlottingUsersManagement.jsx';
+import RentOfficeDashboard from '../modules/admin/pages/RentOfficeDashboard.jsx';
+import RentTenantsManagement from '../modules/admin/pages/RentTenantsManagement.jsx';
+import RBSoftwareDashboard from '../modules/admin/pages/RBSoftwareDashboard.jsx';
+import SoftwareClientsManagement from '../modules/admin/pages/SoftwareClientsManagement.jsx';
+
 import BranchManagementPage from '../modules/admin/pages/BranchManagementPage.jsx';
 import StructureManagementPage from '../modules/admin/pages/StructureManagementPage.jsx';
 import RolePermissionPage from '../modules/admin/pages/RolePermissionPage.jsx';
@@ -38,47 +53,63 @@ import ReceptionistFrontDeskPage from '../modules/admin/pages/ReceptionistFrontD
 
 export const AdminRoutes = (
   <>
-    {/* Public Tenant Login */}
+    {/* Public Admin Login */}
     <Route path="/admin/login" element={<AdminLoginPage />} />
 
-    {/* Protected Tenant Admin Workspace */}
+    {/* Protected Master Admin Workspace */}
     <Route path="/admin" element={<TenantAdminLayout />}>
       <Route index element={<Navigate to="/admin/dashboard" replace />} />
+
+      {/* ── 1. Golden Beauty Parlour Sub-Routes ── */}
       <Route path="dashboard" element={<AdminDashboardPage />} />
-      <Route path="branches" element={<BranchManagementPage />} />
-      <Route path="structure" element={<StructureManagementPage />} />
-      <Route path="roles" element={<RolePermissionPage />} />
-      <Route path="permissions" element={<RolePermissionPage />} />
-      <Route path="users" element={<UserManagementPage />} />
-      <Route path="crm" element={<CRMPage />} />
-      <Route path="receptionist" element={<ReceptionistFrontDeskPage />} />
-      <Route path="frontdesk" element={<ReceptionistFrontDeskPage />} />
-      <Route path="tracking" element={<LiveTrackingPage />} />
-      <Route path="notifications" element={<NotificationsPage />} />
-      <Route path="support" element={<SupportCenterPage />} />
-      <Route path="profile" element={<AdminProfilePage />} />
-      <Route path="staff" element={<StaffManagementPage />} />
-      <Route path="attendance" element={<AttendanceLeavesPage />} />
-      <Route path="leaves" element={<AttendanceLeavesPage />} />
-      <Route path="students" element={<StudentAcademyPage />} />
-      <Route path="student-plans" element={<StudentAcademyPage />} />
+      <Route path="golden-beauty-parlour" element={<AdminDashboardPage />} />
+      <Route path="parlour-users" element={<CustomerManagementPage />} />
+      <Route path="parlour-staff" element={<StaffManagementPage />} />
+      <Route path="parlour-students" element={<StudentAcademyPage />} />
+      <Route path="parlour-appointments" element={<AppointmentsCalendarPage />} />
+      <Route path="parlour-services" element={<ServiceCatalogPage />} />
+      <Route path="parlour-billing" element={<BillingPOSPage />} />
+      <Route path="parlour-inventory" element={<InventorySuppliersPage />} />
+
+      {/* ── 2. Jay Gurudev Event Decoration Sub-Routes ── */}
+      <Route path="event-decoration" element={<EventDecorationDashboard />} />
+      <Route path="events" element={<EventDecorationDashboard />} />
+      <Route path="event-users" element={<EventUsersManagement />} />
+      <Route path="event-clients" element={<EventUsersManagement />} />
+
+      {/* ── 3. Real Estate Plotting Sub-Routes ── */}
+      <Route path="plotting" element={<PlottingDashboard />} />
+      <Route path="real-estate" element={<PlottingDashboard />} />
+      <Route path="plotting-users" element={<PlottingUsersManagement />} />
+      <Route path="plotting-agents" element={<PlottingUsersManagement />} />
+
+      {/* ── 4. Office & Commercial Rent Sub-Routes ── */}
+      <Route path="rent-office" element={<RentOfficeDashboard />} />
+      <Route path="office-rent" element={<RentOfficeDashboard />} />
+      <Route path="rent-tenants" element={<RentTenantsManagement />} />
+      <Route path="tenants" element={<RentTenantsManagement />} />
+
+      {/* ── 5. RB Software Hub Sub-Routes ── */}
+      <Route path="rb-software" element={<RBSoftwareDashboard />} />
+      <Route path="software" element={<RBSoftwareDashboard />} />
+      <Route path="software-clients" element={<SoftwareClientsManagement />} />
+
+      {/* ── Business Overview Master Manager ── */}
+      <Route path="business-folders" element={<BusinessDirectoryManager />} />
+      <Route path="overview" element={<BusinessDirectoryManager />} />
+
+      {/* ── Shared Modules ── */}
       <Route path="customers" element={<CustomerManagementPage />} />
+      <Route path="staff" element={<StaffManagementPage />} />
+      <Route path="students" element={<StudentAcademyPage />} />
       <Route path="services" element={<ServiceCatalogPage />} />
-      <Route path="packages" element={<PackagesOffersPage />} />
-      <Route path="offers" element={<PackagesOffersPage />} />
       <Route path="appointments" element={<AppointmentsCalendarPage />} />
-      <Route path="calendar" element={<AppointmentsCalendarPage />} />
-      <Route path="home-services" element={<HomeServicesDispatchPage />} />
       <Route path="billing" element={<BillingPOSPage />} />
-      <Route path="payments" element={<BillingPOSPage />} />
       <Route path="inventory" element={<InventorySuppliersPage />} />
-      <Route path="products" element={<InventorySuppliersPage />} />
-      <Route path="facilities" element={<FacilitiesExpensesPage />} />
-      <Route path="expenses" element={<FacilitiesExpensesPage />} />
       <Route path="reports" element={<ReportsPage />} />
-      <Route path="website" element={<WebsiteCMSPage />} />
       <Route path="settings" element={<SettingsPage />} />
-      <Route path="audit-logs" element={<SettingsPage />} />
+      <Route path="profile" element={<AdminProfilePage />} />
+      <Route path="notifications" element={<NotificationsPage />} />
     </Route>
   </>
 );

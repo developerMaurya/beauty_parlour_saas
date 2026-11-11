@@ -11,6 +11,7 @@ import { Route, Navigate } from 'react-router-dom';
 import CustomerLayout from '../layouts/CustomerLayout.jsx';
 import CustomerLoginPage from '../modules/customer/pages/CustomerLoginPage.jsx';
 import CustomerRegisterPage from '../modules/customer/pages/CustomerRegisterPage.jsx';
+import CustomerForgotPasswordPage from '../modules/customer/pages/CustomerForgotPasswordPage.jsx';
 import CustomerDashboardPage from '../modules/customer/pages/CustomerDashboardPage.jsx';
 import CustomerProfilePage from '../modules/customer/pages/CustomerProfilePage.jsx';
 import CustomerServicesPage from '../modules/customer/pages/CustomerServicesPage.jsx';
@@ -42,6 +43,8 @@ export const CustomerRoutes = (
     {/* Public Customer Authentication */}
     <Route path="/customer/login" element={<CustomerLoginPage />} />
     <Route path="/customer/register" element={<CustomerRegisterPage />} />
+    <Route path="/customer/forgot-password" element={<CustomerForgotPasswordPage />} />
+    <Route path="/customer/reset-password" element={<CustomerForgotPasswordPage />} />
 
     {/* Protected Customer Portal Workspace */}
     <Route path="/customer" element={<CustomerLayout />}>

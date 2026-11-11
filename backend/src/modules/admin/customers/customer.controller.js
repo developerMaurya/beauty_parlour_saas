@@ -14,7 +14,23 @@ import { recordActivity } from '../../../utils/activity.utils.js';
 
 export const createCustomer = async (req, res) => {
   try {
-    const { name, phone, email, password, gender, dateOfBirth, anniversaryDate, address, membership, tags, notes, branchId } = req.body;
+    const {
+      name,
+      phone,
+      email,
+      password,
+      gender,
+      dateOfBirth,
+      anniversaryDate,
+      address,
+      membership,
+      tags,
+      notes,
+      branchId,
+      businessVertical,
+      verticalRole,
+      customFields,
+    } = req.body;
     if (!name || !phone) {
       return sendError(res, 'Customer name and phone number are required', [], 400);
     }
@@ -48,6 +64,9 @@ export const createCustomer = async (req, res) => {
       membership: membership || { tier: 'Standard', discountPercentage: 0 },
       tags: Array.isArray(tags) ? tags : [],
       notes: notes || '',
+      businessVertical: (businessVertical || 'BEAUTY').toUpperCase(),
+      verticalRole: (verticalRole || 'CLIENT').toUpperCase(),
+      customFields: customFields || {},
       status: 'active',
     });
 
@@ -102,6 +121,8 @@ export const getCustomers = async (req, res) => {
 
     if (req.query.gender) filter.gender = req.query.gender;
     if (req.query.membershipTier) filter['membership.tier'] = req.query.membershipTier;
+    if (req.query.businessVertical) filter.businessVertical = req.query.businessVertical.toUpperCase();
+    if (req.query.verticalRole) filter.verticalRole = req.query.verticalRole.toUpperCase();
 
     if (req.query.search) {
       filter.$or = [
