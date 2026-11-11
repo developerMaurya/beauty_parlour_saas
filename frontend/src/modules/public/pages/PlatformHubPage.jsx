@@ -20,6 +20,9 @@ import {
   Compass,
   Key,
   Code2,
+  Camera,
+  Video,
+  Film,
   Zap,
   LogIn,
   LogOut,
@@ -114,21 +117,40 @@ export default function PlatformHubPage() {
       ],
     },
     {
+      id: 'PHOTOGRAPHY',
+      name: 'RB Photography & 4K Cinema Studio',
+      category: 'Sony FX3 Cinema Rigs, Drone Filming & Weddings',
+      tagline: 'Full-frame Sony FX3 & A7 IV cinema cameras, DJI Mavic 3 Pro 5.1K aerial drones, royal wedding candids & live streaming.',
+      icon: Camera,
+      color: '#0284c7',
+      bgLight: '#f0f9ff',
+      websiteRoute: '/photography',
+      badge: 'Sony Cinema & Drone',
+      features: [
+        '🎥 Sony FX3 4K 120fps Hollywood S-Cinetone Wedding Films',
+        '📸 Royal Wedding, Candid & Pre-Wedding Couple Shoots',
+        '🚁 DJI Mavic 3 Pro Hasselblad 5.1K Aerial Drone Cinematography',
+        '📺 Multi-Camera YouTube / Facebook Live Stream Broadcast',
+        '📖 Handcrafted Italian Silk & Leatherette 40-Page Photobooks',
+        '⚡ Same-Day 24-Hour Viral Instagram Reels & Shorts Pack',
+      ],
+    },
+    {
       id: 'SOFTWARE',
       name: 'RB Software & Tech Hub',
-      category: 'Digital Systems & Cloud Solutions',
-      tagline: 'High-speed business software, billing POS, web & mobile application platforms.',
+      category: 'Enterprise Cloud SaaS, Billing ERP & Mobile Apps',
+      tagline: 'High-speed business software, OmniPOS billing with thermal print & dynamic UPI QR, web & mobile platforms.',
       icon: Code2,
       color: '#6366f1',
       bgLight: '#eef2ff',
       websiteRoute: '/software',
-      badge: 'Tech Hub',
+      badge: 'Next-Gen Tech',
       features: [
-        'Custom Business Software & Cloud Management',
-        'Smart Billing POS with GST & UPI Integration',
-        'Customer Mobile Apps & Booking Portals',
-        'Fast WhatsApp Business Messaging Automations',
-        '24/7 Cloud Support & High Security',
+        'Custom Business Software & Cloud Multi-Tenant Architecture',
+        'OmniPOS Smart Thermal Billing POS with GST & Dynamic UPI QR',
+        'Customer Mobile Booking Apps (iOS & Android Native)',
+        'Official Meta WhatsApp Business Cloud Messaging Automations',
+        '24/7 Cloud Cluster Monitoring & 99.98% Guaranteed SLA',
       ],
     },
   ];
@@ -485,7 +507,7 @@ export default function PlatformHubPage() {
               margin: '0 auto',
             }}
           >
-            Explore our businesses below — <strong>Golden Beauty Parlour</strong>, <strong>Event & Decoration</strong>, <strong>Real Estate Plotting</strong>, <strong>Office/Rent Commercial</strong>, and <strong>RB Software Solutions</strong>.
+            Explore our 6 premier business verticals below — <strong>Golden Beauty Parlour</strong>, <strong>Event & Decoration</strong>, <strong>Real Estate Plotting</strong>, <strong>Office & Commercial Rent</strong>, <strong>RB Photography & 4K Cinema Studio</strong>, and <strong>RB Software Solutions</strong>.
           </p>
         </div>
       </section>

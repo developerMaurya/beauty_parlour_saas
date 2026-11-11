@@ -352,7 +352,28 @@ Please confirm date availability and schedule our venue visit!`;
         </nav>
 
         {/* Right Actions & Mobile Hamburger */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(250, 204, 21, 0.4)',
+              color: '#facc15',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            title="Return to Master Platform Hub"
+          >
+            <Home size={15} />
+            <span>🏠 Main Page</span>
+          </button>
+
           <button
             onClick={() => setBookingModalOpen(true)}
             style={{

@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   Code2,
   Cpu,
@@ -58,12 +58,22 @@ import {
   HardDrive,
   Mic,
   Maximize2,
+  Home,
 } from 'lucide-react';
 
 export default function RBSoftwareWebsite() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'home';
+
+  // Auto-detect default tab from URL pathname (e.g. /photography -> photography)
+  const defaultTab = location.pathname.includes('photography') || location.pathname.includes('camera')
+    ? 'photography'
+    : location.pathname.includes('videography') || location.pathname.includes('media')
+    ? 'videography'
+    : 'home';
+
+  const activeTab = searchParams.get('tab') || defaultTab;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [softwareCategory, setSoftwareCategory] = useState('ALL');
@@ -111,6 +121,172 @@ export default function RBSoftwareWebsite() {
 
     return total;
   };
+
+  // Reusable High-Visibility Sub-Navigation for every Tab View
+  const renderTabTopNav = (currentTabTitle) => (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(15, 23, 42, 0.9)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '12px',
+        padding: '10px 18px',
+        marginBottom: '2rem',
+        flexWrap: 'wrap',
+        gap: '10px',
+        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+            color: '#ffffff',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 2px 10px rgba(37, 99, 235, 0.4)',
+          }}
+          title="Return to Master Platform Hub"
+        >
+          <Home size={15} /> 🏠 Main Page (All Services)
+        </button>
+        <button
+          onClick={() => handleTabChange('home')}
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: '#e2e8f0',
+            padding: '7px 14px',
+            borderRadius: '8px',
+            fontSize: '12.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ← Back to Overview
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Quick Jump:</span>
+        {[
+          { id: 'software', label: '💻 Software' },
+          { id: 'photography', label: '📸 Photography' },
+          { id: 'videography', label: '🎥 4K Video' },
+          { id: 'gear', label: '⚙️ Gear' },
+          { id: 'portfolio', label: '🎨 Portfolio' },
+          { id: 'calculator', label: '🧮 Estimator' },
+          { id: 'contact', label: '📍 Contact' },
+        ]
+          .filter((t) => t.id !== activeTab)
+          .slice(0, 4)
+          .map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#cbd5e1',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+      </div>
+    </div>
+  );
+
+  const renderTabBottomNav = () => (
+    <div
+      style={{
+        marginTop: '3.5rem',
+        padding: '1.5rem',
+        background: 'rgba(15, 23, 42, 0.85)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+            color: '#ffffff',
+            border: 'none',
+            padding: '10px 18px',
+            borderRadius: '10px',
+            fontSize: '13.5px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
+          }}
+        >
+          <Home size={16} /> 🏠 Return to Master Main Page
+        </button>
+        <button
+          onClick={() => handleTabChange('home')}
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: '#ffffff',
+            padding: '10px 16px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ← Back to Overview
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          onClick={() => handleTabChange('calculator')}
+          style={{
+            background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+            color: '#0f172a',
+            border: 'none',
+            padding: '10px 18px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 900,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 4px 14px rgba(56, 189, 248, 0.35)',
+          }}
+        >
+          <Sparkles size={15} /> Open Instant Proposal Calculator →
+        </button>
+      </div>
+    </div>
+  );
 
   const handleDispatchProposal = (e) => {
     e.preventDefault();
@@ -639,21 +815,44 @@ Please connect with me to confirm availability and schedule a consultation.`;
           </nav>
 
           {/* Right Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Direct Return to Master Main Portal Hub */}
             <button
-              onClick={() => handleTabChange('calculator')}
+              onClick={() => navigate('/')}
               style={{
-                background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
-                color: '#0f172a',
-                border: 'none',
-                padding: '9px 18px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                padding: '8px 14px',
                 borderRadius: '10px',
                 fontSize: '13px',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '7px',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              title="Return to Master Platform Hub"
+            >
+              <Home size={15} />
+              <span>🏠 Main Page</span>
+            </button>
+
+            <button
+              onClick={() => handleTabChange('calculator')}
+              style={{
+                background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                color: '#0f172a',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
                 boxShadow: '0 4px 15px rgba(56, 189, 248, 0.35)',
               }}
             >
@@ -691,6 +890,27 @@ Please connect with me to confirm availability and schedule a consultation.`;
               gap: '6px',
             }}
           >
+            {/* Master Main Page Button inside Mobile Drawer */}
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                textAlign: 'left',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.3) 0%, rgba(99, 102, 241, 0.3) 100%)',
+                border: '1px solid rgba(56, 189, 248, 0.5)',
+                color: '#38bdf8',
+                fontSize: '14px',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '6px',
+              }}
+            >
+              <Home size={18} /> 🏠 Return to Main Page (All Services Hub)
+            </button>
             {[
               { id: 'home', label: '🏠 Home Overview' },
               { id: 'software', label: '💻 Software & Cloud SaaS' },
@@ -728,44 +948,89 @@ Please connect with me to confirm availability and schedule a consultation.`;
         <div
           style={{
             width: '100%',
-            padding: '0.75rem clamp(1rem, 3.5vw, 4rem)',
-            background: 'rgba(15, 23, 42, 0.6)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+            padding: '0.85rem clamp(1rem, 3.5vw, 4rem)',
+            background: 'rgba(15, 23, 42, 0.95)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: '13px',
             color: '#94a3b8',
+            flexWrap: 'wrap',
+            gap: '10px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(99, 102, 241, 0.25) 100%)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                padding: '4px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <Home size={13} /> 🏠 Main Page (Hub)
+            </button>
+            <ChevronRight size={14} color="#64748b" />
             <span
               onClick={() => handleTabChange('home')}
-              style={{ color: '#cbd5e1', cursor: 'pointer', textDecoration: 'underline' }}
+              style={{ color: '#cbd5e1', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600 }}
             >
-              Home
+              Overview
             </span>
             <ChevronRight size={14} color="#64748b" />
-            <span style={{ color: '#38bdf8', fontWeight: 700, textTransform: 'capitalize' }}>
+            <span style={{ color: '#38bdf8', fontWeight: 800, textTransform: 'capitalize' }}>
               {activeTab.replace('-', ' ')}
             </span>
           </div>
-          <button
-            onClick={() => handleTabChange('home')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#38bdf8',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            ← Back to Home Overview
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => handleTabChange('home')}
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#e2e8f0',
+                fontSize: '12px',
+                fontWeight: 700,
+                padding: '5px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              ← Back to Overview
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 800,
+                padding: '5px 14px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
+              }}
+            >
+              <Home size={13} /> 🏠 Go to Main Page
+            </button>
+          </div>
         </div>
       )}
 
@@ -801,13 +1066,13 @@ Please connect with me to confirm availability and schedule a consultation.`;
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '1.25rem' }}>
               <span
                 style={{
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  background: 'rgba(99, 102, 241, 0.2)',
+                  border: '1px solid rgba(99, 102, 241, 0.5)',
                   color: '#a5b4fc',
-                  padding: '4px 14px',
+                  padding: '5px 16px',
                   borderRadius: '999px',
                   fontSize: '12px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -817,13 +1082,13 @@ Please connect with me to confirm availability and schedule a consultation.`;
               </span>
               <span
                 style={{
-                  background: 'rgba(56, 189, 248, 0.15)',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                  color: '#7dd3fc',
-                  padding: '4px 14px',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  border: '1px solid rgba(56, 189, 248, 0.5)',
+                  color: '#38bdf8',
+                  padding: '5px 16px',
                   borderRadius: '999px',
                   fontSize: '12px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -833,22 +1098,27 @@ Please connect with me to confirm availability and schedule a consultation.`;
               </span>
             </div>
 
+            {/* Ultra-Crisp High-Contrast Hero Headline */}
             <h1
               style={{
                 fontSize: 'clamp(2.2rem, 5.5vw, 4.2rem)',
                 fontWeight: 900,
                 letterSpacing: '-0.03em',
-                lineHeight: 1.1,
+                lineHeight: 1.15,
                 margin: '0 auto 1.25rem',
                 maxWidth: '1100px',
+                color: '#ffffff',
+                textShadow: '0 4px 30px rgba(0, 0, 0, 0.95), 0 0 20px rgba(99, 102, 241, 0.3)',
               }}
             >
               Empowering Businesses with{' '}
               <span
                 style={{
-                  background: 'linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%)',
+                  display: 'inline-block',
+                  background: 'linear-gradient(135deg, #38bdf8 0%, #60a5fa 35%, #c084fc 70%, #f472b6 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(0 2px 16px rgba(56, 189, 248, 0.5))',
                 }}
               >
                 Intelligent Tech & Cinematic Media
@@ -857,11 +1127,12 @@ Please connect with me to confirm availability and schedule a consultation.`;
 
             <p
               style={{
-                fontSize: 'clamp(1rem, 1.8vw, 1.25rem)',
-                color: '#94a3b8',
-                maxWidth: '820px',
+                fontSize: 'clamp(1.05rem, 1.8vw, 1.25rem)',
+                color: '#e2e8f0',
+                maxWidth: '850px',
                 lineHeight: 1.6,
                 margin: '0 auto 2rem',
+                textShadow: '0 2px 10px rgba(0, 0, 0, 0.8)',
               }}
             >
               From scalable cloud multi-tenant SaaS architectures and POS billing ERPs to high-end Sony FX3 4K cinema
@@ -869,14 +1140,14 @@ Please connect with me to confirm availability and schedule a consultation.`;
             </p>
 
             {/* CTA Buttons */}
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
                 onClick={() => handleTabChange('software')}
                 style={{
                   background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                   color: '#ffffff',
                   border: 'none',
-                  padding: '13px 26px',
+                  padding: '13px 24px',
                   borderRadius: '12px',
                   fontSize: '15px',
                   fontWeight: 800,
@@ -892,20 +1163,39 @@ Please connect with me to confirm availability and schedule a consultation.`;
               <button
                 onClick={() => handleTabChange('photography')}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#f8fafc',
-                  padding: '13px 26px',
+                  background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                  color: '#0f172a',
+                  border: 'none',
+                  padding: '13px 24px',
                   borderRadius: '12px',
                   fontSize: '15px',
-                  fontWeight: 700,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 8px 25px rgba(56, 189, 248, 0.35)',
+                }}
+              >
+                <Camera size={18} color="#0f172a" /> Camera & Video Studio
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  padding: '13px 20px',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                 }}
               >
-                <Camera size={18} color="#38bdf8" /> Camera & Video Studio
+                <Home size={18} color="#38bdf8" /> 🏠 Main Page (Hub)
               </button>
             </div>
 
@@ -1180,6 +1470,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               ))}
             </div>
           </section>
+          {renderTabBottomNav()}
         </main>
       )}
 
@@ -1188,6 +1479,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
           ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'software' && (
         <main style={{ width: '100%', padding: '2rem clamp(1rem, 3.5vw, 4rem) 4rem' }}>
+          {renderTabTopNav('Software & Cloud')}
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span style={{ color: '#818cf8', fontSize: '12px', fontWeight: 800, letterSpacing: '0.1em' }}>
@@ -1358,6 +1650,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               ))}
             </div>
           </section>
+          {renderTabBottomNav()}
         </main>
       )}
 
@@ -1366,6 +1659,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
           ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'photography' && (
         <main style={{ width: '100%', padding: '2rem clamp(1rem, 3.5vw, 4rem) 4rem' }}>
+          {renderTabTopNav('Photography Studio')}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span style={{ color: '#38bdf8', fontSize: '12px', fontWeight: 800, letterSpacing: '0.1em' }}>
               PHOTO STUDIO & VISION
@@ -1552,6 +1846,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               </div>
             </div>
           </section>
+          {renderTabBottomNav()}
         </main>
       )}
 
@@ -1560,6 +1855,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
           ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'videography' && (
         <main style={{ width: '100%', padding: '2rem clamp(1rem, 3.5vw, 4rem) 4rem' }}>
+          {renderTabTopNav('4K Cinematic Videography')}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span style={{ color: '#f59e0b', fontSize: '12px', fontWeight: 800, letterSpacing: '0.1em' }}>
               CINEMATIC FILMMAKING
@@ -1715,6 +2011,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               ))}
             </div>
           </section>
+          {renderTabBottomNav()}
         </main>
       )}
 
@@ -1723,6 +2020,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
           ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'gear' && (
         <main style={{ width: '100%', padding: '2rem clamp(1rem, 3.5vw, 4rem) 4rem' }}>
+          {renderTabTopNav('Camera & Drone Gear')}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span style={{ color: '#38bdf8', fontSize: '12px', fontWeight: 800, letterSpacing: '0.1em' }}>
               PRO ARSENAL SPECIFICATIONS
@@ -1830,6 +2128,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               Call for Crew Booking: +91 76519 72973
             </a>
           </section>
+          {renderTabBottomNav()}
         </main>
       )}
 
@@ -1838,6 +2137,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
           ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'portfolio' && (
         <main style={{ width: '100%', padding: '2rem clamp(1rem, 3.5vw, 4rem) 4rem' }}>
+          {renderTabTopNav('Master Portfolio')}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span style={{ color: '#a855f7', fontSize: '12px', fontWeight: 800, letterSpacing: '0.1em' }}>
               OUR DELIVERED WORK
@@ -2009,6 +2309,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               </div>
             </div>
           )}
+          {renderTabBottomNav()}
         </main>
       )}
 
@@ -2017,6 +2318,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
           ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'calculator' && (
         <main style={{ width: '100%', padding: '2rem clamp(1rem, 3.5vw, 4rem) 4rem' }}>
+          {renderTabTopNav('Proposal Calculator')}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span style={{ color: '#38bdf8', fontSize: '12px', fontWeight: 800, letterSpacing: '0.1em' }}>
               TRANSPARENT ESTIMATOR
@@ -2386,6 +2688,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               )}
             </div>
           </div>
+          {renderTabBottomNav()}
         </main>
       )}
 
@@ -2394,6 +2697,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
           ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'contact' && (
         <main style={{ width: '100%', padding: '2rem clamp(1rem, 3.5vw, 4rem) 4rem' }}>
+          {renderTabTopNav('Contact & Studio')}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span style={{ color: '#38bdf8', fontSize: '12px', fontWeight: 800, letterSpacing: '0.1em' }}>
               GET IN TOUCH
@@ -2620,6 +2924,7 @@ Please connect with me to confirm availability and schedule a consultation.`;
               </form>
             </div>
           </div>
+          {renderTabBottomNav()}
         </main>
       )}
 

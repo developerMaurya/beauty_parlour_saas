@@ -255,7 +255,28 @@ export default function RealEstatePlottingWebsite() {
           </div>
 
           {/* Right Helpline & Book Now CTA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: '#ecfdf5',
+                border: '1.5px solid #a7f3d0',
+                color: '#065f46',
+                fontWeight: 800,
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="Return to Master Platform Hub"
+            >
+              <Home size={14} />
+              <span>🏠 Main Page</span>
+            </button>
+
             <a
               href="tel:+919876543210"
               style={{

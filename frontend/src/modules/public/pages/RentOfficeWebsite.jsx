@@ -309,8 +309,29 @@ export default function RentOfficeWebsite() {
             })}
           </div>
 
-          {/* Book Plot CTA Button matching screenshot */}
-          <div>
+          {/* Book Plot CTA Button & Main Page Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(250, 204, 21, 0.4)',
+                color: '#facc15',
+                fontWeight: 800,
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="Return to Master Platform Hub"
+            >
+              <Home size={14} />
+              <span>🏠 Main Page</span>
+            </button>
+
             <button
               onClick={() => {
                 setSelectedSpace('Commercial Hub - Ground Floor Godam');

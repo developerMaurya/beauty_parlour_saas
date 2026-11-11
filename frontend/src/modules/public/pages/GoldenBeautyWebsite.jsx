@@ -672,6 +672,27 @@ export default function GoldenBeautyWebsite() {
 
           {/* Right Action & Mobile Menu Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '10px',
+                background: '#fdf2f8',
+                border: '1.5px solid #fbcfe8',
+                color: '#be123c',
+                fontWeight: 800,
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="Return to Master Platform Hub"
+            >
+              <Home size={14} />
+              <span>🏠 Main Page</span>
+            </button>
+
             <div className="desktop-nav-cta">
               <button
                 onClick={() => {
