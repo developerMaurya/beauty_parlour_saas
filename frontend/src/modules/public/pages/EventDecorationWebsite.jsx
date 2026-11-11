@@ -1,32 +1,23 @@
 /**
  * @file EventDecorationWebsite.jsx
- * @description Master Luxury Event & Decoration Website for "Jay Gurudev Event & Management"
- * Tagline: "Har Pal Ko Banayein Khaas..."
- * Signature Package: "Wedding Special Grand Setup Package - Aadiyogi Theme Stage + Bridal Entry Ek Hi Package Mein"
- * Inclusions:
- *   1. Aadiyogi Theme Wedding Stage (Decor & Flower Setup)
- *   2. Bridal Entry (Flower Arch / Tunnel)
- *   3. Fog Effect (1st Entry + Stage)
- *   4. Cracker Effect (Cold Pyro Fireworks)
- *   5. Flower Decoration (Real / Artificial)
- * Features:
- *   - Real user photos integration:
- *       /images/events/jay_gurudev_banner.jpg
- *       /images/events/aadiyogi_stage_dimensions.jpg (20ft x 15ft Blueprint)
- *       /images/events/aadiyogi_day_stage.jpg
- *       /images/events/bridal_entry_fireworks.jpg
- *       /images/events/flower_arch_tunnel.jpg
- *       /images/events/aadiyogi_nandi_trishul_setup.jpg
- *       /images/events/aadiyogi_safe_transport.jpg
- *   - Interactive Stage Dimension & Blueprint Explorer
- *   - Real-time Interactive Wedding Proposal & Quotation Generator with WhatsApp dispatch
- *   - Filterable Gallery with HD Lightbox
- *   - Booking Date Modal
- *   - Contact: 76519 72973 | Bhaisodi, Sarnath, Varanasi
+ * @description Master Luxury Event & Decoration Multi-Page Website for "Jay Gurudev Event & Management"
+ * - Full-Width (100% Edge-to-Edge) Fluid Responsive Layout for All Screen Sizes
+ * - Dedicated Page Navigation for Every Tab (Home, Aadiyogi Theme, 20ft Blueprint, Services, Gallery, Proposal, Contact)
+ * - Real User Uploaded Images:
+ *     /images/events/jay_gurudev_banner.jpg
+ *     /images/events/aadiyogi_stage_dimensions.jpg (20ft x 15ft Blueprint)
+ *     /images/events/aadiyogi_day_stage.jpg
+ *     /images/events/bridal_entry_fireworks.jpg
+ *     /images/events/flower_arch_tunnel.jpg
+ *     /images/events/aadiyogi_nandi_trishul_setup.jpg
+ *     /images/events/aadiyogi_safe_transport.jpg
+ * - Real-Time Proposal Generator with LocalStorage Sync for Admin Panel & WhatsApp Dispatch
+ * - Contact: 76519 72973 | Bhaisodi, Sarnath, Varanasi
  * @module frontend/src/modules/public/pages/EventDecorationWebsite
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   PartyPopper,
   Sparkles,
@@ -38,6 +29,7 @@ import {
   Music,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   Star,
   Zap,
@@ -53,30 +45,45 @@ import {
   ChevronRight,
   Layers,
   Award,
-  Crown
+  Crown,
+  Menu,
+  Check,
+  Heart,
+  Home
 } from 'lucide-react';
 
 export default function EventDecorationWebsite() {
-  // Navigation active tab
-  const [activeNav, setActiveNav] = useState('HOME');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Read active tab from URL query params (default to 'HOME')
+  const rawTab = searchParams.get('tab');
+  const activeTab = (rawTab || 'HOME').toUpperCase();
+
+  // Mobile menu drawer
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dedicatedPageMode, setDedicatedPageMode] = useState('ALL'); // 'ALL' | 'AADIYOGI' | 'DIMENSIONS' | 'SERVICES' | 'GALLERY' | 'PROPOSAL' | 'CONTACT'
 
   // Modals state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false);
   const [activeLightboxImg, setActiveLightboxImg] = useState(null);
-  const [proposalModalOpen, setProposalModalOpen] = useState(false);
 
-  // Gallery filter
+  // Gallery category filter
   const [galleryFilter, setGalleryFilter] = useState('ALL');
 
+  // Change tab and update URL query param
+  const switchTab = (tabId) => {
+    setSearchParams({ tab: tabId.toLowerCase() });
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // ══════════════════════════════════════════════════════════════════════════
-  // PROPOSAL / QUOTATION CALCULATOR STATE
+  // PROPOSAL & COST ESTIMATOR STATE
   // ══════════════════════════════════════════════════════════════════════════
   const [proposalConfig, setProposalConfig] = useState({
-    eventType: 'Wedding & Jaimala',
-    stageSize: '20ft x 15ft (Standard Grand)',
+    eventType: 'Wedding & Jaimala (Grand Setup)',
+    stageSize: '20ft x 15ft (Standard Grand Blueprint)',
     includeAadiyogi: true,
     bridalEntryArch: '15ft Glowing Flower Arch Tunnel',
     fogEffect: 'Stage + 1st Entry (Dry Ice Cloud)',
@@ -88,9 +95,8 @@ export default function EventDecorationWebsite() {
     venueLocation: 'Varanasi',
   });
 
-  // Calculate dynamic proposal price
   const proposalSummary = useMemo(() => {
-    let base = 65000; // Base wedding setup
+    let base = 65000;
     if (proposalConfig.includeAadiyogi) base += 45000;
     if (proposalConfig.stageSize.includes('30ft')) base += 25000;
     if (proposalConfig.stageSize.includes('40ft')) base += 50000;
@@ -101,81 +107,10 @@ export default function EventDecorationWebsite() {
     if (proposalConfig.crackerEffect.includes('8-Guns')) base += 18000;
     if (proposalConfig.flowerType.includes('Fresh')) base += 22000;
 
-    const discount = Math.round(base * 0.15); // 15% Wedding Special Package discount
+    const discount = Math.round(base * 0.15); // 15% Wedding Special discount
     const total = base - discount;
     return { base, discount, total };
   }, [proposalConfig]);
-
-  // Gallery Assets
-  const galleryItems = [
-    {
-      id: 1,
-      title: 'Aadiyogi Mahadev Stage — Full Daytime View',
-      category: 'AADIYOGI',
-      tag: 'Grand Stage',
-      desc: 'Handcrafted black sculpted Shiva bust with golden sun-rays aura, Trishul pillars, Nandi in front and vibrant floral canopy.',
-      src: '/images/events/aadiyogi_day_stage.jpg',
-      aspect: 'landscape',
-    },
-    {
-      id: 2,
-      title: 'Royal Bridal Couple Entry with Cold Pyrotechnics',
-      category: 'BRIDAL_ENTRY',
-      tag: 'Cold Pyro Entry',
-      desc: 'Dreamy red rose petal carpet pathway lined with safe cold fireworks sparkulars and floral borders.',
-      src: '/images/events/bridal_entry_fireworks.jpg',
-      aspect: 'portrait',
-    },
-    {
-      id: 3,
-      title: 'Illuminated Glowing Circular Arch Pathway',
-      category: 'FLORAL_TUNNEL',
-      tag: 'Enchanted Walkway',
-      desc: 'Circular LED-illuminated arches adorned with cascading white & pink cherry blossom flowers on reflective black mirror flooring.',
-      src: '/images/events/flower_arch_tunnel.jpg',
-      aspect: 'portrait',
-    },
-    {
-      id: 4,
-      title: 'Aadiyogi 20ft x 15ft Architectural Stage Blueprint',
-      category: 'BLUEPRINT',
-      tag: '3D Render & Dimensions',
-      desc: 'Official technical layout: 20ft Stage Width, 15ft Depth, 8ft Jaimala Platform, 6ft Nandi back area & 15ft Bridal Ramp.',
-      src: '/images/events/aadiyogi_stage_dimensions.jpg',
-      aspect: 'landscape',
-    },
-    {
-      id: 5,
-      title: 'Aadiyogi with Nandi, Golden Damru & Trishul Workshop Setup',
-      category: 'AADIYOGI',
-      tag: 'Production Unit',
-      desc: 'Real production floor showcase of the high-detail Lord Shiva sculpture, Nandi with golden jewelry, pair of damrus and trishuls.',
-      src: '/images/events/aadiyogi_nandi_trishul_setup.jpg',
-      aspect: 'landscape',
-    },
-    {
-      id: 6,
-      title: 'Official Jay Gurudev Wedding Special Package Banner',
-      category: 'AADIYOGI',
-      tag: 'Flagship Package',
-      desc: 'Grand setup package highlighting Aadiyogi Theme Stage + Bridal Entry + Fog + Pyro + Floral in one single combo.',
-      src: '/images/events/jay_gurudev_banner.jpg',
-      aspect: 'landscape',
-    },
-    {
-      id: 7,
-      title: 'Safe Transit & Heavy Duty Steel Trolley Fabrication',
-      category: 'PRODUCTION',
-      tag: 'Safe Logistics',
-      desc: 'Precision packaging with protective multi-layer film on heavy-duty caster-wheeled iron base for scratchless installation.',
-      src: '/images/events/aadiyogi_safe_transport.jpg',
-      aspect: 'portrait',
-    },
-  ];
-
-  const filteredGallery = galleryFilter === 'ALL'
-    ? galleryItems
-    : galleryItems.filter((item) => item.category === galleryFilter);
 
   // Dispatch proposal to WhatsApp & save to LocalStorage for Admin
   const handleSendToWhatsApp = () => {
@@ -221,23 +156,88 @@ export default function EventDecorationWebsite() {
 • Wedding Special Discount (15%): -₹${proposalSummary.discount.toLocaleString()}
 *• Estimated Final Package: ₹${proposalSummary.total.toLocaleString()}*
 
-Please confirm availability and share final site visit schedule!`;
+Please confirm date availability and schedule our venue visit!`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/917651972973?text=${encoded}`, '_blank');
   };
 
+  // Gallery items
+  const galleryItems = [
+    {
+      id: 1,
+      title: 'Aadiyogi Mahadev Stage — Full Daytime View',
+      category: 'AADIYOGI',
+      tag: 'Grand Stage',
+      desc: 'Handcrafted black sculpted Shiva bust with golden sun-rays aura, Trishul pillars, Nandi in front and vibrant floral canopy.',
+      src: '/images/events/aadiyogi_day_stage.jpg',
+    },
+    {
+      id: 2,
+      title: 'Royal Bridal Couple Entry with Cold Pyrotechnics',
+      category: 'BRIDAL_ENTRY',
+      tag: 'Cold Pyro Entry',
+      desc: 'Dreamy red rose petal carpet pathway lined with safe cold fireworks sparkulars and floral borders.',
+      src: '/images/events/bridal_entry_fireworks.jpg',
+    },
+    {
+      id: 3,
+      title: 'Illuminated Glowing Circular Arch Pathway',
+      category: 'FLORAL_TUNNEL',
+      tag: 'Enchanted Walkway',
+      desc: 'Circular LED-illuminated arches adorned with cascading white & pink cherry blossom flowers on reflective black mirror flooring.',
+      src: '/images/events/flower_arch_tunnel.jpg',
+    },
+    {
+      id: 4,
+      title: 'Aadiyogi 20ft x 15ft Architectural Stage Blueprint',
+      category: 'BLUEPRINT',
+      tag: '3D Render & Dimensions',
+      desc: 'Official technical layout: 20ft Stage Width, 15ft Depth, 8ft Jaimala Platform, 6ft Nandi back area & 15ft Bridal Ramp.',
+      src: '/images/events/aadiyogi_stage_dimensions.jpg',
+    },
+    {
+      id: 5,
+      title: 'Aadiyogi with Nandi, Golden Damru & Trishul Setup',
+      category: 'AADIYOGI',
+      tag: 'Production Unit',
+      desc: 'Real production floor showcase of the high-detail Lord Shiva sculpture, Nandi with golden jewelry, pair of damrus and trishuls.',
+      src: '/images/events/aadiyogi_nandi_trishul_setup.jpg',
+    },
+    {
+      id: 6,
+      title: 'Official Jay Gurudev Wedding Special Package Banner',
+      category: 'AADIYOGI',
+      tag: 'Flagship Package',
+      desc: 'Grand setup package highlighting Aadiyogi Theme Stage + Bridal Entry + Fog + Pyro + Floral in one single combo.',
+      src: '/images/events/jay_gurudev_banner.jpg',
+    },
+    {
+      id: 7,
+      title: 'Safe Transit & Heavy Duty Steel Trolley Fabrication',
+      category: 'PRODUCTION',
+      tag: 'Safe Logistics',
+      desc: 'Precision packaging with protective multi-layer film on heavy-duty caster-wheeled iron base for scratchless installation.',
+      src: '/images/events/aadiyogi_safe_transport.jpg',
+    },
+  ];
+
+  const filteredGallery = galleryFilter === 'ALL'
+    ? galleryItems
+    : galleryItems.filter((item) => item.category === galleryFilter);
+
   return (
-    <div style={{ background: '#0a0312', color: '#f8fafc', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif', overflowX: 'hidden' }}>
+    <div style={{ background: '#0a0312', color: '#f8fafc', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif', width: '100%', overflowX: 'hidden' }}>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          1. TOP DIVINE RIBBON
+          1. FULL-WIDTH TOP DIVINE RIBBON
          ══════════════════════════════════════════════════════════════════════════ */}
       <div
         style={{
+          width: '100%',
           background: 'linear-gradient(90deg, #3b0764 0%, #7e22ce 30%, #b91c1c 70%, #d97706 100%)',
           color: '#ffffff',
-          padding: '8px 2rem',
+          padding: '8px clamp(1rem, 3vw, 3rem)',
           fontSize: '12px',
           fontWeight: 700,
           display: 'flex',
@@ -245,14 +245,14 @@ Please confirm availability and share final site visit schedule!`;
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '8px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+          boxSizing: 'border-box',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ background: '#fef08a', color: '#854d0e', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 900 }}>
-            WEDDING SPECIAL
+            🔱 WEDDING SPECIAL
           </span>
-          <span>🔱 Har Pal Ko Banayein Khaas... | Jay Gurudev Event & Management</span>
+          <span>Har Pal Ko Banayein Khaas... | Jay Gurudev Event & Management</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '18px', fontSize: '12px' }}>
@@ -272,25 +272,27 @@ Please confirm availability and share final site visit schedule!`;
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          2. LUXURY STICKY HEADER & NAVIGATION
+          2. FULL-WIDTH STICKY LUXURY NAVIGATION HEADER
          ══════════════════════════════════════════════════════════════════════════ */}
       <header
         style={{
-          background: 'rgba(15, 7, 21, 0.94)',
+          width: '100%',
+          background: 'rgba(15, 7, 21, 0.96)',
           backdropFilter: 'blur(16px)',
           borderBottom: '1px solid rgba(234, 179, 8, 0.25)',
           position: 'sticky',
           top: 0,
           zIndex: 50,
-          padding: '0.85rem 2rem',
+          padding: '0.85rem clamp(1rem, 3vw, 3rem)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          boxSizing: 'border-box',
         }}
       >
         {/* Brand Logo & Trishul */}
         <div
-          onClick={() => setActiveNav('HOME')}
+          onClick={() => switchTab('HOME')}
           style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
         >
           <div
@@ -303,6 +305,7 @@ Please confirm availability and share final site visit schedule!`;
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 4px 18px rgba(250, 204, 21, 0.35)',
+              flexShrink: 0,
             }}
           >
             <span style={{ fontSize: '24px', lineHeight: 1 }}>🔱</span>
@@ -317,12 +320,12 @@ Please confirm availability and share final site visit schedule!`;
           </div>
         </div>
 
-        {/* Navigation Tabs (Desktop) */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* Desktop Navigation Tabs (Direct Page Openers) */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           {[
             { id: 'HOME', label: 'Home' },
-            { id: 'AADIYOGI', label: 'Aadiyogi Theme' },
-            { id: 'DIMENSIONS', label: '20ft Blueprint' },
+            { id: 'AADIYOGI', label: '🔱 Aadiyogi Theme' },
+            { id: 'DIMENSIONS', label: '📐 20ft Blueprint' },
             { id: 'SERVICES', label: 'Services' },
             { id: 'GALLERY', label: 'Gallery' },
             { id: 'PROPOSAL', label: 'Cost Estimator' },
@@ -330,20 +333,15 @@ Please confirm availability and share final site visit schedule!`;
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => {
-                setActiveNav(item.id);
-                setDedicatedPageMode(item.id);
-                const el = document.getElementById(item.id.toLowerCase());
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
+              onClick={() => switchTab(item.id)}
               style={{
-                background: activeNav === item.id ? 'rgba(250, 204, 21, 0.15)' : 'transparent',
-                border: activeNav === item.id ? '1px solid #facc15' : '1px solid transparent',
-                color: activeNav === item.id ? '#facc15' : '#cbd5e1',
-                padding: '6px 14px',
+                background: activeTab === item.id ? 'rgba(250, 204, 21, 0.18)' : 'transparent',
+                border: activeTab === item.id ? '1px solid #facc15' : '1px solid transparent',
+                color: activeTab === item.id ? '#facc15' : '#cbd5e1',
+                padding: '7px 14px',
                 borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: activeNav === item.id ? 800 : 600,
+                fontSize: '0.84rem',
+                fontWeight: activeTab === item.id ? 800 : 600,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -376,7 +374,7 @@ Please confirm availability and share final site visit schedule!`;
             <span>Book Setup Now</span>
           </button>
 
-          {/* Mobile Menu Hamburger Button */}
+          {/* Mobile Menu Hamburger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{
@@ -428,17 +426,11 @@ Please confirm availability and share final site visit schedule!`;
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => {
-                setActiveNav(item.id);
-                setDedicatedPageMode(item.id);
-                setMobileMenuOpen(false);
-                const el = document.getElementById(item.id.toLowerCase());
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
+              onClick={() => switchTab(item.id)}
               style={{
-                background: activeNav === item.id ? 'rgba(250, 204, 21, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                border: activeNav === item.id ? '1px solid #facc15' : '1px solid rgba(255, 255, 255, 0.1)',
-                color: activeNav === item.id ? '#facc15' : '#ffffff',
+                background: activeTab === item.id ? 'rgba(250, 204, 21, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                border: activeTab === item.id ? '1px solid #facc15' : '1px solid rgba(255, 255, 255, 0.1)',
+                color: activeTab === item.id ? '#facc15' : '#ffffff',
                 padding: '12px 18px',
                 borderRadius: '10px',
                 fontSize: '1rem',
@@ -474,557 +466,433 @@ Please confirm availability and share final site visit schedule!`;
         </div>
       )}
 
-      {/* ── Active Page Filter Strip ── */}
-      {dedicatedPageMode !== 'ALL' && (
+      {/* ── Active Page Breadcrumb Banner (When not on Home) ── */}
+      {activeTab !== 'HOME' && (
         <div
           style={{
-            background: 'linear-gradient(90deg, #7e22ce 0%, #a855f7 100%)',
-            color: '#ffffff',
-            padding: '8px 2rem',
+            width: '100%',
+            background: 'linear-gradient(90deg, #180527 0%, #2b0b42 100%)',
+            borderBottom: '1px solid rgba(250, 204, 21, 0.2)',
+            padding: '12px clamp(1rem, 3vw, 3rem)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: '12px',
-            fontWeight: 700,
+            fontSize: '13px',
+            boxSizing: 'border-box',
           }}
         >
-          <span>
-            📌 Viewing Dedicated Page: <strong>{dedicatedPageMode}</strong>
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => switchTab('HOME')}
+              style={{ background: 'transparent', border: 'none', color: '#facc15', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <Home size={15} />
+              <span>Home</span>
+            </button>
+            <span style={{ color: 'rgba(255,255,255,0.4)' }}>/</span>
+            <span style={{ color: '#ffffff', fontWeight: 700 }}>
+              {activeTab === 'AADIYOGI' && '🔱 Aadiyogi Theme Package'}
+              {activeTab === 'DIMENSIONS' && '📐 20ft Architecture Blueprint'}
+              {activeTab === 'SERVICES' && '👑 Core Decor Services'}
+              {activeTab === 'GALLERY' && '📸 Real Wedding Gallery'}
+              {activeTab === 'PROPOSAL' && '📑 Custom Proposal Estimator'}
+              {activeTab === 'CONTACT' && '📞 Contact & Office'}
+            </span>
+          </div>
+
           <button
-            onClick={() => setDedicatedPageMode('ALL')}
+            onClick={() => switchTab('HOME')}
             style={{
-              background: '#ffffff',
-              color: '#7e22ce',
-              border: 'none',
-              padding: '3px 10px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              color: '#facc15',
+              border: '1px solid rgba(250, 204, 21, 0.3)',
+              padding: '5px 12px',
               borderRadius: '6px',
-              fontWeight: 900,
               fontSize: '11px',
+              fontWeight: 800,
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
-            Show Full Website →
+            <ArrowLeft size={13} />
+            <span>Back to Home</span>
           </button>
         </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          3. HERO SECTION (DIVINE AADIYOGI & ROYAL BRIDAL ENTRY)
+          3. PAGE VIEW: HOME TAB
          ══════════════════════════════════════════════════════════════════════════ */}
-      <section
-        id="home"
-        style={{
-          position: 'relative',
-          padding: '4rem 2rem 5rem',
-          minHeight: '85vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: `radial-gradient(circle at 50% 30%, rgba(126, 34, 206, 0.35) 0%, rgba(10, 3, 18, 0.98) 70%), url('/images/events/jay_gurudev_banner.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          borderBottom: '1px solid rgba(234, 179, 8, 0.2)',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(to bottom, rgba(10, 3, 18, 0.75) 0%, rgba(10, 3, 18, 0.92) 80%, #0a0312 100%)',
-          }}
-        />
-
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: '1200px', width: '100%', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '3rem', alignItems: 'center' }}>
-          
-          {/* Left Column: Headings & Value Props */}
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'rgba(250, 204, 21, 0.12)',
-                border: '1px solid rgba(250, 204, 21, 0.4)',
-                padding: '5px 14px',
-                borderRadius: '999px',
-                color: '#facc15',
-                fontSize: '12px',
-                fontWeight: 800,
-                marginBottom: '1.25rem',
-              }}
-            >
-              <span>🔱</span>
-              <span>WEDDING SPECIAL GRAND SETUP PACKAGE</span>
-            </div>
-
-            <h1
-              style={{
-                fontSize: '2.8rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                lineHeight: 1.15,
-                margin: '0 0 1rem',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Aadiyogi Theme Stage <br />
-              <span style={{ color: '#facc15', textShadow: '0 0 25px rgba(250, 204, 21, 0.4)' }}>
-                + Royal Bridal Entry
-              </span>
-              <br />
-              <span style={{ fontSize: '1.8rem', color: '#f43f5e', fontWeight: 800 }}>
-                Ek Hi Package Mein!
-              </span>
-            </h1>
-
-            <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: 1.6, margin: '0 0 1.75rem', maxWidth: '580px' }}>
-              Varanasi’s most majestic wedding production by <strong>Jay Gurudev Event & Management</strong>.
-              Divine Aadiyogi Mahadev Stage with golden sun rays aura, Nandi, Trishuls, paired with a dreamy floral arch bridal entrance, cold fireworks sparkulars, and heavenly dry ice fog.
-            </p>
-
-            {/* 3 Core Highlights Pills */}
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '2rem' }}>
-              {[
-                { label: 'Divine Theme', color: '#facc15', icon: '🔱' },
-                { label: 'Royal Look', color: '#38bdf8', icon: '👑' },
-                { label: 'Memorable Moments', color: '#f43f5e', icon: '✨' },
-              ].map((pill, pIdx) => (
-                <div
-                  key={pIdx}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: `1px solid ${pill.color}55`,
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: '#ffffff',
-                  }}
-                >
-                  <span>{pill.icon}</span>
-                  <span style={{ color: pill.color }}>{pill.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setBookingModalOpen(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
-                  color: '#0f172a',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '10px',
-                  fontWeight: 900,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 6px 20px rgba(250, 204, 21, 0.4)',
-                }}
-              >
-                <span>Book Grand Setup Now</span>
-                <ArrowRight size={18} />
-              </button>
-
-              <button
-                onClick={() => setBlueprintModalOpen(true)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <Maximize2 size={16} color="#facc15" />
-                <span>View 20ft Blueprint</span>
-              </button>
-
-              <a
-                href="tel:7651972973"
-                style={{
-                  background: '#dc2626',
-                  color: '#ffffff',
-                  textDecoration: 'none',
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 6px 18px rgba(220, 38, 38, 0.35)',
-                }}
-              >
-                <Phone size={16} />
-                <span>76519 72973</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Right Column: Hero Visual Showcase */}
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                position: 'relative',
-                borderRadius: '20px',
-                overflow: 'hidden',
-                border: '2px solid rgba(250, 204, 21, 0.4)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(234, 179, 8, 0.2)',
-                background: '#150921',
-              }}
-            >
-              <img
-                src="/images/events/aadiyogi_day_stage.jpg"
-                alt="Aadiyogi Grand Stage Setup"
-                style={{
-                  width: '100%',
-                  height: '380px',
-                  objectFit: 'cover',
-                  display: 'block',
-                  transition: 'transform 0.4s ease',
-                }}
-              />
-
-              {/* Overlay Badge */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: 'linear-gradient(to top, rgba(10,3,18,0.95) 0%, rgba(10,3,18,0.4) 60%, transparent 100%)',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-end',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800, textTransform: 'uppercase' }}>
-                    SIGNATURE PRODUCTION
-                  </div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>
-                    Aadiyogi Wedding Stage
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>
-                    Total Width 20ft • Depth 15ft • Handcrafted Sculpture
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setActiveLightboxImg('/images/events/aadiyogi_day_stage.jpg')}
-                  style={{
-                    background: '#facc15',
-                    color: '#0f172a',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontWeight: 800,
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <Eye size={14} />
-                  <span>View Full</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Floating Mini Card: Bridal Entry */}
+      {activeTab === 'HOME' && (
+        <>
+          {/* Full-Width Hero Section */}
+          <section
+            style={{
+              position: 'relative',
+              width: '100%',
+              padding: '4rem clamp(1rem, 4vw, 4rem) 5rem',
+              minHeight: '85vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `radial-gradient(circle at 50% 30%, rgba(126, 34, 206, 0.35) 0%, rgba(10, 3, 18, 0.98) 70%), url('/images/events/jay_gurudev_banner.jpg')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              borderBottom: '1px solid rgba(234, 179, 8, 0.2)',
+              boxSizing: 'border-box',
+            }}
+          >
             <div
               style={{
                 position: 'absolute',
-                top: '-20px',
-                right: '-20px',
-                background: 'rgba(21, 9, 33, 0.95)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(244, 63, 94, 0.4)',
-                borderRadius: '14px',
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                maxWidth: '220px',
+                inset: 0,
+                background: 'linear-gradient(to bottom, rgba(10, 3, 18, 0.75) 0%, rgba(10, 3, 18, 0.92) 80%, #0a0312 100%)',
               }}
-            >
-              <img
-                src="/images/events/bridal_entry_fireworks.jpg"
-                alt="Bridal Entry"
-                style={{ width: '42px', height: '42px', borderRadius: '10px', objectFit: 'cover' }}
-              />
+            />
+
+            <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '3rem', alignItems: 'center' }}>
+              
+              {/* Left Column */}
               <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#f43f5e' }}>
-                  Royal Bridal Entry
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'rgba(250, 204, 21, 0.12)',
+                    border: '1px solid rgba(250, 204, 21, 0.4)',
+                    padding: '5px 14px',
+                    borderRadius: '999px',
+                    color: '#facc15',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <span>🔱</span>
+                  <span>WEDDING SPECIAL GRAND SETUP PACKAGE</span>
                 </div>
-                <div style={{ fontSize: '10px', color: '#cbd5e1' }}>
-                  Cold Pyro & Flower Arch
+
+                <h1
+                  style={{
+                    fontSize: 'clamp(2.2rem, 5vw, 3.4rem)',
+                    fontWeight: 900,
+                    color: '#ffffff',
+                    lineHeight: 1.15,
+                    margin: '0 0 1rem',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  Aadiyogi Theme Stage <br />
+                  <span style={{ color: '#facc15', textShadow: '0 0 25px rgba(250, 204, 21, 0.4)' }}>
+                    + Royal Bridal Entry
+                  </span>
+                  <br />
+                  <span style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: '#f43f5e', fontWeight: 800 }}>
+                    Ek Hi Package Mein!
+                  </span>
+                </h1>
+
+                <p style={{ fontSize: '1.05rem', color: '#cbd5e1', lineHeight: 1.6, margin: '0 0 1.75rem', maxWidth: '640px' }}>
+                  Varanasi’s most prestigious wedding decor and stage production by <strong>Jay Gurudev Event & Management</strong>.
+                  Divine Aadiyogi Mahadev Stage with golden sun rays aura, Nandi, Trishuls, paired with a dreamy floral arch bridal entrance, cold fireworks sparkulars, and heavenly dry ice fog.
+                </p>
+
+                {/* 3 Core Pills */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '2rem' }}>
+                  {[
+                    { label: 'Divine Theme', color: '#facc15', icon: '🔱' },
+                    { label: 'Royal Look', color: '#38bdf8', icon: '👑' },
+                    { label: 'Memorable Moments', color: '#f43f5e', icon: '✨' },
+                  ].map((pill, pIdx) => (
+                    <div
+                      key={pIdx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: `1px solid ${pill.color}55`,
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: '#ffffff',
+                      }}
+                    >
+                      <span>{pill.icon}</span>
+                      <span style={{ color: pill.color }}>{pill.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Direct Action Buttons */}
+                <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setBookingModalOpen(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
+                      color: '#0f172a',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontWeight: 900,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 6px 20px rgba(250, 204, 21, 0.4)',
+                    }}
+                  >
+                    <span>Book Grand Setup Now</span>
+                    <ArrowRight size={18} />
+                  </button>
+
+                  <button
+                    onClick={() => switchTab('DIMENSIONS')}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)',
+                      color: '#ffffff',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      padding: '12px 20px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <Maximize2 size={16} color="#facc15" />
+                    <span>View 20ft Blueprint Page</span>
+                  </button>
+
+                  <button
+                    onClick={() => switchTab('PROPOSAL')}
+                    style={{
+                      background: 'rgba(250, 204, 21, 0.15)',
+                      color: '#facc15',
+                      border: '1px solid #facc15',
+                      padding: '12px 20px',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <FileText size={16} />
+                    <span>Cost Estimator Page</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Right Column: Hero Visual Showcase */}
+              <div style={{ position: 'relative' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    border: '2px solid rgba(250, 204, 21, 0.4)',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(234, 179, 8, 0.2)',
+                    background: '#150921',
+                  }}
+                >
+                  <img
+                    src="/images/events/aadiyogi_day_stage.jpg"
+                    alt="Aadiyogi Grand Stage Setup"
+                    style={{
+                      width: '100%',
+                      height: '420px',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+
+                  {/* Overlay Badge */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      background: 'linear-gradient(to top, rgba(10,3,18,0.95) 0%, rgba(10,3,18,0.4) 60%, transparent 100%)',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-end',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800, textTransform: 'uppercase' }}>
+                        SIGNATURE PRODUCTION
+                      </div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff' }}>
+                        Aadiyogi Wedding Stage
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#cbd5e1' }}>
+                        Total Width 20ft • Depth 15ft • Handcrafted Sculpture
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setActiveLightboxImg('/images/events/aadiyogi_day_stage.jpg')}
+                      style={{
+                        background: '#facc15',
+                        color: '#0f172a',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        fontWeight: 800,
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Eye size={14} />
+                      <span>View Full</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Floating Mini Card */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-20px',
+                    right: '-20px',
+                    background: 'rgba(21, 9, 33, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(244, 63, 94, 0.4)',
+                    borderRadius: '14px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  <img
+                    src="/images/events/bridal_entry_fireworks.jpg"
+                    alt="Bridal Entry"
+                    style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#f43f5e' }}>
+                      Royal Bridal Entry
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#cbd5e1' }}>
+                      Cold Pyro & Flower Arch
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          {/* Quick Package Navigation Tiles (Full Width) */}
+          <section style={{ width: '100%', padding: '3.5rem clamp(1rem, 4vw, 4rem)', background: '#07020d', boxSizing: 'border-box' }}>
+            <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+              <span style={{ background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 900 }}>
+                EXPLORE JAY GURUDEV PAGES
+              </span>
+              <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#ffffff', margin: '8px 0 4px' }}>
+                Dedicated Event & Decoration Portals
+              </h2>
+              <p style={{ fontSize: '0.92rem', color: '#94a3b8' }}>
+                Click any portal below to open its dedicated full page view.
+              </p>
             </div>
 
-          </div>
-
-        </div>
-      </section>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              {[
+                { id: 'AADIYOGI', title: '🔱 Aadiyogi Theme Package', desc: '5 Core Pillars: Stage, Bridal Entry, Fog, Pyro & Floral in one combo.', img: '/images/events/aadiyogi_day_stage.jpg' },
+                { id: 'DIMENSIONS', title: '📐 20ft Architectural Blueprint', desc: 'Precise 20ft × 15ft technical dimensions, Jaimala ramp & Nandi specs.', img: '/images/events/aadiyogi_stage_dimensions.jpg' },
+                { id: 'SERVICES', title: '👑 Core Decor Services', desc: 'Banquets, Sangeet LED walls, theme lighting & wedding production.', img: '/images/events/bridal_entry_fireworks.jpg' },
+                { id: 'GALLERY', title: '📸 Real Wedding Gallery', desc: 'High-res photos of real setups in Varanasi lawns and palaces.', img: '/images/events/flower_arch_tunnel.jpg' },
+                { id: 'PROPOSAL', title: '📑 Custom Proposal Estimator', desc: 'Instant price calculator with direct 1-click WhatsApp quote dispatch.', img: '/images/events/jay_gurudev_banner.jpg' },
+                { id: 'CONTACT', title: '📞 Contact & Office Location', desc: 'Office at Bhaisodi, Sarnath, Varanasi. Phone: 76519 72973.', img: '/images/events/aadiyogi_nandi_trishul_setup.jpg' },
+              ].map((tile) => (
+                <div
+                  key={tile.id}
+                  onClick={() => switchTab(tile.id)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(250, 204, 21, 0.25)',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.borderColor = '#facc15';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'rgba(250, 204, 21, 0.25)';
+                  }}
+                >
+                  <div style={{ height: '180px', overflow: 'hidden' }}>
+                    <img src={tile.img} alt={tile.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div style={{ padding: '1.25rem' }}>
+                    <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 800, color: '#ffffff' }}>
+                      {tile.title}
+                    </h3>
+                    <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      {tile.desc}
+                    </p>
+                    <div style={{ color: '#facc15', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>Open Dedicated Page</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          4. THE 5 CORE INCLUSIONS ("EK HI PACKAGE MEIN")
+          4. PAGE VIEW: AADIYOGI THEME SPECIAL PAGE
          ══════════════════════════════════════════════════════════════════════════ */}
-      <section
-        id="aadiyogi"
-        style={{
-          padding: '5rem 2rem',
-          background: 'linear-gradient(180deg, #0a0312 0%, #150921 50%, #0a0312 100%)',
-          borderBottom: '1px solid rgba(234, 179, 8, 0.15)',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {activeTab === 'AADIYOGI' && (
+        <section style={{ width: '100%', padding: '3.5rem clamp(1rem, 4vw, 4rem)', boxSizing: 'border-box' }}>
           
-          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <span
-              style={{
-                background: 'rgba(250, 204, 21, 0.15)',
-                color: '#facc15',
-                padding: '4px 14px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 900,
-                letterSpacing: '0.08em',
-              }}
-            >
-              COMPLETE WEDDING PRODUCTION
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{ background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 900 }}>
+              DEDICATED PAGE: 5 CORE PILLARS
             </span>
-            <h2 style={{ fontSize: '2.3rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
-              Everything in One Grand Package
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#94a3b8', maxWidth: '650px', margin: '0 auto' }}>
-              The 5 essential pillars of royal luxury included in our signature Jay Gurudev package to make your special day truly unforgettable.
+            <h1 style={{ fontSize: '2.6rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
+              Aadiyogi Theme Stage + Bridal Entry Package
+            </h1>
+            <p style={{ fontSize: '1rem', color: '#cbd5e1', maxWidth: '750px', margin: '0 auto' }}>
+              Everything in one comprehensive grand package designed exclusively by Jay Gurudev Event & Management.
             </p>
           </div>
 
-          {/* 5 Inclusions Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-            
-            {/* 1. Aadiyogi Theme Stage */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(250, 204, 21, 0.3)',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '12px',
-                  background: 'rgba(250, 204, 21, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '26px',
-                  marginBottom: '1rem',
-                }}
-              >
-                🔱
-              </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
-                Aadiyogi Theme Wedding Stage
-              </h3>
-              <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 700, marginBottom: '8px' }}>
-                Decor & Flower Setup
-              </div>
-              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-                Majestic Lord Shiva bust sculpture with golden sun rays backdrop, Nandi idol, dual golden damrus, trishul pillars & royal bride-groom seating thrones.
-              </p>
-            </div>
-
-            {/* 2. Bridal Entry */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(244, 63, 94, 0.3)',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '12px',
-                  background: 'rgba(244, 63, 94, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '26px',
-                  marginBottom: '1rem',
-                }}
-              >
-                🌸
-              </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
-                Bridal Entry
-              </h3>
-              <div style={{ fontSize: '11px', color: '#f43f5e', fontWeight: 700, marginBottom: '8px' }}>
-                Flower Arch / Tunnel (15 Feet)
-              </div>
-              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-                Grand floral walkway with illuminated round arches, soft red carpet path, cascading petals, creating a fairy-tale bridal arrival for bride and groom.
-              </p>
-            </div>
-
-            {/* 3. Fog Effect */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '12px',
-                  background: 'rgba(56, 189, 248, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '26px',
-                  marginBottom: '1rem',
-                }}
-              >
-                ☁️
-              </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
-                Fog Effect
-              </h3>
-              <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 700, marginBottom: '8px' }}>
-                1st Entry + Stage (Dry Ice Cloud)
-              </div>
-              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-                Dense cloud ground fog that blankets the floor during the bridal walking path and the divine Jaimala garland exchange ceremony on stage.
-              </p>
-            </div>
-
-            {/* 4. Cracker Effect */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(234, 179, 8, 0.3)',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '12px',
-                  background: 'rgba(234, 179, 8, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '26px',
-                  marginBottom: '1rem',
-                }}
-              >
-                ✨
-              </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
-                Cracker Effect
-              </h3>
-              <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 700, marginBottom: '8px' }}>
-                Special Entry (Cold Pyro Fireworks)
-              </div>
-              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-                100% smoke-free, odourless, fire-hazard safe cold pyrotechnics sparkulars that shoot sparkling golden fountains during entry and garland exchange.
-              </p>
-            </div>
-
-            {/* 5. Flower Decoration */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '12px',
-                  background: 'rgba(168, 85, 247, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '26px',
-                  marginBottom: '1rem',
-                }}
-              >
-                🌺
-              </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
-                Flower Decoration
-              </h3>
-              <div style={{ fontSize: '11px', color: '#c084fc', fontWeight: 700, marginBottom: '8px' }}>
-                Real Fresh / Artificial Luxury
-              </div>
-              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-                Fresh fragrant Indian roses, imported Dutch orchids, carnations, and premium silk florals designed by master Varanasi florists.
-              </p>
-            </div>
-
-          </div>
-
-          {/* Banner Callout */}
+          {/* Official Banner Full Width */}
           <div
             style={{
-              marginTop: '3rem',
-              borderRadius: '16px',
+              width: '100%',
+              borderRadius: '20px',
               overflow: 'hidden',
-              border: '1px solid rgba(250, 204, 21, 0.3)',
-              position: 'relative',
+              border: '2px solid rgba(250, 204, 21, 0.4)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+              marginBottom: '3rem',
               cursor: 'pointer',
             }}
             onClick={() => setActiveLightboxImg('/images/events/jay_gurudev_banner.jpg')}
@@ -1032,58 +900,136 @@ Please confirm availability and share final site visit schedule!`;
             <img
               src="/images/events/jay_gurudev_banner.jpg"
               alt="Jay Gurudev Grand Setup Package"
-              style={{ width: '100%', maxHeight: '420px', objectFit: 'cover', display: 'block' }}
+              style={{ width: '100%', maxHeight: '460px', objectFit: 'cover', display: 'block' }}
             />
           </div>
 
-        </div>
-      </section>
+          {/* The 5 Pillars Cards Full Width Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', marginBottom: '3.5rem' }}>
+            
+            {/* 1. Stage */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(250, 204, 21, 0.35)', borderRadius: '16px', padding: '1.75rem' }}>
+              <div style={{ fontSize: '32px', marginBottom: '1rem' }}>🔱</div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
+                1. Aadiyogi Theme Wedding Stage
+              </h3>
+              <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 700, marginBottom: '8px' }}>
+                Handcrafted Shiva Bust & Floral Setup
+              </div>
+              <p style={{ fontSize: '0.86rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                High-detail sculpted Lord Shiva bust with golden sun rays aura backdrop, sacred Nandi idol in front, dual golden damrus, 4 golden trishuls & royal bride-groom seating platform.
+              </p>
+            </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════════
-          5. STAGE BLUEPRINT & 3D DIMENSIONS EXPLORER (20ft x 15ft)
-         ══════════════════════════════════════════════════════════════════════════ */}
-      <section
-        id="dimensions"
-        style={{
-          padding: '5rem 2rem',
-          background: '#07020d',
-          borderBottom: '1px solid rgba(234, 179, 8, 0.15)',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <span
+            {/* 2. Bridal Entry */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(244, 63, 94, 0.35)', borderRadius: '16px', padding: '1.75rem' }}>
+              <div style={{ fontSize: '32px', marginBottom: '1rem' }}>🌸</div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
+                2. Royal Bridal Entry Flower Arch
+              </h3>
+              <div style={{ fontSize: '11px', color: '#f43f5e', fontWeight: 700, marginBottom: '8px' }}>
+                15ft Glowing Tunnel & Rose Petal Path
+              </div>
+              <p style={{ fontSize: '0.86rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                Illuminated circular LED arches adorned with cascading white & pink cherry blossom flowers on reflective black mirrored flooring, creating an enchanting royal entrance.
+              </p>
+            </div>
+
+            {/* 3. Fog Effect */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: '16px', padding: '1.75rem' }}>
+              <div style={{ fontSize: '32px', marginBottom: '1rem' }}>☁️</div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
+                3. Heavy Dry Ice Fog Effect
+              </h3>
+              <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 700, marginBottom: '8px' }}>
+                Stage + 1st Entry Cloud Blanketing
+              </div>
+              <p style={{ fontSize: '0.86rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                Dense, ground-hugging dry ice clouds that float across the floor during the bridal entry walk and envelope the stage during the divine Jaimala garland exchange.
+              </p>
+            </div>
+
+            {/* 4. Cracker Effect */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '16px', padding: '1.75rem' }}>
+              <div style={{ fontSize: '32px', marginBottom: '1rem' }}>✨</div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
+                4. Special Entry Cracker Effect
+              </h3>
+              <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 700, marginBottom: '8px' }}>
+                Safe Cold Pyro Sparkulars Display
+              </div>
+              <p style={{ fontSize: '0.86rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                Certified 100% smoke-free, fire-hazard safe cold spark pyrotechnics that shoot sparkling golden fountains alongside the entry tunnel and behind the stage.
+              </p>
+            </div>
+
+            {/* 5. Flower Decor */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: '16px', padding: '1.75rem' }}>
+              <div style={{ fontSize: '32px', marginBottom: '1rem' }}>🌺</div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '0 0 6px' }}>
+                5. Fresh & Silk Flower Decoration
+              </h3>
+              <div style={{ fontSize: '11px', color: '#c084fc', fontWeight: 700, marginBottom: '8px' }}>
+                Exotic Floral Arrangements
+              </div>
+              <p style={{ fontSize: '0.86rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                Handcrafted combinations of fragrant fresh Indian roses, imported Dutch orchids, carnations, and luxury silk florals designed by master Varanasi artisans.
+              </p>
+            </div>
+
+          </div>
+
+          {/* Book Callout */}
+          <div style={{ textAlign: 'center' }}>
+            <button
+              onClick={() => setBookingModalOpen(true)}
               style={{
-                background: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
-                padding: '4px 14px',
-                borderRadius: '999px',
-                fontSize: '11px',
+                background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
+                color: '#0f172a',
+                border: 'none',
+                padding: '14px 32px',
+                borderRadius: '12px',
                 fontWeight: 900,
-                letterSpacing: '0.08em',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                boxShadow: '0 6px 25px rgba(250, 204, 21, 0.4)',
               }}
             >
-              TECHNICAL ARCHITECTURE & PRECISION
+              Book Grand Package For Your Wedding Date →
+            </button>
+          </div>
+
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          5. PAGE VIEW: 20ft × 15ft ARCHITECTURE BLUEPRINT PAGE
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'DIMENSIONS' && (
+        <section style={{ width: '100%', padding: '3.5rem clamp(1rem, 4vw, 4rem)', boxSizing: 'border-box' }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 900 }}>
+              DEDICATED PAGE: TECHNICAL BLUEPRINT
             </span>
-            <h2 style={{ fontSize: '2.3rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
-              Stage Layout & Dimension Blueprint
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#94a3b8', maxWidth: '650px', margin: '0 auto' }}>
-              Precision engineered for optimal photography, videography angles, guest visibility, and bride-groom comfort.
+            <h1 style={{ fontSize: '2.6rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
+              20ft × 15ft Architectural Blueprint & Dimensions
+            </h1>
+            <p style={{ fontSize: '1rem', color: '#cbd5e1', maxWidth: '750px', margin: '0 auto' }}>
+              Every foot planned with precision to guarantee maximum camera coverage, bride-groom prominence, and guest visibility.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '3rem', alignItems: 'center', marginBottom: '3rem' }}>
             
-            {/* Left: Interactive Blueprint Image */}
+            {/* Blueprint Diagram */}
             <div
               style={{
                 position: 'relative',
-                borderRadius: '16px',
+                borderRadius: '20px',
                 overflow: 'hidden',
                 border: '2px solid rgba(250, 204, 21, 0.4)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.85)',
                 cursor: 'pointer',
               }}
               onClick={() => setActiveLightboxImg('/images/events/aadiyogi_stage_dimensions.jpg')}
@@ -1093,141 +1039,61 @@ Please confirm availability and share final site visit schedule!`;
                 alt="20ft Stage Dimensions Blueprint"
                 style={{ width: '100%', height: 'auto', display: 'block' }}
               />
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: 'rgba(0,0,0,0.7)',
-                  color: '#facc15',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                }}
-              >
-                <Maximize2 size={13} />
-                <span>Click to Enlarge</span>
+              <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(0,0,0,0.7)', color: '#facc15', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
+                🔍 Click to Zoom High-Res
               </div>
             </div>
 
-            {/* Right: Technical Spec Breakdown List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Dimension Breakdown Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
-              {/* Overall Size Card */}
-              <div
-                style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(250, 204, 21, 0.3)',
-                  borderRadius: '12px',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
+              <div style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(250, 204, 21, 0.3)', borderRadius: '12px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800, textTransform: 'uppercase' }}>
-                    MASTER STAGE FOOTPRINT
-                  </div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff' }}>
-                    20 Feet Width × 15 Feet Depth
-                  </div>
+                  <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800 }}>TOTAL STAGE FOOTPRINT</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff' }}>20 Feet Width × 15 Feet Depth</div>
                 </div>
-                <div
-                  style={{
-                    background: '#facc15',
-                    color: '#0f172a',
-                    fontWeight: 900,
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                >
-                  300 Sq.Ft
+                <div style={{ background: '#facc15', color: '#0f172a', fontWeight: 900, padding: '6px 14px', borderRadius: '8px', fontSize: '12px' }}>
+                  300 Sq.Ft Base
                 </div>
               </div>
 
-              {/* Breakdown 1 */}
-              <div
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '10px',
-                  padding: '1rem 1.25rem',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.95rem' }}>
-                    1. Jaimala & Bride-Groom Staging Area
-                  </span>
-                  <span style={{ color: '#facc15', fontWeight: 800, fontSize: '0.9rem' }}>8 Feet Approx.</span>
+              <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: '#ffffff' }}>1. Jaimala & Bride-Groom Staging Area</span>
+                  <span style={{ color: '#facc15', fontWeight: 800 }}>8 Feet Approx.</span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Soft velvet carpeted ramp platform with central royal thrones and floral step framing.
+                <div style={{ fontSize: '0.84rem', color: '#cbd5e1' }}>
+                  Soft carpet/ramp platform with central royal seating thrones and floral stage stairs.
                 </div>
               </div>
 
-              {/* Breakdown 2 */}
-              <div
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '10px',
-                  padding: '1rem 1.25rem',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.95rem' }}>
-                    2. Aadiyogi Sculpture & Nandi Back Area
-                  </span>
-                  <span style={{ color: '#facc15', fontWeight: 800, fontSize: '0.9rem' }}>6 Feet Approx.</span>
+              <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: '#ffffff' }}>2. Nandi + Shiva Statue Back Area</span>
+                  <span style={{ color: '#facc15', fontWeight: 800 }}>6 Feet Approx.</span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Dedicated elevated backdrop zone accommodating the Mahadev bust, Sun rays aura & dual Trishuls.
+                <div style={{ fontSize: '0.84rem', color: '#cbd5e1' }}>
+                  Elevated pedestal zone supporting the 2-ton Lord Shiva sculpture, Nandi, and sun rays aura.
                 </div>
               </div>
 
-              {/* Breakdown 3 */}
-              <div
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '10px',
-                  padding: '1rem 1.25rem',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.95rem' }}>
-                    3. Left & Right Floral Canopies & Seating
-                  </span>
-                  <span style={{ color: '#facc15', fontWeight: 800, fontSize: '0.9rem' }}>6 Feet Each Side</span>
+              <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: '#ffffff' }}>3. Left & Right Seating & Decor Space</span>
+                  <span style={{ color: '#facc15', fontWeight: 800 }}>6 Feet Each Side</span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Symmetrical floral arches, warm ambient backlighting & VIP photography family zones.
+                <div style={{ fontSize: '0.84rem', color: '#cbd5e1' }}>
+                  Symmetrical floral canopy pillars, warm background lighting & VIP photography staging.
                 </div>
               </div>
 
-              {/* Breakdown 4: Bridal Entry Path */}
-              <div
-                style={{
-                  background: 'rgba(244, 63, 94, 0.06)',
-                  border: '1px solid rgba(244, 63, 94, 0.3)',
-                  borderRadius: '10px',
-                  padding: '1rem 1.25rem',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 800, color: '#f43f5e', fontSize: '0.95rem' }}>
-                    4. Bridal Entry Flower Arch Carpet Path
-                  </span>
-                  <span style={{ color: '#f43f5e', fontWeight: 800, fontSize: '0.9rem' }}>Width 4ft × Length 15ft</span>
+              <div style={{ background: 'rgba(244, 63, 94, 0.06)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: '12px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: '#f43f5e' }}>4. Bridal Entry Flower Arch Carpet Path</span>
+                  <span style={{ color: '#f43f5e', fontWeight: 800 }}>Width 4ft × Length 15ft</span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
-                  Continuous glowing flower tunnel extending straight from venue gateway up to the stage stairs.
+                <div style={{ fontSize: '0.84rem', color: '#cbd5e1' }}>
+                  Continuous glowing flower tunnel extending from the entrance straight to the stage.
                 </div>
               </div>
 
@@ -1235,60 +1101,179 @@ Please confirm availability and share final site visit schedule!`;
 
           </div>
 
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          6. INTERACTIVE PROPOSAL & COST ESTIMATOR
+          6. PAGE VIEW: CORE DECOR SERVICES PAGE
          ══════════════════════════════════════════════════════════════════════════ */}
-      <section
-        id="proposal"
-        style={{
-          padding: '5rem 2rem',
-          background: 'linear-gradient(180deg, #07020d 0%, #170724 50%, #0a0312 100%)',
-          borderBottom: '1px solid rgba(234, 179, 8, 0.15)',
-        }}
-      >
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      {activeTab === 'SERVICES' && (
+        <section style={{ width: '100%', padding: '3.5rem clamp(1rem, 4vw, 4rem)', boxSizing: 'border-box' }}>
           
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <span
-              style={{
-                background: 'rgba(234, 179, 8, 0.15)',
-                color: '#facc15',
-                padding: '4px 14px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 900,
-                letterSpacing: '0.08em',
-              }}
-            >
-              INSTANT QUOTATION BUILDER
+            <span style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 900 }}>
+              DEDICATED PAGE: SERVICES CATALOG
             </span>
-            <h2 style={{ fontSize: '2.3rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
-              Create Your Custom Wedding Proposal
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#94a3b8', maxWidth: '650px', margin: '0 auto' }}>
-              Select your wedding setup preferences, calculate real-time estimated pricing with special package discounts, and send proposal directly to our team via WhatsApp.
+            <h1 style={{ fontSize: '2.6rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
+              Wedding Decor & Stage Production Services
+            </h1>
+            <p style={{ fontSize: '1rem', color: '#cbd5e1', maxWidth: '750px', margin: '0 auto' }}>
+              Full wedding venue transformation across Varanasi, Mirzapur, Jaunpur, Ghazipur, and Chandauli.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem' }}>
+            {[
+              { title: 'Aadiyogi Mahadev Wedding Stage', category: 'Divine Theme', desc: 'Sculpted Lord Shiva bust, sun rays aura, Nandi, damrus, trishuls & floral stage.', img: '/images/events/aadiyogi_day_stage.jpg' },
+              { title: 'Royal Bridal Entry with Cold Pyro', category: 'Special Entrance', desc: 'Flower arch tunnel with red carpet, rose petal shower & 100% safe cold sparkulars.', img: '/images/events/bridal_entry_fireworks.jpg' },
+              { title: 'Illuminated Circular Flower Arches', category: 'Walkway Canopy', desc: 'Circular LED rings draped in white and pink cherry blossoms on reflective black floor.', img: '/images/events/flower_arch_tunnel.jpg' },
+              { title: 'Heavy Dry Ice Cloud Fog Machine', category: 'Special Effects', desc: 'Dense, ground-level clouds covering walking paths and stage during Jaimala garland exchange.', img: '/images/events/jay_gurudev_banner.jpg' },
+              { title: 'Haldi & Mehendi Vibrant Setups', category: 'Pre-Wedding', desc: 'Bright marigold canopies, traditional jhula seating, brass urlis and photobooths.', img: '/images/events/aadiyogi_nandi_trishul_setup.jpg' },
+              { title: 'Curved LED Wall & Concert Lighting Truss', category: 'Sangeet & Cocktail', desc: 'High-definition P3 LED video backdrops, moving beam lights, laser effects & line-array sound.', img: '/images/events/aadiyogi_safe_transport.jpg' },
+            ].map((srv, idx) => (
+              <div key={idx} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(250, 204, 21, 0.25)', borderRadius: '16px', overflow: 'hidden' }}>
+                <div style={{ height: '220px', overflow: 'hidden' }}>
+                  <img src={srv.img} alt={srv.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ padding: '1.5rem' }}>
+                  <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    {srv.category}
+                  </div>
+                  <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
+                    {srv.title}
+                  </h3>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.86rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                    {srv.desc}
+                  </p>
+                  <button
+                    onClick={() => switchTab('PROPOSAL')}
+                    style={{ background: '#7e22ce', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    Get Estimate →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          7. PAGE VIEW: REAL SETUP GALLERY PAGE
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'GALLERY' && (
+        <section style={{ width: '100%', padding: '3.5rem clamp(1rem, 4vw, 4rem)', boxSizing: 'border-box' }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <span style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#f43f5e', padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 900 }}>
+              DEDICATED PAGE: REAL WEDDING PHOTOS
+            </span>
+            <h1 style={{ fontSize: '2.6rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
+              Jay Gurudev Production Photo Gallery
+            </h1>
+            <p style={{ fontSize: '1rem', color: '#cbd5e1', maxWidth: '750px', margin: '0 auto' }}>
+              Authentic on-site photographs of our Aadiyogi Mahadev stages, bridal entrance flower arches, cold pyro sparks, and logistics fabrication.
+            </p>
+          </div>
+
+          {/* Filter Tabs */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2.5rem' }}>
+            {[
+              { id: 'ALL', label: 'All Photos' },
+              { id: 'AADIYOGI', label: '🔱 Aadiyogi Stages' },
+              { id: 'BRIDAL_ENTRY', label: '👑 Bridal Entry' },
+              { id: 'FLORAL_TUNNEL', label: '🌸 Glowing Arches' },
+              { id: 'BLUEPRINT', label: '📐 20ft Blueprints' },
+              { id: 'PRODUCTION', label: '🚚 Logistics & Setup' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setGalleryFilter(tab.id)}
+                style={{
+                  background: galleryFilter === tab.id ? '#facc15' : 'rgba(255, 255, 255, 0.05)',
+                  color: galleryFilter === tab.id ? '#0f172a' : '#cbd5e1',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '8px 18px',
+                  borderRadius: '999px',
+                  fontSize: '0.86rem',
+                  fontWeight: galleryFilter === tab.id ? 900 : 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Full Width Gallery Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.75rem' }}>
+            {filteredGallery.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s ease',
+                }}
+                onClick={() => setActiveLightboxImg(item.src)}
+              >
+                <div style={{ height: '260px', overflow: 'hidden' }}>
+                  <img src={item.src} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ padding: '1.25rem' }}>
+                  <h4 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>
+                    {item.title}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          8. PAGE VIEW: PROPOSAL & COST ESTIMATOR PAGE
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'PROPOSAL' && (
+        <section style={{ width: '100%', padding: '3.5rem clamp(1rem, 4vw, 4rem)', boxSizing: 'border-box' }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{ background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 900 }}>
+              DEDICATED PAGE: INSTANT ESTIMATOR
+            </span>
+            <h1 style={{ fontSize: '2.6rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
+              Custom Wedding Proposal & Cost Calculator
+            </h1>
+            <p style={{ fontSize: '1rem', color: '#cbd5e1', maxWidth: '750px', margin: '0 auto' }}>
+              Configure your exact wedding stage preferences, calculate live pricing, and send the proposal directly to WhatsApp or save for the Admin team.
             </p>
           </div>
 
           <div
             style={{
+              width: '100%',
               background: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(250, 204, 21, 0.3)',
               borderRadius: '20px',
-              padding: '2.5rem',
+              padding: 'clamp(1.5rem, 3vw, 2.5rem)',
               boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
               display: 'grid',
-              gridTemplateColumns: '1.4fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
               gap: '2.5rem',
+              boxSizing: 'border-box',
             }}
           >
-            {/* Form Selectors */}
+            {/* Form Left */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
-              {/* Event Type */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#facc15', marginBottom: '6px' }}>
                   Event Occasion
@@ -1296,26 +1281,15 @@ Please confirm availability and share final site visit schedule!`;
                 <select
                   value={proposalConfig.eventType}
                   onChange={(e) => setProposalConfig({ ...proposalConfig, eventType: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: '#12051f',
-                    color: '#ffffff',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#12051f', color: '#ffffff', fontSize: '0.9rem' }}
                 >
                   <option>Wedding & Jaimala (Grand Setup)</option>
                   <option>Sangeet & Cocktail Night</option>
                   <option>Haldi & Mehendi Celebration</option>
                   <option>Reception & Banquet Gala</option>
-                  <option>Corporate Annual Convention</option>
                 </select>
               </div>
 
-              {/* Stage Dimensions */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#facc15', marginBottom: '6px' }}>
                   Stage Dimensions
@@ -1323,16 +1297,7 @@ Please confirm availability and share final site visit schedule!`;
                 <select
                   value={proposalConfig.stageSize}
                   onChange={(e) => setProposalConfig({ ...proposalConfig, stageSize: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: '#12051f',
-                    color: '#ffffff',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#12051f', color: '#ffffff', fontSize: '0.9rem' }}
                 >
                   <option>20ft x 15ft (Standard Grand Blueprint)</option>
                   <option>30ft x 20ft (Mega Lawn & Palace Setup)</option>
@@ -1340,7 +1305,6 @@ Please confirm availability and share final site visit schedule!`;
                 </select>
               </div>
 
-              {/* Aadiyogi Theme Toggle */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#facc15', marginBottom: '6px' }}>
                   Aadiyogi Theme Stage Inclusion
@@ -1381,7 +1345,6 @@ Please confirm availability and share final site visit schedule!`;
                 </div>
               </div>
 
-              {/* Bridal Entry Arch Tunnel */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#facc15', marginBottom: '6px' }}>
                   Bridal Entry Flower Tunnel
@@ -1389,16 +1352,7 @@ Please confirm availability and share final site visit schedule!`;
                 <select
                   value={proposalConfig.bridalEntryArch}
                   onChange={(e) => setProposalConfig({ ...proposalConfig, bridalEntryArch: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: '#12051f',
-                    color: '#ffffff',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#12051f', color: '#ffffff', fontSize: '0.9rem' }}
                 >
                   <option>15ft Glowing Flower Arch Tunnel (Standard)</option>
                   <option>30ft Grand Canopy Tunnel with LED Rings</option>
@@ -1406,7 +1360,6 @@ Please confirm availability and share final site visit schedule!`;
                 </select>
               </div>
 
-              {/* Special Effects: Fog & Cold Pyro */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#facc15', marginBottom: '6px' }}>
@@ -1415,15 +1368,7 @@ Please confirm availability and share final site visit schedule!`;
                   <select
                     value={proposalConfig.fogEffect}
                     onChange={(e) => setProposalConfig({ ...proposalConfig, fogEffect: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: '#12051f',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                    }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#12051f', color: '#ffffff', fontSize: '0.85rem' }}
                   >
                     <option>Stage + 1st Entry (Dry Ice Cloud)</option>
                     <option>Continuous Dual-Cloud Setup</option>
@@ -1438,15 +1383,7 @@ Please confirm availability and share final site visit schedule!`;
                   <select
                     value={proposalConfig.crackerEffect}
                     onChange={(e) => setProposalConfig({ ...proposalConfig, crackerEffect: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: '#12051f',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                    }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#12051f', color: '#ffffff', fontSize: '0.85rem' }}
                   >
                     <option>4-Guns Cold Pyro Sparks</option>
                     <option>8-Guns Synchronized Display</option>
@@ -1455,7 +1392,6 @@ Please confirm availability and share final site visit schedule!`;
                 </div>
               </div>
 
-              {/* Client Info Inputs */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>
@@ -1466,16 +1402,7 @@ Please confirm availability and share final site visit schedule!`;
                     placeholder="e.g. Rahul Sharma"
                     value={proposalConfig.clientName}
                     onChange={(e) => setProposalConfig({ ...proposalConfig, clientName: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: '#12051f',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                      boxSizing: 'border-box',
-                    }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#12051f', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
@@ -1484,29 +1411,20 @@ Please confirm availability and share final site visit schedule!`;
                   </label>
                   <input
                     type="tel"
-                    placeholder="e.g. 98765 43210"
+                    placeholder="e.g. 76519 72973"
                     value={proposalConfig.clientPhone}
                     onChange={(e) => setProposalConfig({ ...proposalConfig, clientPhone: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: '#12051f',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                      boxSizing: 'border-box',
-                    }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#12051f', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
             </div>
 
-            {/* Right: Live Price Breakdown & WhatsApp Dispatch */}
+            {/* Price Card Right */}
             <div
               style={{
-                background: 'linear-gradient(135deg, rgba(30, 11, 48, 0.9) 0%, rgba(18, 5, 31, 0.95) 100%)',
+                background: 'linear-gradient(135deg, rgba(30, 11, 48, 0.95) 0%, rgba(18, 5, 31, 0.98) 100%)',
                 border: '1px solid rgba(250, 204, 21, 0.4)',
                 borderRadius: '16px',
                 padding: '2rem',
@@ -1518,29 +1436,26 @@ Please confirm availability and share final site visit schedule!`;
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem' }}>
                   <Crown size={22} color="#facc15" />
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#ffffff' }}>
-                    Estimated Proposal
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }}>
+                    Live Proposal Breakdown
                   </h3>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.86rem', color: '#cbd5e1' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem', color: '#cbd5e1' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Selected Stage:</span>
+                    <span>Stage Footprint:</span>
                     <strong style={{ color: '#ffffff' }}>{proposalConfig.stageSize.split('(')[0]}</strong>
                   </div>
-
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Aadiyogi Theme:</span>
+                    <span>Aadiyogi Mahadev:</span>
                     <strong style={{ color: proposalConfig.includeAadiyogi ? '#facc15' : '#94a3b8' }}>
                       {proposalConfig.includeAadiyogi ? 'Included' : 'Standard'}
                     </strong>
                   </div>
-
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Bridal Tunnel:</span>
                     <strong style={{ color: '#ffffff' }}>{proposalConfig.bridalEntryArch.split('(')[0]}</strong>
                   </div>
-
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Special Effects:</span>
                     <strong style={{ color: '#38bdf8' }}>Fog + Cold Pyro</strong>
@@ -1556,7 +1471,7 @@ Please confirm availability and share final site visit schedule!`;
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4ade80' }}>
-                    <span>Grand Package Discount (15%):</span>
+                    <span>Wedding Package Discount (15%):</span>
                     <strong>-₹{proposalSummary.discount.toLocaleString()}</strong>
                   </div>
                 </div>
@@ -1572,18 +1487,18 @@ Please confirm availability and share final site visit schedule!`;
                   }}
                 >
                   <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800, textTransform: 'uppercase' }}>
-                    Total Estimated Package
+                    Estimated Final Package
                   </div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#ffffff', margin: '4px 0' }}>
+                  <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#ffffff', margin: '4px 0' }}>
                     ₹{proposalSummary.total.toLocaleString()}
                   </div>
                   <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                    *All inclusive of setup, transport & operational crew in Varanasi
+                    *Includes setup, transport, crane rigging & operational crew in Varanasi
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ marginTop: '1.75rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
                   type="button"
                   onClick={handleSendToWhatsApp}
@@ -1594,7 +1509,7 @@ Please confirm availability and share final site visit schedule!`;
                     padding: '13px',
                     borderRadius: '10px',
                     fontWeight: 900,
-                    fontSize: '0.92rem',
+                    fontSize: '0.94rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1614,10 +1529,10 @@ Please confirm availability and share final site visit schedule!`;
                     background: 'transparent',
                     border: '1px solid rgba(250, 204, 21, 0.4)',
                     color: '#facc15',
-                    padding: '10px',
+                    padding: '11px',
                     borderRadius: '10px',
                     fontWeight: 700,
-                    fontSize: '0.85rem',
+                    fontSize: '0.88rem',
                     cursor: 'pointer',
                   }}
                 >
@@ -1629,279 +1544,199 @@ Please confirm availability and share final site visit schedule!`;
 
           </div>
 
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          7. REAL EVENT GALLERY (WITH HD LIGHTBOX)
+          9. PAGE VIEW: CONTACT & BOOKING OFFICE PAGE
          ══════════════════════════════════════════════════════════════════════════ */}
-      <section
-        id="gallery"
-        style={{
-          padding: '5rem 2rem',
-          background: '#0a0312',
-          borderBottom: '1px solid rgba(234, 179, 8, 0.15)',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {activeTab === 'CONTACT' && (
+        <section style={{ width: '100%', padding: '3.5rem clamp(1rem, 4vw, 4rem)', boxSizing: 'border-box' }}>
           
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <span
-              style={{
-                background: 'rgba(244, 63, 94, 0.15)',
-                color: '#f43f5e',
-                padding: '4px 14px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 900,
-                letterSpacing: '0.08em',
-              }}
-            >
-              REAL WEDDINGS & WORKSHOP SHOTS
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{ background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 900 }}>
+              DEDICATED PAGE: CONTACT OFFICE
             </span>
-            <h2 style={{ fontSize: '2.3rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
-              Jay Gurudev Production Gallery
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#94a3b8', maxWidth: '650px', margin: '0 auto' }}>
-              Authentic on-site photographs of our Aadiyogi Mahadev stages, bridal entrance flower arches, cold pyro sparks, and logistics fabrication.
+            <h1 style={{ fontSize: '2.6rem', fontWeight: 900, color: '#ffffff', margin: '10px 0 6px' }}>
+              Connect With Jay Gurudev Event & Management
+            </h1>
+            <p style={{ fontSize: '1rem', color: '#cbd5e1', maxWidth: '750px', margin: '0 auto' }}>
+              Visit our central workshop and production base in Sarnath, Varanasi or call our 24x7 wedding inquiry desk.
             </p>
           </div>
 
-          {/* Category Filter Tabs */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2.5rem' }}>
-            {[
-              { id: 'ALL', label: 'All Photos' },
-              { id: 'AADIYOGI', label: '🔱 Aadiyogi Stages' },
-              { id: 'BRIDAL_ENTRY', label: '👑 Bridal Entry' },
-              { id: 'FLORAL_TUNNEL', label: '🌸 Glowing Arches' },
-              { id: 'BLUEPRINT', label: '📐 20ft Blueprints' },
-              { id: 'PRODUCTION', label: '🚚 Logistics & Setup' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setGalleryFilter(tab.id)}
-                style={{
-                  background: galleryFilter === tab.id ? '#facc15' : 'rgba(255, 255, 255, 0.05)',
-                  color: galleryFilter === tab.id ? '#0f172a' : '#cbd5e1',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: '7px 16px',
-                  borderRadius: '999px',
-                  fontSize: '0.84rem',
-                  fontWeight: galleryFilter === tab.id ? 800 : 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+            
+            {/* Contact Info Card */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(250, 204, 21, 0.3)', borderRadius: '20px', padding: '2rem' }}>
+              <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.3rem', fontWeight: 900, color: '#facc15' }}>
+                Office & Workshop Address
+              </h3>
 
-          {/* Gallery Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-            {filteredGallery.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s ease, border-color 0.2s ease',
-                }}
-                onClick={() => setActiveLightboxImg(item.src)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.borderColor = 'rgba(250, 204, 21, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                }}
-              >
-                <div style={{ position: 'relative', height: '240px', overflow: 'hidden' }}>
-                  <img
-                    src={item.src}
-                    alt={item.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '12px',
-                      left: '12px',
-                      background: 'rgba(10, 3, 18, 0.85)',
-                      color: '#facc15',
-                      padding: '3px 10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    {item.tag}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.92rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <MapPin size={20} color="#facc15" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <strong style={{ color: '#ffffff' }}>Production Base:</strong>
+                    <div style={{ color: '#cbd5e1' }}>Bhaisodi, Sarnath, Varanasi, Uttar Pradesh - 221007</div>
                   </div>
                 </div>
 
-                <div style={{ padding: '1.25rem' }}>
-                  <h4 style={{ margin: '0 0 6px', fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>
-                    {item.title}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                    {item.desc}
-                  </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Phone size={20} color="#facc15" flexShrink={0} />
+                  <div>
+                    <strong style={{ color: '#ffffff' }}>Direct Line:</strong>
+                    <div>
+                      <a href="tel:7651972973" style={{ color: '#facc15', textDecoration: 'none', fontWeight: 800 }}>
+                        +91 76519 72973
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <MessageCircle size={20} color="#22c55e" flexShrink={0} />
+                  <div>
+                    <strong style={{ color: '#ffffff' }}>WhatsApp Official:</strong>
+                    <div>
+                      <a href="https://wa.me/917651972973" target="_blank" rel="noreferrer" style={{ color: '#4ade80', textDecoration: 'none', fontWeight: 700 }}>
+                        Chat with Manager (76519 72973)
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Clock size={20} color="#facc15" flexShrink={0} />
+                  <div>
+                    <strong style={{ color: '#ffffff' }}>Working Hours:</strong>
+                    <div style={{ color: '#cbd5e1' }}>Monday to Sunday: 08:00 AM – 10:00 PM</div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
 
-        </div>
-      </section>
+              <div style={{ marginTop: '2rem' }}>
+                <button
+                  onClick={() => setBookingModalOpen(true)}
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
+                    color: '#0f172a',
+                    border: 'none',
+                    padding: '13px',
+                    borderRadius: '10px',
+                    fontWeight: 900,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Schedule Venue Inspection Visit →
+                </button>
+              </div>
+            </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════════
-          8. ABOUT JAY GURUDEV EVENT & MANAGEMENT
-         ══════════════════════════════════════════════════════════════════════════ */}
-      <section
-        id="services"
-        style={{
-          padding: '5rem 2rem',
-          background: 'linear-gradient(180deg, #0a0312 0%, #150921 50%, #0a0312 100%)',
-          borderBottom: '1px solid rgba(234, 179, 8, 0.15)',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
-          
-          <div>
-            <span
-              style={{
-                background: 'rgba(250, 204, 21, 0.15)',
-                color: '#facc15',
-                padding: '4px 14px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 900,
-                letterSpacing: '0.08em',
-              }}
-            >
-              ABOUT JAY GURUDEV
-            </span>
-            <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#ffffff', margin: '12px 0 1rem' }}>
-              Varanasi’s Trusted Grand Wedding Stage Specialists
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#cbd5e1', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
-              Based in <strong>Bhaisodi, Sarnath, Varanasi</strong>, Jay Gurudev Event & Management is a premier wedding decor and stage production company.
-              We specialize in royal, divine themes that evoke spirituality and high luxury.
-            </p>
-            <p style={{ fontSize: '0.95rem', color: '#94a3b8', lineHeight: 1.6, margin: '0 0 2rem' }}>
-              From the intricately crafted <strong>Aadiyogi Shiva Stage</strong> to breathtaking 15ft flower arch bridal walkways and certified cold fireworks sparkulars, every wedding setup is executed with zero compromise on safety and precision.
-            </p>
+            {/* Direct Reservation Form */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(250, 204, 21, 0.3)', borderRadius: '20px', padding: '2rem' }}>
+              <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.3rem', fontWeight: 900, color: '#ffffff' }}>
+                Direct Wedding Inquiry Form
+              </h3>
 
-            {/* Checklist */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-              {[
-                '100% In-House Inventory',
-                'Zero Middlemen Commission',
-                'Smoke-Free Cold Pyro Sparks',
-                '3-Hour Prior Setup Delivery',
-                '20ft to 40ft Stage Adapters',
-                'On-Site Sound & Tech Crew',
-              ].map((point, pIdx) => (
-                <div key={pIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#ffffff' }}>
-                  <CheckCircle2 size={16} color="#facc15" />
-                  <span>{point}</span>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  alert('Thank you! Your date inquiry has been sent to our manager. We will call you within 30 minutes.');
+                }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+              >
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#facc15', marginBottom: '4px' }}>
+                    Your Full Name
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. Anand Maurya"
+                    style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: '#12051f', color: '#ffffff', boxSizing: 'border-box' }}
+                  />
                 </div>
-              ))}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#facc15', marginBottom: '4px' }}>
+                      Contact Number
+                    </label>
+                    <input
+                      required
+                      type="tel"
+                      placeholder="e.g. 76519 72973"
+                      style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: '#12051f', color: '#ffffff', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#facc15', marginBottom: '4px' }}>
+                      Wedding Date
+                    </label>
+                    <input
+                      required
+                      type="date"
+                      style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: '#12051f', color: '#ffffff', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#facc15', marginBottom: '4px' }}>
+                    Venue / Lawn Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sarnath Heritage Lawn or Sigra Banquet"
+                    style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: '#12051f', color: '#ffffff', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  style={{
+                    background: '#7e22ce',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '13px',
+                    borderRadius: '10px',
+                    fontWeight: 900,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    marginTop: '6px',
+                  }}
+                >
+                  Submit Inquiry
+                </button>
+              </form>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <a
-                href="tel:7651972973"
-                style={{
-                  background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
-                  color: '#0f172a',
-                  padding: '12px 24px',
-                  borderRadius: '10px',
-                  fontWeight: 900,
-                  fontSize: '0.95rem',
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <Phone size={18} />
-                <span>Call: 76519 72973</span>
-              </a>
-
-              <button
-                onClick={() => setBookingModalOpen(true)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                }}
-              >
-                Reserve Date
-              </button>
-            </div>
           </div>
 
-          {/* Right: Real Setup Showcase */}
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                borderRadius: '20px',
-                overflow: 'hidden',
-                border: '2px solid rgba(250, 204, 21, 0.3)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-              }}
-            >
-              <img
-                src="/images/events/aadiyogi_nandi_trishul_setup.jpg"
-                alt="Adiyogi Production Ground"
-                style={{ width: '100%', height: '420px', objectFit: 'cover', display: 'block' }}
-              />
-            </div>
-          </div>
-
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          9. FOOTER & CONTACT INFO
+          10. FULL-WIDTH FOOTER
          ══════════════════════════════════════════════════════════════════════════ */}
       <footer
-        id="contact"
         style={{
+          width: '100%',
           background: '#05010a',
           color: '#cbd5e1',
-          padding: '4rem 2rem 2rem',
+          padding: '4rem clamp(1rem, 4vw, 4rem) 2rem',
           borderTop: '1px solid rgba(234, 179, 8, 0.25)',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '3rem', marginBottom: '3rem' }}>
+        <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '3rem', marginBottom: '3rem' }}>
           
-          {/* Brand Col */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  background: '#facc15',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '22px',
-                }}
-              >
+              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#facc15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
                 🔱
               </div>
               <div>
@@ -1909,81 +1744,67 @@ Please confirm availability and share final site visit schedule!`;
                 <div style={{ fontSize: '9px', color: '#facc15', fontWeight: 800, letterSpacing: '0.1em' }}>EVENT & MANAGEMENT</div>
               </div>
             </div>
-
-            <p style={{ fontSize: '0.86rem', color: '#94a3b8', lineHeight: 1.6, maxWidth: '340px' }}>
+            <p style={{ fontSize: '0.86rem', color: '#94a3b8', lineHeight: 1.6, maxWidth: '380px' }}>
               <em>Har Pal Ko Banayein Khaas...</em><br />
               Varanasi’s most celebrated wedding stage and decor masters. Specializing in Aadiyogi themes, flower tunnels, cold fireworks, and heavy dry ice fog.
             </p>
           </div>
 
-          {/* Quick Links */}
           <div>
             <h4 style={{ color: '#ffffff', fontSize: '0.95rem', fontWeight: 800, marginBottom: '1rem' }}>
-              Setup Services
+              Setup Pages
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.84rem' }}>
-              <span>🔱 Aadiyogi Theme Wedding Stage</span>
-              <span>👑 Royal Bridal Entry (Flower Arch)</span>
-              <span>☁️ Heavy Dry Ice Fog Machine</span>
-              <span>✨ Cold Pyro Sparkulars Display</span>
-              <span>🌺 Exotic Fresh & Silk Floral Decor</span>
-              <span>📐 20ft Architectural Blueprint</span>
+              <button onClick={() => switchTab('AADIYOGI')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+                🔱 Aadiyogi Theme Stage Page
+              </button>
+              <button onClick={() => switchTab('DIMENSIONS')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+                📐 20ft Architecture Blueprint Page
+              </button>
+              <button onClick={() => switchTab('SERVICES')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+                👑 Core Decor Services Page
+              </button>
+              <button onClick={() => switchTab('GALLERY')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+                📸 Real Setup Gallery Page
+              </button>
+              <button onClick={() => switchTab('PROPOSAL')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+                📑 Proposal Estimator Page
+              </button>
             </div>
           </div>
 
-          {/* Contact Details */}
           <div>
             <h4 style={{ color: '#ffffff', fontSize: '0.95rem', fontWeight: 800, marginBottom: '1rem' }}>
               Contact & Booking Office
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Phone size={16} color="#facc15" />
-                <a href="tel:7651972973" style={{ color: '#ffffff', fontWeight: 800, textDecoration: 'none' }}>
-                  +91 76519 72973
-                </a>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <MapPin size={16} color="#facc15" style={{ marginTop: '2px', flexShrink: 0 }} />
-                <span>Bhaisodi, Sarnath, Varanasi, Uttar Pradesh - 221007</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <MessageCircle size={16} color="#22c55e" />
-                <a
-                  href="https://wa.me/917651972973"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: '#4ade80', fontWeight: 700, textDecoration: 'none' }}
-                >
-                  WhatsApp Booking: 76519 72973
-                </a>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+              <div>📞 Phone: <strong>+91 76519 72973</strong></div>
+              <div>📍 Location: Bhaisodi, Sarnath, Varanasi - 221007</div>
+              <div>💬 WhatsApp: Active 24x7 for Wedding Bookings</div>
             </div>
           </div>
 
         </div>
 
-        <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', fontSize: '0.8rem', color: '#64748b' }}>
+        <div style={{ width: '100%', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', fontSize: '0.8rem', color: '#64748b' }}>
           <div>
             © 2026 Jay Gurudev Event & Management. All Rights Reserved.
           </div>
           <div>
-            Designed for Kashi Service Multi-Vertical Ecosystem • Varanasi, UP
+            Kashi Service Multi-Vertical Ecosystem • Varanasi, UP
           </div>
         </div>
       </footer>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          10. MODAL: BOOK WEDDING DATE / SITE VISIT
+          11. MODAL: RESERVE WEDDING DATE
          ══════════════════════════════════════════════════════════════════════════ */}
       {bookingModalOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(5, 1, 10, 0.85)',
+            background: 'rgba(5, 1, 10, 0.88)',
             backdropFilter: 'blur(8px)',
             zIndex: 100,
             display: 'flex',
@@ -2042,7 +1863,7 @@ Please confirm availability and share final site visit schedule!`;
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                alert('Thank you! Your wedding booking request has been submitted. Our manager will call you within 30 minutes.');
+                alert('Thank you! Your date reservation request has been submitted. Our manager will call you within 30 minutes.');
                 setBookingModalOpen(false);
               }}
               style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
@@ -2055,16 +1876,7 @@ Please confirm availability and share final site visit schedule!`;
                   required
                   type="text"
                   placeholder="e.g. Ramesh Kumar"
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: '#0d0417',
-                    color: '#ffffff',
-                    fontSize: '0.85rem',
-                    boxSizing: 'border-box',
-                  }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#0d0417', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -2077,16 +1889,7 @@ Please confirm availability and share final site visit schedule!`;
                     required
                     type="tel"
                     placeholder="e.g. 76519 72973"
-                    style={{
-                      width: '100%',
-                      padding: '11px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: '#0d0417',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                      boxSizing: 'border-box',
-                    }}
+                    style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#0d0417', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
@@ -2096,38 +1899,9 @@ Please confirm availability and share final site visit schedule!`;
                   <input
                     required
                     type="date"
-                    style={{
-                      width: '100%',
-                      padding: '11px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: '#0d0417',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                      boxSizing: 'border-box',
-                    }}
+                    style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#0d0417', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#facc15', marginBottom: '4px' }}>
-                  Venue Location (Lawn / Banquet / Palace)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Near Sarnath, Sigra, Cantt or Babatpur Road"
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: '#0d0417',
-                    color: '#ffffff',
-                    fontSize: '0.85rem',
-                    boxSizing: 'border-box',
-                  }}
-                />
               </div>
 
               <div>
@@ -2135,16 +1909,7 @@ Please confirm availability and share final site visit schedule!`;
                   Select Package
                 </label>
                 <select
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: '#0d0417',
-                    color: '#ffffff',
-                    fontSize: '0.85rem',
-                    boxSizing: 'border-box',
-                  }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: '#0d0417', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 >
                   <option>Grand Setup: Aadiyogi Stage + Bridal Entry Combo</option>
                   <option>Aadiyogi Stage Only (20ft x 15ft)</option>
@@ -2176,72 +1941,6 @@ Please confirm availability and share final site visit schedule!`;
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          11. MODAL: 20ft BLUEPRINT ENLARGED
-         ══════════════════════════════════════════════════════════════════════════ */}
-      {blueprintModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(5, 1, 10, 0.9)',
-            backdropFilter: 'blur(10px)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.5rem',
-          }}
-          onClick={() => setBlueprintModalOpen(false)}
-        >
-          <div
-            style={{
-              maxWidth: '900px',
-              width: '100%',
-              background: '#150921',
-              borderRadius: '20px',
-              border: '2px solid rgba(250, 204, 21, 0.5)',
-              overflow: 'hidden',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.85)',
-              position: 'relative',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#facc15' }}>
-                  Aadiyogi Stage & Bridal Entry Architecture Blueprint
-                </h3>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Total Stage: 20ft × 15ft • Ramp: 15ft × 4ft</div>
-              </div>
-              <button
-                onClick={() => setBlueprintModalOpen(false)}
-                style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  border: 'none',
-                  color: '#ffffff',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <img
-              src="/images/events/aadiyogi_stage_dimensions.jpg"
-              alt="Blueprint Dimensions"
-              style={{ width: '100%', height: 'auto', display: 'block' }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════════
           12. LIGHTBOX MODAL
          ══════════════════════════════════════════════════════════════════════════ */}
       {activeLightboxImg && (
@@ -2249,7 +1948,7 @@ Please confirm availability and share final site visit schedule!`;
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.92)',
+            background: 'rgba(0, 0, 0, 0.94)',
             backdropFilter: 'blur(12px)',
             zIndex: 110,
             display: 'flex',

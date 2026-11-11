@@ -50,6 +50,7 @@ import {
   HelpCircle,
   Image,
   MessageSquareQuote,
+  FileText,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
