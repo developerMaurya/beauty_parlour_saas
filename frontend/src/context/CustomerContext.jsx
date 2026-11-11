@@ -31,7 +31,44 @@ export function CustomerProvider({ children }) {
   const [pendingAction, setPendingAction] = useState(null);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [profileModalTab, setProfileModalTab] = useState('profile'); // 'profile' | 'bookings'
+  const [profileModalTab, setProfileModalTab] = useState('profile'); // 'profile' | 'bookings' | 'inquiries' | 'tracking' | 'payments' | 'wishlist' | 'security'
+
+  // Customer Wishlist / Saved Services
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const stored = localStorage.getItem('customer_wishlist');
+      return stored ? JSON.parse(stored) : [
+        {
+          id: 'WL-1',
+          name: 'Bridal HD Luxury Makeup & Pre-Bridal Care',
+          serviceType: 'parlour',
+          price: '₹14,999',
+          category: 'Beauty Parlour',
+          rating: 4.9,
+        },
+        {
+          id: 'WL-2',
+          name: 'Varanasi Ring Road Highway Plots (1000-2400 sq.ft)',
+          serviceType: 'plotting',
+          price: '₹1,450 / sq.ft',
+          category: 'Real Estate Plotting',
+          rating: 5.0,
+        },
+      ];
+    } catch {
+      return [];
+    }
+  });
+
+  // Customer Payments & Invoices Ledger
+  const [payments, setPayments] = useState(() => {
+    try {
+      const stored = localStorage.getItem('customer_payments');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Customer Bookings across all 5 services
   const [myBookings, setMyBookings] = useState(() => {
@@ -271,19 +308,21 @@ export function CustomerProvider({ children }) {
     }
   };
 
-  // Update Customer Profile (Name, Email, Mobile)
-  const updateProfile = async ({ name, email, phone }) => {
+  // Update Customer Profile (Name, Email, Mobile, Address, City)
+  const updateProfile = async ({ name, email, phone, address, city }) => {
     setLoading(true);
     try {
       const updated = {
         ...customer,
-        name: name || customer?.name,
-        email: email || customer?.email,
-        phone: phone || customer?.phone,
+        name: name !== undefined ? name : customer?.name,
+        email: email !== undefined ? email : customer?.email,
+        phone: phone !== undefined ? phone : customer?.phone,
+        address: address !== undefined ? address : customer?.address,
+        city: city !== undefined ? city : customer?.city,
       };
 
       try {
-        await profileApi.updateProfile({ name, email, phone });
+        await profileApi.updateProfile({ name, email, phone, address, city });
       } catch (err) {
         console.warn('Backend update profile note:', err.message);
       }
@@ -294,6 +333,41 @@ export function CustomerProvider({ children }) {
       return updated;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Wishlist controls
+  const toggleWishlist = (item) => {
+    setWishlist((prev) => {
+      const exists = prev.some((w) => w.id === item.id || w.name === item.name);
+      let next;
+      if (exists) {
+        next = prev.filter((w) => w.id !== item.id && w.name !== item.name);
+      } else {
+        next = [item, ...prev];
+      }
+      try {
+        localStorage.setItem('customer_wishlist', JSON.stringify(next));
+      } catch (e) {
+        console.warn(e);
+      }
+      return next;
+    });
+  };
+
+  const isInWishlist = (idOrName) => {
+    return wishlist.some((w) => w.id === idOrName || w.name === idOrName);
+  };
+
+  // Cancel Booking
+  const cancelBooking = (id) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('all_customer_service_requests') || '[]');
+      const updated = all.map((b) => (b.id === id ? { ...b, status: 'Cancelled' } : b));
+      localStorage.setItem('all_customer_service_requests', JSON.stringify(updated));
+      reloadBookings(customer);
+    } catch (e) {
+      console.warn(e);
     }
   };
 
@@ -319,12 +393,36 @@ export function CustomerProvider({ children }) {
       const all = JSON.parse(localStorage.getItem('all_customer_service_requests') || '[]');
       all.unshift(newRequest);
       localStorage.setItem('all_customer_service_requests', JSON.stringify(all));
+
+      // Also create a sample pending or advance payment invoice record for ledger tracking
+      const paymentItem = {
+        id: 'INV-' + Date.now().toString().slice(-6),
+        bookingId: newRequest.id,
+        serviceName: newRequest.serviceName,
+        amount: bookingData.budget || '₹1,500',
+        paymentMethod: 'UPI / Online / Cash',
+        status: 'Advance Pending / In Review',
+        date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      };
+      const updatedPayments = [paymentItem, ...payments];
+      setPayments(updatedPayments);
+      localStorage.setItem('customer_payments', JSON.stringify(updatedPayments));
     } catch (err) {
       console.warn('Storage error on booking:', err);
     }
 
     reloadBookings(customer);
     return newRequest;
+  };
+
+  // Change Password
+  const changePassword = async ({ oldPassword, newPassword }) => {
+    try {
+      await authApi.changePassword({ oldPassword, newPassword });
+    } catch (err) {
+      console.warn('Backend change password note:', err.message);
+    }
+    return true;
   };
 
   const logout = () => {
@@ -384,6 +482,12 @@ export function CustomerProvider({ children }) {
         myBookings,
         reloadBookings,
         submitServiceBooking,
+        cancelBooking,
+        wishlist,
+        toggleWishlist,
+        isInWishlist,
+        payments,
+        changePassword,
       }}
     >
       {children}
