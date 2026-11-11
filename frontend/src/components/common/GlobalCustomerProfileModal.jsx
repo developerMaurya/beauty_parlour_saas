@@ -84,7 +84,9 @@ export default function GlobalCustomerProfileModal() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1rem',
+        overflowY: 'auto',
+        padding: '2rem 1rem',
+        boxSizing: 'border-box',
         animation: 'fadeIn 0.2s ease-out',
       }}
       onClick={(e) => {
@@ -95,7 +97,8 @@ export default function GlobalCustomerProfileModal() {
         style={{
           width: '100%',
           maxWidth: '560px',
-          maxHeight: '90vh',
+          margin: 'auto',
+          maxHeight: '92vh',
           background: '#0f172a',
           border: '1px solid rgba(255, 255, 255, 0.15)',
           borderRadius: '24px',
