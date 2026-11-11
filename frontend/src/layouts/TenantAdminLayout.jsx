@@ -61,8 +61,25 @@ export const TenantAdminLayout = () => {
   const { user, logout, isLoading } = useTenantAdmin();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 1024 : false));
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Listen for window resize to toggle mobile mode smoothly
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setMobileMenuOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Determine current active business vertical: 'PARLOUR' | 'PLOTTING' | 'RENT' | 'EVENTS' | 'SOFTWARE'
   const isPlottingRoute =
@@ -279,10 +296,25 @@ export const TenantAdminLayout = () => {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
-      {/* ── Left Branded Sidebar ── */}
+      {/* ── Mobile Backdrop Overlay (Click to close drawer) ── */}
+      {isMobile && mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 99998,
+            transition: 'opacity 0.25s ease',
+          }}
+        />
+      )}
+
+      {/* ── Left Branded Sidebar (Desktop fixed 260px, Mobile drawer 280px) ── */}
       <aside
         style={{
-          width: '260px',
+          width: isMobile ? '280px' : '260px',
           background: sidebarBg,
           color: '#e2e8f0',
           display: 'flex',
@@ -291,10 +323,11 @@ export const TenantAdminLayout = () => {
           top: 0,
           bottom: 0,
           left: 0,
-          zIndex: 50,
+          zIndex: isMobile ? 99999 : 50,
           overflowY: 'auto',
-          boxShadow: '4px 0 20px rgba(0,0,0,0.15)',
-          transition: 'background 0.25s ease',
+          boxShadow: isMobile ? '8px 0 30px rgba(0,0,0,0.4)' : '4px 0 20px rgba(0,0,0,0.15)',
+          transform: isMobile ? (mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+          transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease',
         }}
       >
         {/* Brand Header */}
@@ -465,12 +498,24 @@ export const TenantAdminLayout = () => {
             </div>
           )}
 
-          {mobileMenuOpen && (
+          {isMobile && (
             <button
               onClick={() => setMobileMenuOpen(false)}
-              style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer' }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                border: 'none',
+                borderRadius: '8px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                cursor: 'pointer',
+              }}
+              title="Close Navigation"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           )}
         </div>
@@ -802,8 +847,121 @@ export const TenantAdminLayout = () => {
         </div>
       </aside>
 
-      {/* ── Main Right Content Area (With 260px Margin) ── */}
-      <div style={{ marginLeft: '260px', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      {/* ── Main Right Content Area (Responsive on all screen sizes) ── */}
+      <div
+        style={{
+          marginLeft: isMobile ? 0 : '260px',
+          width: isMobile ? '100%' : 'calc(100% - 260px)',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          transition: 'margin-left 0.25s ease',
+        }}
+      >
+        {/* ── Mobile Top Bar (Sticky, visible ONLY when screen is narrow < 1024px) ── */}
+        {isMobile && (
+          <header
+            style={{
+              height: '56px',
+              background: sidebarBg,
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 1rem',
+              position: 'sticky',
+              top: 0,
+              zIndex: 40,
+              color: '#ffffff',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                }}
+                title="Open Navigation Menu"
+              >
+                <Menu size={20} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <span style={{ fontSize: '18px' }}>
+                  {isParlour ? '👑' : isPlotting ? '🏡' : isRent ? '🏢' : isEvents ? '🔱' : '💻'}
+                </span>
+                <span style={{ fontWeight: 900, fontSize: '13.5px', letterSpacing: '0.01em' }}>
+                  {isParlour
+                    ? 'Golden Beauty Parlour'
+                    : isPlotting
+                    ? 'Kashi Plotting'
+                    : isRent
+                    ? 'Prime Plots Rent'
+                    : isEvents
+                    ? 'Jay Gurudev Events'
+                    : 'RB Software Hub'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Actions on Mobile Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/customer-requests')}
+                style={{
+                  background: 'rgba(99, 102, 241, 0.25)',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  color: '#ffffff',
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <MessageSquare size={13} />
+                <span>Requests</span>
+              </button>
+
+              <div
+                onClick={() => navigate('/admin/profile')}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #c084fc 0%, #db2777 100%)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                }}
+              >
+                A
+              </div>
+            </div>
+          </header>
+        )}
+
         <Outlet />
       </div>
     </div>

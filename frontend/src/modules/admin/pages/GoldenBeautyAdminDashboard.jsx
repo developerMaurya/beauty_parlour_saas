@@ -76,7 +76,7 @@ export function GoldenBeautyAdminDashboard() {
         style={{
           background: '#ffffff',
           borderBottom: '1px solid #f1f5f9',
-          padding: '0.85rem 1.75rem',
+          padding: '0.75rem 1.25rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -84,10 +84,12 @@ export function GoldenBeautyAdminDashboard() {
           position: 'sticky',
           top: 0,
           zIndex: 30,
+          flexWrap: 'wrap',
+          gap: '0.75rem',
         }}
       >
         {/* Search */}
-        <div style={{ position: 'relative', width: '340px', maxWidth: '100%' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '180px', maxWidth: '340px' }}>
           <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: 10 }} />
           <input
             type="text"
@@ -100,6 +102,7 @@ export function GoldenBeautyAdminDashboard() {
               background: '#f8fafc',
               fontSize: '13px',
               outline: 'none',
+              boxSizing: 'border-box',
               transition: 'border-color 0.15s ease',
             }}
           />
@@ -163,14 +166,14 @@ export function GoldenBeautyAdminDashboard() {
       </header>
 
       {/* ── Main Dashboard Body Content ── */}
-      <main style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <main style={{ padding: '1.25rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* 1. Welcome Banner Card with Bridal Model */}
         <div
           style={{
             background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 40%, #fae8ff 100%)',
             borderRadius: '20px',
             border: '1px solid #fbcfe8',
-            padding: '1.5rem 2rem',
+            padding: '1.25rem 1.5rem',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -178,11 +181,11 @@ export function GoldenBeautyAdminDashboard() {
             overflow: 'hidden',
             boxShadow: '0 4px 20px rgba(244, 114, 182, 0.1)',
             flexWrap: 'wrap',
-            gap: '1.5rem',
+            gap: '1.25rem',
           }}
         >
-          <div style={{ maxWidth: '560px', zIndex: 2 }}>
-            <h1 style={{ fontSize: '1.9rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+          <div style={{ maxWidth: '560px', zIndex: 2, flex: 1, minWidth: '240px' }}>
+            <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 1.9rem)', fontWeight: 900, color: '#1e1b4b', margin: '0 0 6px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               Welcome Back, Admin!
             </h1>
             <p style={{ fontSize: '13.5px', color: '#475569', margin: '0 0 1.25rem', lineHeight: 1.5 }}>

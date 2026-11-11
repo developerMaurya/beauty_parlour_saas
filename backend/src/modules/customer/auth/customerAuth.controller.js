@@ -481,8 +481,9 @@ export const googleLogin = async (req, res) => {
         isVerified: true,
       });
     } else {
-      if (picture && !customer.profilePhoto) customer.profilePhoto = picture;
-      if (googleId && !customer.googleId) customer.googleId = googleId;
+      if (picture) customer.profilePhoto = picture;
+      if (name && (!customer.name || customer.name === 'Customer')) customer.name = name;
+      if (googleId) customer.googleId = googleId;
       customer.lastLoginAt = new Date();
       await customer.save();
     }

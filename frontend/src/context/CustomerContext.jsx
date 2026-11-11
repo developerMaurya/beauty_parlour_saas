@@ -269,6 +269,7 @@ export function CustomerProvider({ children }) {
         const res = await authApi.googleLogin({ email, name, picture, googleId });
         if (res?.data?.customer) {
           userProfile = res.data.customer;
+          if (picture) userProfile.profilePhoto = picture;
           accessToken = res.data.accessToken || accessToken;
           refreshToken = res.data.refreshToken || refreshToken;
         }
@@ -287,6 +288,8 @@ export function CustomerProvider({ children }) {
           authProvider: 'GOOGLE',
           status: 'ACTIVE',
         };
+      } else if (picture && !userProfile.profilePhoto) {
+        userProfile.profilePhoto = picture;
       }
 
       localStorage.setItem('customer_access_token', accessToken);
