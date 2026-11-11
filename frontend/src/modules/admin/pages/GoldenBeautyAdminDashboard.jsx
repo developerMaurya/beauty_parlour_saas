@@ -48,7 +48,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-export default function GoldenBeautyAdminDashboard() {
+export function GoldenBeautyAdminDashboard() {
   const navigate = useNavigate();
 
   // State for Sales Chart filter
@@ -1078,4 +1078,6 @@ export default function GoldenBeautyAdminDashboard() {
     </div>
   );
 }
+
+export default GoldenBeautyAdminDashboard;
 

@@ -15,8 +15,10 @@ import { Route, Navigate } from 'react-router-dom';
 
 import TenantAdminLayout from '../layouts/TenantAdminLayout.jsx';
 import AdminLoginPage from '../modules/admin/pages/AdminLoginPage.jsx';
-import GoldenBeautyAdminDashboard from '../modules/admin/pages/GoldenBeautyAdminDashboard.jsx';
+import GoldenBeautyAdminDashboard, { GoldenBeautyAdminDashboard as GoldenBeautyAdminDashboardNamed } from '../modules/admin/pages/GoldenBeautyAdminDashboard.jsx';
 import AdminDashboardPage from '../modules/admin/pages/AdminDashboardPage.jsx';
+
+const AdminParlourDashboard = GoldenBeautyAdminDashboard || GoldenBeautyAdminDashboardNamed;
 import BusinessDirectoryManager from '../modules/admin/pages/BusinessDirectoryManager.jsx';
 import EventDecorationDashboard from '../modules/admin/pages/EventDecorationDashboard.jsx';
 import EventUsersManagement from '../modules/admin/pages/EventUsersManagement.jsx';
@@ -62,8 +64,8 @@ export const AdminRoutes = (
       <Route index element={<Navigate to="/admin/dashboard" replace />} />
 
       {/* ── 1. Golden Beauty Parlour Master View ── */}
-      <Route path="dashboard" element={<GoldenBeautyAdminDashboard />} />
-      <Route path="golden-beauty-parlour" element={<GoldenBeautyAdminDashboard />} />
+      <Route path="dashboard" element={<AdminParlourDashboard />} />
+      <Route path="golden-beauty-parlour" element={<AdminParlourDashboard />} />
       <Route path="ops-radar" element={<AdminDashboardPage />} />
       <Route path="parlour-users" element={<CustomerManagementPage />} />
       <Route path="parlour-staff" element={<StaffManagementPage />} />
