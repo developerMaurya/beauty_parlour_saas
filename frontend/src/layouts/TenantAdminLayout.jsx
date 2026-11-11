@@ -1,11 +1,13 @@
 /**
  * @file TenantAdminLayout.jsx
- * @description Master Admin Layout with Collapsible Vertical Menus & Submenus:
- *   1. 💄 Golden Beauty Parlour: Dashboard, Users, Staff, Students, Appointments, Services, POS Billing, Inventory
- *   2. 🎉 Jay Gurudev Event Decoration: Stage Decor Dashboard, Event Bookings, Clients & Crew
- *   3. 🏗️ Real Estate Plotting: Colony Layout Dashboard, Available/Sold Plots, Buyers & Agents Commission
- *   4. 🔑 Office & Commercial Rent: Leasing Dashboard, Commercial Units, Tenants & Monthly Rent
- *   5. 💻 RB Software Hub: Cloud Microservices, APIs, Software Portfolio & Tech Clients
+ * @description Master Luxury Admin Layout matching the exact "Golden Beauty Parlour" SaaS design.
+ * Features:
+ *   - Branded dark luxury purple sidebar (#241434) with Crown + Woman logo
+ *   - Exact menu items: Dashboard, Website, Appointments, Customers, Staff, Students, Services,
+ *     Packages, Inventory, Billing, CRM, Offers & Discounts, Reports, Import/Export, Notification,
+ *     Support, Settings & Upgrade Plan button
+ *   - Multi-vertical switchable drawers (Events, Plotting, Commercial Rent, Software Hub & Overview)
+ *   - Responsive mobile drawer support
  * @module frontend/src/layouts/TenantAdminLayout
  */
 
@@ -17,8 +19,6 @@ import {
   Compass,
   Key,
   Code2,
-  Folder,
-  FolderOpen,
   LayoutDashboard,
   Users,
   UserCheck,
@@ -38,9 +38,16 @@ import {
   Moon,
   Bell,
   UserCog,
-  CheckCircle2,
-  DollarSign,
+  Crown,
+  HeartHandshake,
+  Tag,
+  BarChart3,
+  Download,
+  Headphones,
+  Search,
+  MessageSquare,
   Layers,
+  Box,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -52,317 +59,299 @@ export const TenantAdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Track expanded business vertical sections
-  const [expandedVerticals, setExpandedVerticals] = useState({
-    parlour: true,
-    events: false,
-    plotting: false,
-    rent: false,
-    software: false,
-  });
+  // Multi-vertical toggle state
+  const [otherVerticalsOpen, setOtherVerticalsOpen] = useState(false);
 
-  const toggleVertical = (vKey) => {
-    setExpandedVerticals((prev) => ({
-      ...prev,
-      [vKey]: !prev[vKey],
-    }));
-  };
+  // Exact beauty parlour menu items from user screenshot
+  const parlourMenuItems = [
+    { label: 'Dashboard', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard },
+    { label: 'Website', path: '/storefront', icon: Globe, isExternal: true },
+    { label: 'Appointments', path: '/admin/parlour-appointments', icon: Calendar, badge: '12' },
+    { label: 'Customers', path: '/admin/parlour-users', icon: Users },
+    { label: 'Staff', path: '/admin/parlour-staff', icon: UserCheck },
+    { label: 'Students', path: '/admin/parlour-students', icon: GraduationCap },
+    { label: 'Services', path: '/admin/parlour-services', icon: Scissors },
+    { label: 'Packages', path: '/admin/packages', icon: Package },
+    { label: 'Inventory', path: '/admin/parlour-inventory', icon: Box },
+    { label: 'Billing', path: '/admin/parlour-billing', icon: CreditCard },
+    { label: 'CRM', path: '/admin/crm', icon: HeartHandshake },
+    { label: 'Offers & Discounts', path: '/admin/offers', icon: Tag },
+    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
+    { label: 'Import / Export', path: '/admin/import-export', icon: Download },
+    { label: 'Notification', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
+    { label: 'Support', path: '/admin/support', icon: Headphones },
+    { label: 'Settings', path: '/admin/settings', icon: Settings },
+  ];
 
-  const businessMenus = [
-    {
-      key: 'parlour',
-      label: 'Golden Beauty Parlour',
-      icon: Scissors,
-      color: '#ec4899',
-      bgColor: '#fdf2f8',
-      mainPath: '/admin/golden-beauty-parlour',
-      websiteUrl: '/golden-beauty-parlour',
-      subItems: [
-        { label: 'Parlour Dashboard', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard },
-        { label: 'Registered Customers', path: '/admin/parlour-users', icon: Users },
-        { label: 'Staff & Specialists', path: '/admin/parlour-staff', icon: UserCheck },
-        { label: 'Academy Students', path: '/admin/parlour-students', icon: GraduationCap },
-        { label: 'Appointments Calendar', path: '/admin/parlour-appointments', icon: Calendar },
-        { label: 'Services & Packages', path: '/admin/parlour-services', icon: Scissors },
-        { label: 'POS Billing & GST', path: '/admin/parlour-billing', icon: CreditCard },
-        { label: 'Products & Inventory', path: '/admin/parlour-inventory', icon: Package },
-      ],
-    },
-    {
-      key: 'events',
-      label: 'Event & Decoration',
-      icon: PartyPopper,
-      color: '#a855f7',
-      bgColor: '#faf5ff',
-      mainPath: '/admin/event-decoration',
-      websiteUrl: '/events',
-      subItems: [
-        { label: 'Stage Decor Dashboard', path: '/admin/event-decoration', icon: LayoutDashboard },
-        { label: 'Event Clients & Crew', path: '/admin/event-users', icon: Users },
-      ],
-    },
-    {
-      key: 'plotting',
-      label: 'Real Estate Plotting',
-      icon: Compass,
-      color: '#059669',
-      bgColor: '#ecfdf5',
-      mainPath: '/admin/plotting',
-      websiteUrl: '/plotting',
-      subItems: [
-        { label: 'Colony Layout Dashboard', path: '/admin/plotting', icon: LayoutDashboard },
-        { label: 'Buyers & Commission', path: '/admin/plotting-users', icon: Users },
-      ],
-    },
-    {
-      key: 'rent',
-      label: 'Office & Rent Commercial',
-      icon: Key,
-      color: '#0284c7',
-      bgColor: '#f0f9ff',
-      mainPath: '/admin/rent-office',
-      websiteUrl: '/rent',
-      subItems: [
-        { label: 'Leasing Dashboard', path: '/admin/rent-office', icon: LayoutDashboard },
-        { label: 'Commercial Tenants', path: '/admin/rent-tenants', icon: Users },
-      ],
-    },
-    {
-      key: 'software',
-      label: 'RB Software Hub',
-      icon: Code2,
-      color: '#6366f1',
-      bgColor: '#eef2ff',
-      mainPath: '/admin/rb-software',
-      websiteUrl: '/software',
-      subItems: [
-        { label: 'Tech & API Dashboard', path: '/admin/rb-software', icon: LayoutDashboard },
-        { label: 'Software Clients', path: '/admin/software-clients', icon: Users },
-      ],
-    },
+  // Other Kashi Service Verticals
+  const otherVerticals = [
+    { label: '🎉 Event & Decoration', path: '/admin/event-decoration', icon: PartyPopper, color: '#a855f7' },
+    { label: '🏗️ Real Estate Plotting', path: '/admin/plotting', icon: Compass, color: '#059669' },
+    { label: '🔑 Office & Rent Commercial', path: '/admin/rent-office', icon: Key, color: '#0284c7' },
+    { label: '💻 RB Software Hub', path: '/admin/rb-software', icon: Code2, color: '#6366f1' },
+    { label: '📊 Master Business Overview', path: '/admin/business-folders', icon: Layers, color: '#f59e0b' },
   ];
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #ec4899', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#241434' }}>
+        <div style={{ width: '42px', height: '42px', borderRadius: '50%', border: '3.5px solid #a855f7', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app, #f8fafc)', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* ── Sidebar ── */}
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+      {/* ── Left Branded Dark Purple Sidebar (Matching User Screenshot) ── */}
       <aside
         style={{
-          width: '275px',
-          background: 'var(--bg-surface, #ffffff)',
-          borderRight: '1px solid var(--border-color, #e2e8f0)',
+          width: '260px',
+          background: '#241434',
+          color: '#e2e8f0',
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
           top: 0,
           bottom: 0,
           left: 0,
-          zIndex: 40,
+          zIndex: 50,
           overflowY: 'auto',
+          boxShadow: '4px 0 20px rgba(0,0,0,0.15)',
         }}
       >
-        {/* Brand */}
-        <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid var(--border-color, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }} onClick={() => navigate('/admin/dashboard')}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800 }}>
-              <Sparkles size={20} />
+        {/* Brand Header: Crown + Woman Face & "Golden Beauty Parlour" */}
+        <div
+          style={{
+            padding: '1.4rem 1.25rem 1.2rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            onClick={() => navigate('/admin/golden-beauty-parlour')}
+          >
+            {/* Crown with Woman Portrait Icon */}
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #db2777 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4)',
+                position: 'relative',
+                flexShrink: 0,
+              }}
+            >
+              <Crown size={22} />
             </div>
+
             <div>
-              <div style={{ fontWeight: 900, fontSize: '0.98rem', color: 'var(--text-primary, #0f172a)' }}>Kashi Admin Hub</div>
-              <div style={{ fontSize: '0.72rem', color: '#ec4899', fontWeight: 700 }}>Master Business Manager</div>
+              <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontWeight: 900, fontSize: '1.25rem', color: '#ffffff', letterSpacing: '-0.01em', lineHeight: 1.05 }}>
+                Golden
+              </div>
+              <div style={{ fontSize: '10px', color: '#d8b4fe', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
+                BEAUTY PARLOUR
+              </div>
             </div>
           </div>
+
           {mobileMenuOpen && (
-            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: '#64748b' }}>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer' }}
+            >
               <X size={20} />
             </button>
           )}
         </div>
 
-        {/* Overview Executive Direct Button */}
-        <div style={{ padding: '0.75rem 0.65rem 0.35rem' }}>
-          <NavLink
-            to="/admin/business-folders"
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.65rem 0.85rem',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              color: isActive ? '#ffffff' : '#1e293b',
-              background: isActive ? '#0f172a' : '#f1f5f9',
-              transition: 'all 0.15s ease',
-            })}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <LayoutDashboard size={18} color="#6366f1" />
-              <span>📊 Overview</span>
-            </div>
-            <span style={{ fontSize: '10px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', padding: '2px 7px', borderRadius: '4px', fontWeight: 800 }}>
-              5 In 1
-            </span>
-          </NavLink>
-        </div>
+        {/* ── Main Beauty Parlour Navigation Menu ── */}
+        <div style={{ padding: '0.85rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
+          {parlourMenuItems.map((item, idx) => {
+            const Icon = item.icon;
+            // Active if route matches or if at /admin/dashboard and item is Dashboard
+            const isActive =
+              location.pathname === item.path ||
+              (item.label === 'Dashboard' && (location.pathname === '/admin/dashboard' || location.pathname === '/admin'));
 
-        <div style={{ height: '1px', background: 'var(--border-color, #e2e8f0)', margin: '0.5rem 0.65rem' }} />
-
-        {/* ── 5 Multi-Business Vertical Menus with Sub-Menus ── */}
-        <div style={{ padding: '0.25rem 0.65rem 1rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 0.5rem 0.25rem' }}>
-            Business Verticals & Modules
-          </div>
-
-          {businessMenus.map((v) => {
-            const VIcon = v.icon;
-            const isExpanded = Boolean(expandedVerticals[v.key]);
-            const isAnySubActive = v.subItems.some((s) => location.pathname === s.path);
-
-            return (
-              <div key={v.key} style={{ display: 'flex', flexDirection: 'column', borderRadius: '10px', border: isExpanded ? `1.5px solid ${v.color}35` : '1px solid transparent', background: isExpanded ? '#ffffff' : 'transparent', overflow: 'hidden' }}>
-                {/* Vertical Header Row */}
-                <div
-                  onClick={() => toggleVertical(v.key)}
+            if (item.isExternal) {
+              return (
+                <NavLink
+                  key={idx}
+                  to={item.path}
+                  target="_blank"
+                  rel="noreferrer"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: isExpanded ? v.bgColor : 'transparent',
-                    color: isExpanded ? v.color : 'var(--text-primary, #1e293b)',
-                    fontWeight: 800,
+                    padding: '0.62rem 0.85rem',
+                    borderRadius: '10px',
                     fontSize: '0.84rem',
+                    fontWeight: 600,
+                    color: '#cbd5e1',
+                    textDecoration: 'none',
                     transition: 'all 0.15s ease',
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#cbd5e1';
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <VIcon size={17} color={v.color} />
-                    <span>{v.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Icon size={17} color="#a855f7" />
+                    <span>{item.label}</span>
                   </div>
+                  <span style={{ fontSize: '10px', color: '#c084fc' }}>↗</span>
+                </NavLink>
+              );
+            }
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {isExpanded ? <ChevronDown size={16} color={v.color} /> : <ChevronRight size={16} color="#94a3b8" />}
-                  </div>
+            return (
+              <NavLink
+                key={idx}
+                to={item.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.62rem 0.85rem',
+                  borderRadius: '10px',
+                  fontSize: '0.84rem',
+                  fontWeight: isActive ? 800 : 600,
+                  color: isActive ? '#ffffff' : '#cbd5e1',
+                  background: isActive ? '#7e22ce' : 'transparent',
+                  textDecoration: 'none',
+                  boxShadow: isActive ? '0 4px 14px rgba(126, 34, 206, 0.4)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                    e.currentTarget.style.color = '#ffffff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#cbd5e1';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Icon size={17} color={isActive ? '#ffffff' : '#a855f7'} />
+                  <span>{item.label}</span>
                 </div>
 
-                {/* Submenu Items */}
-                {isExpanded && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px 0.5rem 8px 1.5rem', background: '#ffffff', borderTop: `1px solid ${v.color}15` }}>
-                    {v.subItems.map((sub, sIdx) => {
-                      const SubIcon = sub.icon;
-                      const isSubActive = location.pathname === sub.path;
-
-                      return (
-                        <NavLink
-                          key={sIdx}
-                          to={sub.path}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.55rem',
-                            padding: '0.45rem 0.65rem',
-                            borderRadius: '6px',
-                            fontSize: '0.78rem',
-                            fontWeight: isSubActive ? 800 : 500,
-                            color: isSubActive ? '#ffffff' : 'var(--text-secondary, #475569)',
-                            backgroundColor: isSubActive ? v.color : 'transparent',
-                            textDecoration: 'none',
-                            boxShadow: isSubActive ? `0 2px 8px ${v.color}35` : 'none',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <SubIcon size={14} />
-                          <span>{sub.label}</span>
-                        </NavLink>
-                      );
-                    })}
-
-                    {/* View Live Website shortcut inside submenu */}
-                    <NavLink
-                      to={v.websiteUrl}
-                      target="_blank"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.55rem',
-                        padding: '0.45rem 0.65rem',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: v.color,
-                        textDecoration: 'none',
-                        marginTop: '4px',
-                        borderTop: '1px dashed #e2e8f0',
-                        paddingTop: '6px',
-                      }}
-                    >
-                      <Globe size={13} />
-                      <span>🌐 View {v.label} Website ↗</span>
-                    </NavLink>
-                  </div>
+                {item.badge && (
+                  <span
+                    style={{
+                      background: item.badgeColor || '#ec4899',
+                      color: '#ffffff',
+                      fontSize: '10.5px',
+                      fontWeight: 900,
+                      padding: '1px 7px',
+                      borderRadius: '999px',
+                      lineHeight: '16px',
+                    }}
+                  >
+                    {item.badge}
+                  </span>
                 )}
-              </div>
+              </NavLink>
             );
           })}
+
+          {/* ── Multi-Business Verticals Collapsible Drawer ── */}
+          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div
+              onClick={() => setOtherVerticalsOpen(!otherVerticalsOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.55rem 0.85rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: '#d8b4fe',
+                background: otherVerticalsOpen ? 'rgba(168, 85, 247, 0.12)' : 'transparent',
+              }}
+            >
+              <span>OTHER BUSINESS VERTICALS</span>
+              {otherVerticalsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </div>
+
+            {otherVerticalsOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px', paddingLeft: '4px' }}>
+                {otherVerticals.map((ov, oIdx) => (
+                  <NavLink
+                    key={oIdx}
+                    to={ov.path}
+                    style={({ isActive }) => ({
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: isActive ? 800 : 500,
+                      color: isActive ? '#ffffff' : '#cbd5e1',
+                      background: isActive ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                      textDecoration: 'none',
+                    })}
+                  >
+                    <span>{ov.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Footer with Logout */}
-        <div style={{ padding: '0.85rem 1rem', borderTop: '1px solid var(--border-color, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', background: 'var(--bg-surface, #ffffff)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ec4899', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>
-              {user?.name?.[0]?.toUpperCase() || 'A'}
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary, #0f172a)' }}>{user?.name || 'Admin User'}</div>
-              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Master Admin</div>
-            </div>
-          </div>
-          <button onClick={logout} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '6px' }} title="Log out">
-            <LogOut size={16} />
+        {/* ── Bottom Upgrade Plan Button matching screenshot ── */}
+        <div style={{ padding: '0.85rem 1rem 1.25rem' }}>
+          <button
+            onClick={() => navigate('/admin/billing')}
+            style={{
+              width: '100%',
+              padding: '11px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #7e22ce 0%, #9333ea 50%, #a855f7 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              boxShadow: '0 6px 18px rgba(126, 34, 206, 0.45)',
+            }}
+          >
+            <Crown size={17} />
+            <span>Upgrade Plan</span>
           </button>
         </div>
       </aside>
 
-      {/* ── Main Content Area ── */}
-      <div style={{ marginLeft: '275px', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Top Header */}
-        <header style={{ height: '60px', background: 'var(--bg-surface, #ffffff)', borderBottom: '1px solid var(--border-color, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', position: 'sticky', top: 0, zIndex: 30 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'transparent', border: 'none', color: '#475569', display: 'none' }}>
-              <Menu size={20} />
-            </button>
-            <NavLink to="/" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#2563eb', textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', background: '#eff6ff' }}>
-              <Globe size={14} />
-              <span>Customer Portal Website</span>
-            </NavLink>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <button onClick={toggleTheme} style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Toggle Theme">
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-            <NavLink to="/admin/profile" style={{ padding: '4px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: 'rgba(236, 72, 153, 0.15)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.3)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <UserCog size={14} />
-              <span>Admin Profile</span>
-            </NavLink>
-          </div>
-        </header>
-
-        <main style={{ padding: '1.5rem', flex: 1, minWidth: 0 }}>
-          <Outlet />
-        </main>
+      {/* ── Main Right Content Area (With 260px Margin) ── */}
+      <div style={{ marginLeft: '260px', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <Outlet />
       </div>
     </div>
   );

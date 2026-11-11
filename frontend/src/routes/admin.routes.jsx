@@ -15,6 +15,7 @@ import { Route, Navigate } from 'react-router-dom';
 
 import TenantAdminLayout from '../layouts/TenantAdminLayout.jsx';
 import AdminLoginPage from '../modules/admin/pages/AdminLoginPage.jsx';
+import GoldenBeautyAdminDashboard from '../modules/admin/pages/GoldenBeautyAdminDashboard.jsx';
 import AdminDashboardPage from '../modules/admin/pages/AdminDashboardPage.jsx';
 import BusinessDirectoryManager from '../modules/admin/pages/BusinessDirectoryManager.jsx';
 import EventDecorationDashboard from '../modules/admin/pages/EventDecorationDashboard.jsx';
@@ -60,9 +61,10 @@ export const AdminRoutes = (
     <Route path="/admin" element={<TenantAdminLayout />}>
       <Route index element={<Navigate to="/admin/dashboard" replace />} />
 
-      {/* ── 1. Golden Beauty Parlour Sub-Routes ── */}
-      <Route path="dashboard" element={<AdminDashboardPage />} />
-      <Route path="golden-beauty-parlour" element={<AdminDashboardPage />} />
+      {/* ── 1. Golden Beauty Parlour Master View ── */}
+      <Route path="dashboard" element={<GoldenBeautyAdminDashboard />} />
+      <Route path="golden-beauty-parlour" element={<GoldenBeautyAdminDashboard />} />
+      <Route path="ops-radar" element={<AdminDashboardPage />} />
       <Route path="parlour-users" element={<CustomerManagementPage />} />
       <Route path="parlour-staff" element={<StaffManagementPage />} />
       <Route path="parlour-students" element={<StudentAcademyPage />} />
@@ -70,6 +72,11 @@ export const AdminRoutes = (
       <Route path="parlour-services" element={<ServiceCatalogPage />} />
       <Route path="parlour-billing" element={<BillingPOSPage />} />
       <Route path="parlour-inventory" element={<InventorySuppliersPage />} />
+      <Route path="packages" element={<PackagesOffersPage />} />
+      <Route path="offers" element={<PackagesOffersPage />} />
+      <Route path="crm" element={<CRMPage />} />
+      <Route path="support" element={<SupportCenterPage />} />
+      <Route path="import-export" element={<ReportsPage />} />
 
       {/* ── 2. Jay Gurudev Event Decoration Sub-Routes ── */}
       <Route path="event-decoration" element={<EventDecorationDashboard />} />

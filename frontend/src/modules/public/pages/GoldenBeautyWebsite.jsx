@@ -1,17 +1,22 @@
 /**
  * @file GoldenBeautyWebsite.jsx
- * @description Master Luxury Portal for Golden Beauty Parlour & Salon, Academy & Doorstep Home Services.
+ * @description Master Luxury Portal for Golden Beauty Parlour & Salon, Academy & Virtual Bridal Try-On Studio.
  * Fully Responsive for All Devices (Mobile, Tablet, Laptop, 4K Desktop) & Full-Width Fluid Architecture.
  * Features:
- *   - Dedicated Navigation Tabs: Home, About, Services, Courses & Academy, Contact
+ *   - Dedicated Navigation Tabs: Home, About, Services, Virtual Makeover ✨, Training & Courses, Contact
+ *   - Interactive AI & Virtual Bridal Look Visualizer:
+ *       * Upload personal photo or select Indian beauty model faces
+ *       * Occasion styles: Royale Bridal, Engagement Soft Glam, Reception Cocktail, Haldi Floral
+ *       * Customizable Dupatta / Dress Color, Jewelry (Kundan, Polki, Floral, Temple), Lipstick & Glow
+ *       * Real-time Before vs After comparison slider / toggle
+ *       * One-click appointment booking with selected look prefilled
+ *   - Golden Beauty Academy: Basic, Advance, Golden Master Platinum Course (with Ear Locking & practicals)
+ *   - Contact & Real Google Map: Naibazar Sathwa Road, Varanasi (Near Jaygurudev Event & Near Kashi Service)
  *   - Mobile Drawer & Responsive Mobile Sticky Navigation
- *   - Golden Beauty Academy: Basic Course, Advance Course, Golden Master Platinum Course (with Ear Locking, Step-by-Step Training & Salon Ops)
- *   - Contact & Real Google Map: Naibazar Sathwa Road, Varanasi (Near Jaygurudev Event & Management & Near Kashi Service)
- *   - Interactive Service Catalog, Bridal Booking & Enrollment Modals
  * @module frontend/src/modules/public/pages/GoldenBeautyWebsite
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Scissors,
@@ -47,13 +52,21 @@ import {
   Menu,
   PhoneCall,
   Smartphone,
+  Camera,
+  Upload,
+  Eye,
+  RefreshCw,
+  Palette,
+  Crown,
+  Share2,
+  Sliders,
 } from 'lucide-react';
 
 export default function GoldenBeautyWebsite() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Active top tab: 'HOME' | 'ABOUT' | 'SERVICES' | 'COURSES' | 'CONTACT'
+  // Active top tab: 'HOME' | 'ABOUT' | 'SERVICES' | 'MAKEOVER' | 'COURSES' | 'CONTACT'
   const tabFromUrl = searchParams.get('tab')?.toUpperCase() || 'HOME';
   const [activeTab, setActiveTab] = useState(tabFromUrl);
 
@@ -62,7 +75,7 @@ export default function GoldenBeautyWebsite() {
 
   useEffect(() => {
     const t = searchParams.get('tab')?.toUpperCase();
-    if (t && ['HOME', 'ABOUT', 'SERVICES', 'COURSES', 'CONTACT'].includes(t)) {
+    if (t && ['HOME', 'ABOUT', 'SERVICES', 'MAKEOVER', 'COURSES', 'CONTACT'].includes(t)) {
       setActiveTab(t);
     }
   }, [searchParams]);
@@ -111,6 +124,62 @@ export default function GoldenBeautyWebsite() {
     message: '',
   });
   const [contactSuccess, setContactSuccess] = useState(false);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // VIRTUAL BRIDAL & MAKEOVER TRY-ON STUDIO STATE
+  // ══════════════════════════════════════════════════════════════════════════
+  const sampleModels = [
+    {
+      id: 'm1',
+      name: 'Priya (Model 1)',
+      label: 'Fair Tone',
+      url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      id: 'm2',
+      name: 'Ananya (Model 2)',
+      label: 'Wheatish Glow',
+      url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      id: 'm3',
+      name: 'Ritu (Model 3)',
+      label: 'Dusky Radiance',
+      url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      id: 'm4',
+      name: 'Kavita (Model 4)',
+      label: 'Traditional Look',
+      url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=700&q=80',
+    },
+  ];
+
+  const [currentFacePhoto, setCurrentFacePhoto] = useState(sampleModels[0].url);
+  const [isCustomUploaded, setIsCustomUploaded] = useState(false);
+  const [compareMode, setCompareMode] = useState(false); // false = show Makeover, true = show Original Before
+
+  // Makeover Customization
+  const [makeoverOccasion, setMakeoverOccasion] = useState('BRIDAL'); // 'BRIDAL' | 'ENGAGEMENT' | 'RECEPTION' | 'HALDI'
+  const [dupattaColor, setDupattaColor] = useState('#991b1b'); // '#991b1b' (Red) | '#be185d' (Pink) | '#ea580c' (Peach) | '#581c87' (Wine) | '#ca8a04' (Yellow) | '#065f46' (Green)
+  const [jewelryStyle, setJewelryStyle] = useState('KUNDAN'); // 'KUNDAN' | 'POLKI' | 'FLORAL' | 'TEMPLE'
+  const [lipstickShade, setLipstickShade] = useState('RUBY'); // 'RUBY' | 'ROSE' | 'NUDE' | 'PLUM'
+  const [glowFinish, setGlowFinish] = useState('GOLD'); // 'GOLD' | 'GLASS' | 'MATTE'
+
+  const fileInputRef = useRef(null);
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCurrentFacePhoto(reader.result);
+        setIsCustomUploaded(true);
+        setCompareMode(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // ══════════════════════════════════════════════════════════════════════════
   // 1. SERVICES CATALOG DATA
@@ -390,7 +459,6 @@ export default function GoldenBeautyWebsite() {
     <div className="golden-beauty-root" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', color: '#0f172a', background: '#faf9f6', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
       {/* ── Scoped Fluid & Responsive CSS ── */}
       <style>{`
-        /* Global & Fluid Styles */
         * { box-sizing: border-box; }
         .golden-fluid-container {
           width: 100%;
@@ -401,11 +469,10 @@ export default function GoldenBeautyWebsite() {
           padding-right: clamp(1rem, 4vw, 3.5rem);
         }
 
-        /* Desktop Nav vs Mobile */
         .desktop-nav-tabs {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
         }
         .mobile-menu-btn {
           display: none;
@@ -416,32 +483,27 @@ export default function GoldenBeautyWebsite() {
           gap: 10px;
         }
 
-        /* Category Filter scroll on small screens */
         .category-scroll-container {
           display: flex;
           gap: 6px;
           overflow-x: auto;
           padding-bottom: 4px;
           scrollbar-width: none;
-          -ms-overflow-style: none;
           max-width: 100%;
         }
         .category-scroll-container::-webkit-scrollbar {
           display: none;
         }
 
-        /* Mobile Sub-Header Horizontal Tab Scroller */
         .mobile-tabs-pillbar {
           display: none;
         }
 
-        /* Mobile Sticky Bottom Bar */
         .mobile-bottom-bar {
           display: none;
         }
 
-        /* Media Queries for Tablet & Mobile */
-        @media (max-width: 991px) {
+        @media (max-width: 1024px) {
           .desktop-nav-tabs {
             display: none !important;
           }
@@ -460,17 +522,6 @@ export default function GoldenBeautyWebsite() {
           }
           .mobile-tabs-pillbar::-webkit-scrollbar {
             display: none;
-          }
-          .hero-grid {
-            grid-template-columns: 1fr !important;
-            gap: 2rem !important;
-          }
-          .about-founder-grid {
-            grid-template-columns: 1fr !important;
-            gap: 2rem !important;
-          }
-          .stats-grid-3 {
-            grid-template-columns: repeat(3, 1fr) !important;
           }
         }
 
@@ -493,27 +544,13 @@ export default function GoldenBeautyWebsite() {
           .footer-section {
             padding-bottom: 6rem !important;
           }
-          .announcement-bar {
-            text-align: center;
-            justify-content: center !important;
-          }
           .announcement-bar-address {
-            display: none !important;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .stats-grid-3 {
-            grid-template-columns: 1fr !important;
-            gap: 0.75rem !important;
-          }
-          .desktop-nav-cta {
             display: none !important;
           }
         }
       `}</style>
 
-      {/* ── Top Announcement Bar (Full-Width Responsive) ── */}
+      {/* ── Top Announcement Bar ── */}
       <header
         className="announcement-bar"
         style={{
@@ -542,7 +579,7 @@ export default function GoldenBeautyWebsite() {
         </div>
       </header>
 
-      {/* ── Master Glassmorphic Navigation Bar (Full Width & Sticky) ── */}
+      {/* ── Master Glassmorphic Navigation Bar ── */}
       <nav
         style={{
           padding: '0.9rem clamp(1rem, 3.5vw, 2.5rem)',
@@ -588,12 +625,13 @@ export default function GoldenBeautyWebsite() {
             </div>
           </div>
 
-          {/* Desktop 5 Master Tabs (Home, About, Services, Courses, Contact) */}
+          {/* Desktop Master Tabs (Home, About, Services, Virtual Makeover ✨, Courses, Contact) */}
           <div className="desktop-nav-tabs" style={{ background: '#fdf2f8', padding: '5px', borderRadius: '12px', border: '1px solid #fce7f3' }}>
             {[
               { id: 'HOME', label: 'Home', icon: Home },
               { id: 'ABOUT', label: 'About Parlour', icon: Heart },
               { id: 'SERVICES', label: 'Services', icon: Sparkles },
+              { id: 'MAKEOVER', label: 'Virtual Makeover ✨', icon: Camera, isSpecial: true },
               { id: 'COURSES', label: 'Training & Courses', icon: GraduationCap },
               { id: 'CONTACT', label: 'Contact & Map', icon: MapPin },
             ].map((tab) => {
@@ -604,12 +642,18 @@ export default function GoldenBeautyWebsite() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   style={{
-                    padding: '8px 15px',
+                    padding: '8px 14px',
                     borderRadius: '8px',
                     border: 'none',
-                    background: isActive ? '#be123c' : 'transparent',
-                    color: isActive ? '#ffffff' : '#64748b',
-                    fontWeight: isActive ? 800 : 600,
+                    background: isActive
+                      ? tab.isSpecial
+                        ? 'linear-gradient(135deg, #9333ea 0%, #be123c 100%)'
+                        : '#be123c'
+                      : tab.isSpecial
+                      ? '#fae8ff'
+                      : 'transparent',
+                    color: isActive ? '#ffffff' : tab.isSpecial ? '#7e22ce' : '#64748b',
+                    fontWeight: isActive ? 800 : tab.isSpecial ? 800 : 600,
                     fontSize: '13px',
                     cursor: 'pointer',
                     display: 'inline-flex',
@@ -677,12 +721,13 @@ export default function GoldenBeautyWebsite() {
         </div>
       </nav>
 
-      {/* ── Mobile Horizontal Pill Bar (Quick 1-Tap Switching on Phone) ── */}
+      {/* ── Mobile Horizontal Pill Bar ── */}
       <div className="mobile-tabs-pillbar">
         {[
           { id: 'HOME', label: 'Home' },
           { id: 'ABOUT', label: 'About' },
           { id: 'SERVICES', label: 'Services' },
+          { id: 'MAKEOVER', label: '✨ Makeover Studio' },
           { id: 'COURSES', label: 'Courses' },
           { id: 'CONTACT', label: 'Contact' },
         ].map((tab) => {
@@ -758,6 +803,7 @@ export default function GoldenBeautyWebsite() {
                   { id: 'HOME', label: 'Home Overview', icon: Home },
                   { id: 'ABOUT', label: 'About Smt. Sneha Maurya', icon: Heart },
                   { id: 'SERVICES', label: 'All Services (24+)', icon: Sparkles },
+                  { id: 'MAKEOVER', label: '✨ Virtual Makeover & Try-On', icon: Camera },
                   { id: 'COURSES', label: 'Academy Courses & Ear Locking', icon: GraduationCap },
                   { id: 'CONTACT', label: 'Contact & Google Map', icon: MapPin },
                 ].map((item) => {
@@ -837,7 +883,7 @@ export default function GoldenBeautyWebsite() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          VIEW 1: HOME TAB (Full-Width Responsive)
+          VIEW 1: HOME TAB
           ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'HOME' && (
         <div style={{ width: '100%' }}>
@@ -854,7 +900,6 @@ export default function GoldenBeautyWebsite() {
           >
             <div className="golden-fluid-container">
               <div
-                className="hero-grid"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
@@ -876,11 +921,11 @@ export default function GoldenBeautyWebsite() {
 
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
-                      onClick={() => handleTabChange('SERVICES')}
+                      onClick={() => handleTabChange('MAKEOVER')}
                       style={{
                         padding: '13px 26px',
                         borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)',
+                        background: 'linear-gradient(135deg, #9333ea 0%, #be123c 100%)',
                         color: '#ffffff',
                         fontWeight: 800,
                         fontSize: '14px',
@@ -889,15 +934,15 @@ export default function GoldenBeautyWebsite() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 8,
-                        boxShadow: '0 8px 24px rgba(244, 63, 94, 0.4)',
+                        boxShadow: '0 8px 24px rgba(147, 51, 234, 0.4)',
                       }}
                     >
-                      <span>Explore All Services</span>
-                      <ArrowRight size={16} />
+                      <Camera size={17} />
+                      <span>Virtual Bridal Try-On ✨</span>
                     </button>
 
                     <button
-                      onClick={() => handleTabChange('COURSES')}
+                      onClick={() => handleTabChange('SERVICES')}
                       style={{
                         padding: '13px 26px',
                         borderRadius: '10px',
@@ -912,14 +957,13 @@ export default function GoldenBeautyWebsite() {
                         gap: 8,
                       }}
                     >
-                      <GraduationCap size={16} />
-                      <span>View Academy Courses</span>
+                      <span>Explore Services</span>
+                      <ArrowRight size={16} />
                     </button>
                   </div>
 
                   {/* 3 Quick USPs */}
                   <div
-                    className="stats-grid-3"
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(3, 1fr)',
@@ -988,7 +1032,7 @@ export default function GoldenBeautyWebsite() {
             </div>
           </section>
 
-          {/* Featured Services Preview Section (Full-Width Fluid) */}
+          {/* Featured Services Preview Section */}
           <section style={{ padding: 'clamp(2.5rem, 4vw, 4.5rem) 0', width: '100%' }}>
             <div className="golden-fluid-container">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -1072,61 +1116,7 @@ export default function GoldenBeautyWebsite() {
             </div>
           </section>
 
-          {/* Academy Highlights on Home Page (Full-Width Fluid) */}
-          <section style={{ padding: 'clamp(2.5rem, 4vw, 4.5rem) 0', background: '#fff1f2', borderTop: '1px solid #fce7f3', borderBottom: '1px solid #fce7f3', width: '100%' }}>
-            <div className="golden-fluid-container">
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))',
-                  gap: 'clamp(2rem, 4vw, 4rem)',
-                  alignItems: 'center',
-                }}
-              >
-                <div>
-                  <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>GOVERNMENT ACCREDITED ACADEMY</span>
-                  <h2 style={{ fontSize: 'clamp(1.8rem, 3.2vw, 2.4rem)', fontWeight: 900, color: '#881337', margin: '6px 0 12px' }}>
-                    Master the Art of Cosmetology & Salon Entrepreneurship
-                  </h2>
-                  <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.65, margin: '0 0 1.5rem' }}>
-                    Join Varanasi’s most comprehensive beauty academy. From foundation hair cuts to celebrity airbrush makeup and specialized ear piercing / ear locking techniques, we train you step by step with live practicals on real models.
-                  </p>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '2rem' }}>
-                    {[
-                      'Basic Course (45 Days) — Foundation beauty & skin care',
-                      'Advance Course (90 Days) — 3D Airbrush & chemical hair chemistry',
-                      'Golden Master Platinum Course (6 Months) — All-in-one with Ear Locking & Salon Management',
-                      'Daily live practical classes on real models with professional tools',
-                    ].map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
-                        <CheckCircle2 size={16} color="#be123c" style={{ flexShrink: 0 }} />
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => handleTabChange('COURSES')}
-                    style={{ padding: '12px 24px', borderRadius: '10px', background: '#881337', color: '#fff', border: 'none', fontWeight: 800, fontSize: '13.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <BookOpen size={15} />
-                    <span>Explore 3 Training Courses & Fees</span>
-                  </button>
-                </div>
-
-                <div>
-                  <img
-                    src="https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=700&q=80"
-                    alt="Golden Beauty Academy Hands-on Training"
-                    style={{ width: '100%', height: 'clamp(260px, 35vw, 380px)', objectFit: 'cover', borderRadius: '20px', boxShadow: '0 16px 36px rgba(136, 19, 55, 0.15)' }}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Testimonials (Full-Width Fluid) */}
+          {/* Testimonials */}
           <section style={{ padding: 'clamp(2.5rem, 4vw, 4.5rem) 0', width: '100%' }}>
             <div className="golden-fluid-container">
               <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
@@ -1159,12 +1149,11 @@ export default function GoldenBeautyWebsite() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          VIEW 2: ABOUT TAB (About Parlour & Owner Details)
+          VIEW 2: ABOUT TAB
           ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'ABOUT' && (
         <div style={{ width: '100%', padding: 'clamp(2rem, 4vw, 3.5rem) 0' }}>
           <div className="golden-fluid-container">
-            {/* Header */}
             <div style={{ textAlign: 'center', maxWidth: '840px', margin: '0 auto clamp(2rem, 4vw, 3.5rem)' }}>
               <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>HERITAGE & ARTISTRY</span>
               <h1 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.7rem)', fontWeight: 900, color: '#881337', margin: '6px 0 12px' }}>
@@ -1175,9 +1164,8 @@ export default function GoldenBeautyWebsite() {
               </p>
             </div>
 
-            {/* Owner & Founder Showcase */}
+            {/* Founder Showcase */}
             <div
-              className="about-founder-grid"
               style={{
                 background: '#ffffff',
                 borderRadius: '24px',
@@ -1229,33 +1217,12 @@ export default function GoldenBeautyWebsite() {
                 />
               </div>
             </div>
-
-            {/* Core Values */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.5rem' }}>
-              {[
-                { title: '100% Sterilization Guarantee', desc: 'Single-use towels, disposable makeup sponges, and UV-autoclaved instruments for complete hygiene.', icon: ShieldCheck },
-                { title: 'Premium International Brands', desc: 'We exclusively work with Kryolan HD, MAC, Huda Beauty, L’Oreal Professionnel, and Dermalogica.', icon: Gem },
-                { title: 'Step-by-Step Training Methodology', desc: 'Every student receives personal 1-on-1 attention with practical live model experience.', icon: GraduationCap },
-                { title: 'Doorstep VIP Dispatches', desc: 'Mobile bridal studio sent to your home or banquet anywhere in Varanasi and Eastern UP.', icon: Home },
-              ].map((v, i) => {
-                const VIcon = v.icon;
-                return (
-                  <div key={i} style={{ background: '#ffffff', padding: '1.75rem', borderRadius: '16px', border: '1px solid #fce7f3' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#fff1f2', color: '#be123c', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                      <VIcon size={22} />
-                    </div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>{v.title}</h3>
-                    <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.6, margin: 0 }}>{v.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          VIEW 3: SERVICES TAB (Full Service Catalog)
+          VIEW 3: SERVICES TAB
           ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'SERVICES' && (
         <div style={{ width: '100%', padding: 'clamp(2rem, 4vw, 3.5rem) 0' }}>
@@ -1313,7 +1280,7 @@ export default function GoldenBeautyWebsite() {
               </div>
             </div>
 
-            {/* Services Grid (Full Responsive) */}
+            {/* Services Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.75rem', width: '100%' }}>
               {filteredServices.map((s) => (
                 <div
@@ -1383,7 +1350,653 @@ export default function GoldenBeautyWebsite() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          VIEW 4: COURSES & ACADEMY TAB
+          VIEW 4: VIRTUAL MAKEOVER & TRY-ON STUDIO (NEW FEATURE)
+          ══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'MAKEOVER' && (
+        <div style={{ width: '100%', padding: 'clamp(2rem, 4vw, 3.5rem) 0' }}>
+          <div className="golden-fluid-container">
+            {/* Header */}
+            <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto 2.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: '999px', background: '#fae8ff', color: '#9333ea', fontSize: '11.5px', fontWeight: 900, marginBottom: '0.75rem' }}>
+                <Sparkles size={14} />
+                <span>AI VIRTUAL BRIDAL & MAKEOVER STUDIO • अपना फोटो डालें और लुक देखें</span>
+              </div>
+              <h1 style={{ fontSize: 'clamp(2.1rem, 3.5vw, 2.8rem)', fontWeight: 900, color: '#881337', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+                Virtual Makeover & Bridal Visualizer
+              </h1>
+              <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+                अपना फोटो अपलोड करें और तुरंत देखें कि आप <strong>Royale Bridal</strong>, <strong>Engagement Soft Glam</strong>, <strong>Reception</strong> या <strong>Haldi Floral</strong> लुक में कैसी दिखेंगी! गहनों (Jewelry) और लहंगे के दुपट्टे का रंग भी कस्टमाइज़ करें।
+              </p>
+            </div>
+
+            {/* Studio Workspace Layout */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+                gap: 'clamp(1.5rem, 3vw, 2.5rem)',
+                alignItems: 'start',
+              }}
+            >
+              {/* ── Left Column: Interactive Canvas & Look Preview ── */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '24px',
+                  padding: 'clamp(1.25rem, 3vw, 2rem)',
+                  border: '1.5px solid #fce7f3',
+                  boxShadow: '0 12px 36px rgba(136, 19, 55, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
+                }}
+              >
+                {/* Canvas Top Bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Crown size={18} color="#be123c" />
+                    <span style={{ fontWeight: 900, fontSize: '13.5px', color: '#881337' }}>
+                      {makeoverOccasion === 'BRIDAL' && '👑 Royale Rajputana Bridal Look'}
+                      {makeoverOccasion === 'ENGAGEMENT' && '💍 Celebrity Engagement Soft Glam'}
+                      {makeoverOccasion === 'RECEPTION' && '💃 Reception Cocktail Glam'}
+                      {makeoverOccasion === 'HALDI' && '🌼 Haldi & Mehendi Sunshine Glow'}
+                    </span>
+                  </div>
+
+                  {/* Compare Toggle */}
+                  <button
+                    onClick={() => setCompareMode(!compareMode)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      background: compareMode ? '#f1f5f9' : '#fff1f2',
+                      color: compareMode ? '#475569' : '#be123c',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <Eye size={14} />
+                    <span>{compareMode ? 'Show Makeover Look' : '👁️ Show Original (Before)'}</span>
+                  </button>
+                </div>
+
+                {/* ── Visualizer Frame (Photo with Overlay) ── */}
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: 'clamp(360px, 48vw, 480px)',
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    boxShadow: 'inset 0 0 20px rgba(0,0,0,0.15)',
+                    background: '#1e1b4b',
+                  }}
+                >
+                  {/* Base Photo */}
+                  <img
+                    src={currentFacePhoto}
+                    alt="Makeover Canvas"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      filter: compareMode
+                        ? 'none'
+                        : glowFinish === 'GOLD'
+                        ? 'contrast(1.06) brightness(1.04) saturate(1.12)'
+                        : glowFinish === 'GLASS'
+                        ? 'contrast(1.02) brightness(1.08) saturate(1.05)'
+                        : 'contrast(1.08) brightness(0.98)',
+                      transition: 'all 0.3s ease',
+                    }}
+                  />
+
+                  {/* Virtual Makeover Overlays (when not in compare mode) */}
+                  {!compareMode && (
+                    <>
+                      {/* 1. Dupatta Drape Frame around head */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          pointerEvents: 'none',
+                          borderTop: `28px solid ${dupattaColor}`,
+                          borderLeft: `34px solid ${dupattaColor}`,
+                          borderRight: `34px solid ${dupattaColor}`,
+                          borderBottom: `50px solid ${dupattaColor}`,
+                          borderRadius: '20px',
+                          boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)',
+                          opacity: 0.92,
+                          transition: 'all 0.3s ease',
+                        }}
+                      >
+                        {/* Zardozi Gold Border Simulation */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            borderTop: '3px dashed #facc15',
+                            borderLeft: '3px dashed #facc15',
+                            borderRight: '3px dashed #facc15',
+                            borderBottom: '4px solid #eab308',
+                            opacity: 0.85,
+                          }}
+                        />
+                      </div>
+
+                      {/* 2. Maang Tikka on Forehead */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '28px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          pointerEvents: 'none',
+                          zIndex: 10,
+                        }}
+                      >
+                        <div style={{ width: 2, height: 26, background: jewelryStyle === 'POLKI' ? '#e2e8f0' : '#eab308', boxShadow: '0 0 6px rgba(234, 179, 8, 0.8)' }} />
+                        <div
+                          style={{
+                            width: makeoverOccasion === 'BRIDAL' ? 32 : 24,
+                            height: makeoverOccasion === 'BRIDAL' ? 32 : 24,
+                            borderRadius: '50%',
+                            background:
+                              jewelryStyle === 'KUNDAN'
+                                ? 'radial-gradient(circle, #fef08a 0%, #ca8a04 70%, #854d0e 100%)'
+                                : jewelryStyle === 'POLKI'
+                                ? 'radial-gradient(circle, #ffffff 0%, #cbd5e1 60%, #475569 100%)'
+                                : jewelryStyle === 'FLORAL'
+                                ? 'radial-gradient(circle, #fef08a 0%, #eab308 60%, #ca8a04 100%)'
+                                : 'radial-gradient(circle, #fef08a 0%, #b45309 80%, #78350f 100%)',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1.5px solid #ffffff',
+                          }}
+                        >
+                          <Sparkle size={14} color="#ffffff" />
+                        </div>
+                      </div>
+
+                      {/* 3. Traditional Red Bindi for Bridal / Engagement */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '32%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          width: makeoverOccasion === 'BRIDAL' ? 10 : 7,
+                          height: makeoverOccasion === 'BRIDAL' ? 10 : 7,
+                          borderRadius: '50%',
+                          background: makeoverOccasion === 'BRIDAL' ? '#991b1b' : '#be123c',
+                          boxShadow: '0 0 4px rgba(0,0,0,0.4)',
+                          pointerEvents: 'none',
+                          zIndex: 10,
+                        }}
+                      />
+
+                      {/* 4. Traditional Bridal Nath (Nose Ring with Chain) - Visible in Bridal Look */}
+                      {makeoverOccasion === 'BRIDAL' && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '49%',
+                            left: '46%',
+                            pointerEvents: 'none',
+                            zIndex: 10,
+                          }}
+                        >
+                          {/* Round Ring */}
+                          <div
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: '50%',
+                              border: '2px solid #facc15',
+                              boxShadow: '0 0 6px rgba(250, 204, 21, 0.8)',
+                            }}
+                          />
+                          {/* Pearl Chain extending to ear */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 2,
+                              left: 18,
+                              width: 48,
+                              height: 1,
+                              borderTop: '1.5px dotted #fef08a',
+                              transform: 'rotate(24deg)',
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* 5. Choker / Royal Necklace at Neckline */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '50px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: '74%',
+                          maxWidth: '280px',
+                          height: '38px',
+                          borderRadius: '0 0 100px 100px',
+                          borderBottom:
+                            jewelryStyle === 'POLKI'
+                              ? '8px double #e2e8f0'
+                              : jewelryStyle === 'FLORAL'
+                              ? '9px dotted #facc15'
+                              : '9px ridge #eab308',
+                          boxShadow: '0 6px 14px rgba(0,0,0,0.4)',
+                          pointerEvents: 'none',
+                          zIndex: 10,
+                        }}
+                      />
+
+                      {/* 6. Lipstick & Cosmetic Radiance Tint */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '33%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: '42px',
+                          height: '16px',
+                          borderRadius: '8px',
+                          background:
+                            lipstickShade === 'RUBY'
+                              ? 'rgba(185, 28, 28, 0.28)'
+                              : lipstickShade === 'ROSE'
+                              ? 'rgba(219, 39, 119, 0.28)'
+                              : lipstickShade === 'NUDE'
+                              ? 'rgba(234, 88, 12, 0.22)'
+                              : 'rgba(88, 28, 135, 0.28)',
+                          filter: 'blur(3px)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+
+                      {/* Occasion Watermark Badge */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 12,
+                          left: 14,
+                          background: 'rgba(0,0,0,0.65)',
+                          backdropFilter: 'blur(6px)',
+                          padding: '4px 10px',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                        }}
+                      >
+                        ✨ Styled by Sneha Maurya • Golden Beauty
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Bottom Canvas Controls: Photo Selection / Upload */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155' }}>
+                      Step 1: Choose Model Face or Upload Your Own Photo
+                    </span>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: '#be123c',
+                        color: '#fff',
+                        border: 'none',
+                        fontSize: '11.5px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                      }}
+                    >
+                      <Upload size={13} />
+                      <span>Upload Your Photo</span>
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handlePhotoUpload}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+
+                  {/* 4 Sample Model Thumbnails */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                    {sampleModels.map((m) => (
+                      <div
+                        key={m.id}
+                        onClick={() => {
+                          setCurrentFacePhoto(m.url);
+                          setIsCustomUploaded(false);
+                          setCompareMode(false);
+                        }}
+                        style={{
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          border: currentFacePhoto === m.url && !isCustomUploaded ? '2.5px solid #be123c' : '1px solid #e2e8f0',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          height: '70px',
+                        }}
+                      >
+                        <img src={m.url} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <span style={{ position: 'absolute', bottom: 2, left: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9.5px', fontWeight: 700, textAlign: 'center', borderRadius: '4px', padding: '1px' }}>
+                          {m.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Right Column: Interactive Makeover Controls & Actions ── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* 1. Occasion Look Selector */}
+                <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.5rem', border: '1.5px solid #fce7f3' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 900, color: '#881337', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Step 2: Choose Makeover Style (लुक चुनें)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    {[
+                      { id: 'BRIDAL', label: '👑 Royale Bridal Look', desc: 'Heavy Kundan, Nath, Red Drape & Bindi', defaultColor: '#991b1b' },
+                      { id: 'ENGAGEMENT', label: '💍 Engagement Soft Glam', desc: 'Diamond Polki, Peach Glow, Rose Eyes', defaultColor: '#ea580c' },
+                      { id: 'RECEPTION', label: '💃 Reception Cocktail', desc: 'Wine Velvet, Emerald Jewelry & Sculpt', defaultColor: '#581c87' },
+                      { id: 'HALDI', label: '🌼 Haldi & Mehendi Glow', desc: 'Floral Jewelry, Yellow Sunkissed Glow', defaultColor: '#ca8a04' },
+                    ].map((occ) => {
+                      const isSelected = makeoverOccasion === occ.id;
+                      return (
+                        <div
+                          key={occ.id}
+                          onClick={() => {
+                            setMakeoverOccasion(occ.id);
+                            setDupattaColor(occ.defaultColor);
+                            setCompareMode(false);
+                          }}
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: '12px',
+                            border: isSelected ? '2px solid #be123c' : '1px solid #e2e8f0',
+                            background: isSelected ? '#fff1f2' : '#f8fafc',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '13px', color: isSelected ? '#881337' : '#0f172a', marginBottom: 2 }}>
+                            {occ.label}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.3 }}>{occ.desc}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Lehenga / Dupatta Color Customizer */}
+                <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.5rem', border: '1.5px solid #fce7f3' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#881337', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Step 3: Dupatta / Outfit Color (दुपट्टे का रंग)
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {[
+                      { code: '#991b1b', name: 'Crimson Red' },
+                      { code: '#be185d', name: 'Rani Pink' },
+                      { code: '#ea580c', name: 'Pastel Peach' },
+                      { code: '#581c87', name: 'Royal Wine' },
+                      { code: '#ca8a04', name: 'Haldi Yellow' },
+                      { code: '#065f46', name: 'Emerald Green' },
+                    ].map((c) => (
+                      <button
+                        key={c.code}
+                        onClick={() => {
+                          setDupattaColor(c.code);
+                          setCompareMode(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 12px',
+                          borderRadius: '999px',
+                          border: dupattaColor === c.code ? '2px solid #0f172a' : '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: c.code, display: 'inline-block' }} />
+                        <span>{c.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Jewelry Style Customizer */}
+                <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.5rem', border: '1.5px solid #fce7f3' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 900, color: '#881337', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Step 4: Jewelry Style (गहने / ज्वेलरी)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                    {[
+                      { id: 'KUNDAN', label: '24K Kundan & Pearl', icon: '👑' },
+                      { id: 'POLKI', label: 'Diamond & Polki', icon: '💎' },
+                      { id: 'FLORAL', label: 'Floral Gota Patti', icon: '🌸' },
+                      { id: 'TEMPLE', label: 'Temple Heritage Gold', icon: '🛕' },
+                    ].map((j) => {
+                      const isSel = jewelryStyle === j.id;
+                      return (
+                        <button
+                          key={j.id}
+                          onClick={() => {
+                            setJewelryStyle(j.id);
+                            setCompareMode(false);
+                          }}
+                          style={{
+                            padding: '9px 12px',
+                            borderRadius: '10px',
+                            border: isSel ? '2px solid #be123c' : '1px solid #cbd5e1',
+                            background: isSel ? '#fff1f2' : '#ffffff',
+                            color: isSel ? '#881337' : '#334155',
+                            fontWeight: 800,
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <span>{j.icon}</span>
+                          <span>{j.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Lipstick Shade & Glow Finish */}
+                <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.5rem', border: '1.5px solid #fce7f3' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 900, color: '#881337', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Step 5: Lip Shade & Bridal Glow (लिपस्टिक व ग्लो)
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    {[
+                      { id: 'RUBY', label: 'Velvet Ruby', color: '#b91c1c' },
+                      { id: 'ROSE', label: 'Rose Blossom', color: '#db2777' },
+                      { id: 'NUDE', label: 'Coral Nude', color: '#ea580c' },
+                      { id: 'PLUM', label: 'Rich Plum', color: '#581c87' },
+                    ].map((l) => (
+                      <button
+                        key={l.id}
+                        onClick={() => {
+                          setLipstickShade(l.id);
+                          setCompareMode(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: lipstickShade === l.id ? '2px solid #be123c' : '1px solid #e2e8f0',
+                          background: lipstickShade === l.id ? '#fff1f2' : '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span style={{ width: 12, height: 12, borderRadius: '50%', background: l.color }} />
+                        <span>{l.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[
+                      { id: 'GOLD', label: '✨ 24K Radiant Gold Glow' },
+                      { id: 'GLASS', label: '💎 High-Shine Dewy Glass' },
+                      { id: 'MATTE', label: '🛡️ Velvet HD Matte' },
+                    ].map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => {
+                          setGlowFinish(g.id);
+                          setCompareMode(false);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: glowFinish === g.id ? '2px solid #7e22ce' : '1px solid #e2e8f0',
+                          background: glowFinish === g.id ? '#faf5ff' : '#ffffff',
+                          color: glowFinish === g.id ? '#7e22ce' : '#475569',
+                          fontWeight: 800,
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. Direct Action CTA Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button
+                    onClick={() => {
+                      const occTitle =
+                        makeoverOccasion === 'BRIDAL'
+                          ? 'Royale Bridal Makeover'
+                          : makeoverOccasion === 'ENGAGEMENT'
+                          ? 'Engagement Soft Glam Makeover'
+                          : makeoverOccasion === 'RECEPTION'
+                          ? 'Reception Cocktail Makeover'
+                          : 'Haldi Floral Sunshine Makeover';
+                      setSelectedServiceForBooking(`${occTitle} (Custom Try-On Look)`);
+                      setBookingForm((prev) => ({
+                        ...prev,
+                        serviceName: `${occTitle} (Custom Look: ${dupattaColor} Drape, ${jewelryStyle} Jewelry)`,
+                      }));
+                      setBookingModalOpen(true);
+                    }}
+                    style={{
+                      padding: '14px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 900,
+                      fontSize: '14.5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: '0 8px 24px rgba(244, 63, 94, 0.4)',
+                    }}
+                  >
+                    <Calendar size={18} />
+                    <span>Book This Exact Look with Sneha Maurya</span>
+                  </button>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <a
+                      href={`https://wa.me/919876543210?text=Hello%20Sneha%20Ma'am,%20I%20tried%20the%20Virtual%20Makeover%20Studio%20for%20${makeoverOccasion}%20look%20with%20${jewelryStyle}%20jewelry.%20I%20would%20like%20to%20book%20a%20bridal%20appointment!`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        padding: '10px',
+                        borderRadius: '10px',
+                        background: '#25d366',
+                        color: '#ffffff',
+                        textDecoration: 'none',
+                        fontWeight: 800,
+                        fontSize: '12.5px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <MessageCircle size={15} />
+                      <span>WhatsApp Look to Salon</span>
+                    </a>
+
+                    <button
+                      onClick={() => alert('Look saved successfully! Take a screenshot or share on WhatsApp with Sneha Maurya at +91 98765 43210.')}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '10px',
+                        background: '#ffffff',
+                        border: '1.5px solid #cbd5e1',
+                        color: '#334155',
+                        fontWeight: 800,
+                        fontSize: '12.5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <Share2 size={15} />
+                      <span>Save / Share Look</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          VIEW 5: COURSES & ACADEMY TAB
           ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'COURSES' && (
         <div style={{ width: '100%', padding: 'clamp(2rem, 4vw, 3.5rem) 0' }}>
@@ -1398,7 +2011,7 @@ export default function GoldenBeautyWebsite() {
               </p>
             </div>
 
-            {/* 3 Main Course Cards (Full-Width Responsive) */}
+            {/* 3 Main Course Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '2rem', marginBottom: '3.5rem' }}>
               {academyCourses.map((c) => (
                 <div
@@ -1538,7 +2151,7 @@ export default function GoldenBeautyWebsite() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          VIEW 5: CONTACT & REAL GOOGLE MAP TAB
+          VIEW 6: CONTACT & REAL GOOGLE MAP TAB
           ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'CONTACT' && (
         <div style={{ width: '100%', padding: 'clamp(2rem, 4vw, 3.5rem) 0' }}>
@@ -1750,7 +2363,7 @@ export default function GoldenBeautyWebsite() {
               </div>
             </div>
 
-            {/* ── Interactive Google Map Embed (Fluid & Responsive) ── */}
+            {/* Google Map Embed */}
             <div style={{ background: '#ffffff', borderRadius: '24px', overflow: 'hidden', border: '1.5px solid #fce7f3', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', width: '100%' }}>
               <div style={{ padding: '1.25rem clamp(1rem, 3vw, 1.75rem)', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                 <div>
@@ -1790,7 +2403,7 @@ export default function GoldenBeautyWebsite() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          FOOTER (Full-Width Responsive)
+          FOOTER
           ══════════════════════════════════════════════════════════════════════ */}
       <footer className="footer-section" style={{ background: '#4c0519', color: '#fce7f3', padding: 'clamp(2.5rem, 4vw, 4rem) 0 2rem', marginTop: '4rem', width: '100%' }}>
         <div className="golden-fluid-container">
@@ -1813,6 +2426,7 @@ export default function GoldenBeautyWebsite() {
                 <span style={{ cursor: 'pointer' }} onClick={() => handleTabChange('HOME')}>Home Overview</span>
                 <span style={{ cursor: 'pointer' }} onClick={() => handleTabChange('ABOUT')}>About Founder & Parlour</span>
                 <span style={{ cursor: 'pointer' }} onClick={() => handleTabChange('SERVICES')}>All Services & Packages</span>
+                <span style={{ cursor: 'pointer' }} onClick={() => handleTabChange('MAKEOVER')}>Virtual Makeover Studio ✨</span>
                 <span style={{ cursor: 'pointer' }} onClick={() => handleTabChange('COURSES')}>Golden Master Training Course</span>
                 <span style={{ cursor: 'pointer' }} onClick={() => handleTabChange('CONTACT')}>Location Map & Contact</span>
               </div>
@@ -1844,7 +2458,7 @@ export default function GoldenBeautyWebsite() {
         </div>
       </footer>
 
-      {/* ── Mobile Sticky Bottom Bar (Always Accessible on Phone) ── */}
+      {/* ── Mobile Sticky Bottom Bar ── */}
       <div className="mobile-bottom-bar">
         <a
           href="tel:+919876543210"
@@ -1883,27 +2497,24 @@ export default function GoldenBeautyWebsite() {
         </a>
 
         <button
-          onClick={() => {
-            setSelectedServiceForBooking('Royale Airbrush Bridal HD Makeover');
-            setBookingModalOpen(true);
-          }}
+          onClick={() => handleTabChange('MAKEOVER')}
           style={{
             padding: '7px 14px',
             borderRadius: '999px',
-            background: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)',
+            background: 'linear-gradient(135deg, #9333ea 0%, #be123c 100%)',
             color: '#ffffff',
             border: 'none',
             fontWeight: 800,
-            fontSize: '12px',
+            fontSize: '11.5px',
             display: 'flex',
             alignItems: 'center',
             gap: 5,
-            boxShadow: '0 4px 12px rgba(190, 18, 60, 0.3)',
+            boxShadow: '0 4px 12px rgba(147, 51, 234, 0.3)',
             cursor: 'pointer',
           }}
         >
-          <Calendar size={14} />
-          <span>Book Now</span>
+          <Camera size={14} />
+          <span>Try-On</span>
         </button>
 
         <button
