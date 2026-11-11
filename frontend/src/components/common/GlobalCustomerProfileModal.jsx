@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useCustomer } from '../../context/CustomerContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { X, User, Mail, Phone, Calendar, Clock, CheckCircle2, MessageSquare, LogOut, Edit2, Save, Sparkles, AlertCircle } from 'lucide-react';
@@ -73,12 +74,12 @@ export default function GlobalCustomerProfileModal() {
     }
   };
 
-  return (
+  const modalContent = (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 99999,
+        zIndex: 9999999,
         background: 'rgba(0, 0, 0, 0.75)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
@@ -522,4 +523,6 @@ export default function GlobalCustomerProfileModal() {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
