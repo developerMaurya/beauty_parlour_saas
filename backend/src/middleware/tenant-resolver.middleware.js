@@ -34,6 +34,23 @@ export const tenantResolverMiddleware = async (req, res, next) => {
       }
     }
 
+    // If not provided in headers, check login body for email or username to auto-resolve tenant
+    if (!tenantIdentifier && req.body && (req.body.email || req.body.username)) {
+      try {
+        const { getTenantModel } = await import('../database/tenant/tenantModels.js');
+        const TenantUserModel = getTenantModel(null, 'TenantUser');
+        const lookupKey = (req.body.email || req.body.username).toLowerCase().trim();
+        const matchedUser = await TenantUserModel.findOne({
+          $or: [{ email: lookupKey }, { username: lookupKey }],
+        });
+        if (matchedUser && matchedUser.tenantId) {
+          tenantIdentifier = matchedUser.tenantId.toString();
+        }
+      } catch (e) {
+        // Safe fallback
+      }
+    }
+
     // Inspect Host header / Forwarded Host for Subdomain or Custom White-Label Domain
     const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
     const host = rawHost.split(':')[0].toLowerCase();

@@ -32,13 +32,29 @@ export const staffLogin = async (req, res) => {
     }
 
     const TenantUserModel = getTenantModel(req, 'TenantUser');
-    const user = await TenantUserModel.findOne({
-      tenantId: req.tenantId,
-      email: email.toLowerCase().trim(),
-    }).select('+passwordHash');
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Allow login by email without requiring tenant ID upfront
+    let user = null;
+    if (req.tenantId) {
+      user = await TenantUserModel.findOne({
+        tenantId: req.tenantId,
+        $or: [{ email: normalizedEmail }, { username: normalizedEmail }, { phone: normalizedEmail }],
+      }).select('+passwordHash');
+    }
+
+    if (!user) {
+      user = await TenantUserModel.findOne({
+        $or: [{ email: normalizedEmail }, { username: normalizedEmail }, { phone: normalizedEmail }],
+      }).select('+passwordHash');
+    }
 
     if (!user) {
       return sendError(res, 'Invalid credentials', [], 401);
+    }
+
+    if (!req.tenantId && user.tenantId) {
+      req.tenantId = user.tenantId.toString();
     }
 
     if (user.userType !== 'STAFF' && user.role !== 'STAFF' && user.role !== 'ADMIN') {
@@ -118,8 +134,10 @@ export const staffLogin = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           role: user.role,
           userType: user.userType,
+          targetBusiness: user.targetBusiness || 'PARLOUR',
         },
         staff: staffDoc,
         tenant: req.tenant
@@ -222,6 +240,7 @@ export const staffGetMe = async (req, res) => {
           phone: req.user.phone,
           role: req.user.role,
           userType: req.user.userType,
+          targetBusiness: req.user.targetBusiness || 'PARLOUR',
           permissions: req.userPermissions,
         },
         staff: req.staff,

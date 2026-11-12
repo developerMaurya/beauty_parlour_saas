@@ -11,6 +11,9 @@ import { Route, Navigate } from 'react-router-dom';
 import StaffLayout from '../layouts/StaffLayout.jsx';
 import StaffLoginPage from '../modules/staff/pages/StaffLoginPage.jsx';
 import StaffDashboardPage from '../modules/staff/pages/StaffDashboardPage.jsx';
+import StaffEventDashboardPage from '../modules/staff/pages/StaffEventDashboardPage.jsx';
+import StaffPlottingDashboardPage from '../modules/staff/pages/StaffPlottingDashboardPage.jsx';
+import StaffSoftwareDashboardPage from '../modules/staff/pages/StaffSoftwareDashboardPage.jsx';
 import StaffProfilePage from '../modules/staff/pages/StaffProfilePage.jsx';
 import StaffProfileEditPage from '../modules/staff/pages/StaffProfileEditPage.jsx';
 import StaffCalendarPage from '../modules/staff/pages/StaffCalendarPage.jsx';
@@ -40,6 +43,21 @@ import StaffSettingsPage from '../modules/staff/pages/StaffSettingsPage.jsx';
 import StaffSecurityPage from '../modules/staff/pages/StaffSecurityPage.jsx';
 import StaffCRMPage from '../modules/staff/pages/StaffCRMPage.jsx';
 
+function StaffIndexRedirect() {
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('staff_user') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const biz = (storedUser?.targetBusiness || 'PARLOUR').toUpperCase();
+  if (biz === 'EVENTS') return <Navigate to="/staff/event-dashboard" replace />;
+  if (biz === 'PLOTTING') return <Navigate to="/staff/plotting-dashboard" replace />;
+  if (biz === 'SOFTWARE') return <Navigate to="/staff/software-dashboard" replace />;
+  return <Navigate to="/staff/dashboard" replace />;
+}
+
 export const StaffRoutes = (
   <>
     {/* Public Staff Login */}
@@ -47,8 +65,11 @@ export const StaffRoutes = (
 
     {/* Protected Staff Member Portal Workspace */}
     <Route path="/staff" element={<StaffLayout />}>
-      <Route index element={<Navigate to="/staff/dashboard" replace />} />
+      <Route index element={<StaffIndexRedirect />} />
       <Route path="dashboard" element={<StaffDashboardPage />} />
+      <Route path="event-dashboard" element={<StaffEventDashboardPage />} />
+      <Route path="plotting-dashboard" element={<StaffPlottingDashboardPage />} />
+      <Route path="software-dashboard" element={<StaffSoftwareDashboardPage />} />
 
       {/* Profile & Settings */}
       <Route path="profile" element={<StaffProfilePage />} />

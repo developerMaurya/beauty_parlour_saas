@@ -33,31 +33,93 @@ export default function StaffLayout() {
 
   const currentBranch = branches.find((b) => b._id === currentBranchId) || branches[0];
 
-  // Define navigation items with permission and role rules
+  const vertical = (staffUser?.targetBusiness || 'PARLOUR').toUpperCase();
+
+  const verticalMeta = {
+    EVENTS: {
+      name: 'Jaygurudev Events',
+      subtitle: staffProfile?.designation || 'Event Crew & Ops',
+      emoji: '🔱',
+      gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      accentColor: '#f59e0b',
+      activeBg: 'linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15))',
+      dashboardPath: '/staff/event-dashboard',
+      dashboardLabel: 'Event Crew Desk',
+    },
+    PLOTTING: {
+      name: 'Plotting & Realty',
+      subtitle: staffProfile?.designation || 'Sales Officer',
+      emoji: '🏡',
+      gradient: 'linear-gradient(135deg, #10b981, #059669)',
+      accentColor: '#10b981',
+      activeBg: 'linear-gradient(90deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15))',
+      dashboardPath: '/staff/plotting-dashboard',
+      dashboardLabel: 'Plotting Field Desk',
+    },
+    SOFTWARE: {
+      name: 'RB Software Hub',
+      subtitle: staffProfile?.designation || 'Software Engineer',
+      emoji: '💻',
+      gradient: 'linear-gradient(135deg, #0284c7, #0369a1)',
+      accentColor: '#38bdf8',
+      activeBg: 'linear-gradient(90deg, rgba(56, 189, 248, 0.15), rgba(2, 132, 199, 0.15))',
+      dashboardPath: '/staff/software-dashboard',
+      dashboardLabel: 'Engineer Workspace',
+    },
+    PARLOUR: {
+      name: 'Golden Beauty Parlour',
+      subtitle: staffProfile?.designation || 'Salon Specialist',
+      emoji: '💄',
+      gradient: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+      accentColor: '#ec4899',
+      activeBg: 'linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))',
+      dashboardPath: '/staff/dashboard',
+      dashboardLabel: 'Salon Dashboard',
+    },
+  }[vertical] || {
+    name: 'Staff Portal',
+    subtitle: staffProfile?.designation || 'Specialist',
+    emoji: '✂️',
+    gradient: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+    accentColor: '#ec4899',
+    activeBg: 'linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))',
+    dashboardPath: '/staff/dashboard',
+    dashboardLabel: 'Dashboard',
+  };
+
+  // Define navigation items with permission, vertical and role rules
   const navSections = [
     {
       title: 'Work & Schedule',
       items: [
-        { label: 'Dashboard', path: '/staff/dashboard', icon: '⚡' },
+        { label: verticalMeta.dashboardLabel, path: verticalMeta.dashboardPath, icon: verticalMeta.emoji },
         { label: 'Calendar', path: '/staff/calendar', icon: '📅' },
-        { label: 'Appointments', path: '/staff/appointments', icon: '✂️' },
-        {
-          label: 'Home Services',
-          path: '/staff/home-services',
-          icon: '🚗',
-          highlight: true,
-          permission: 'home_service',
-        },
-        { label: 'Tasks', path: '/staff/tasks', icon: '📋' },
+        ...(vertical === 'PARLOUR'
+          ? [
+              { label: 'Appointments', path: '/staff/appointments', icon: '✂️' },
+              {
+                label: 'Home Services',
+                path: '/staff/home-services',
+                icon: '🚗',
+                highlight: true,
+                permission: 'home_service',
+              },
+            ]
+          : []),
+        { label: vertical === 'SOFTWARE' ? 'Sprint Tasks' : 'Field Tasks', path: '/staff/tasks', icon: '📋' },
       ],
     },
     {
-      title: 'Clients & Catalog',
+      title: vertical === 'PLOTTING' ? 'Clients & Inquiries' : vertical === 'SOFTWARE' ? 'Team & Tickets' : 'Clients & Catalog',
       items: [
         { label: 'Staff CRM & Operations', path: '/staff/crm', icon: '🤝', highlight: true },
-        { label: 'Customers (CRM)', path: '/staff/customers', icon: '👥', permission: 'customers_read' },
-        { label: 'Services & Skills', path: '/staff/services', icon: '✨' },
-        { label: 'Packages & Offers', path: '/staff/packages', icon: '🎁' },
+        { label: 'Customers & Leads', path: '/staff/customers', icon: '👥', permission: 'customers_read' },
+        ...(vertical === 'PARLOUR'
+          ? [
+              { label: 'Services & Skills', path: '/staff/services', icon: '✨' },
+              { label: 'Packages & Offers', path: '/staff/packages', icon: '🎁' },
+            ]
+          : []),
       ],
     },
     {
@@ -74,14 +136,14 @@ export default function StaffLayout() {
         { label: 'Earnings & Commission', path: '/staff/earnings', icon: '💰' },
         { label: 'Payslips', path: '/staff/payslips', icon: '🧾' },
         { label: 'Documents & Certs', path: '/staff/documents', icon: '📜' },
-        { label: 'Inventory & Stock', path: '/staff/inventory', icon: '📦', permission: 'inventory_read' },
+        { label: vertical === 'PLOTTING' ? 'Plot Inventory' : 'Inventory & Stock', path: '/staff/inventory', icon: '📦', permission: 'inventory_read' },
       ],
     },
     {
       title: 'Communication & Reports',
       items: [
         { label: 'My Requests', path: '/staff/requests', icon: '📬' },
-        { label: 'Salon Chat', path: '/staff/chat', icon: '💬' },
+        { label: 'Team Chat', path: '/staff/chat', icon: '💬' },
         { label: 'Notifications', path: '/staff/notifications', icon: '🔔', badge: unreadCount },
         { label: 'Performance & KPI', path: '/staff/performance', icon: '📈' },
         { label: 'My Reports', path: '/staff/reports', icon: '📊' },
@@ -119,22 +181,22 @@ export default function StaffLayout() {
               width: '38px',
               height: '38px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+              background: verticalMeta.gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '20px',
-              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
+              boxShadow: `0 4px 12px ${verticalMeta.accentColor}44`,
             }}
           >
-            ✂️
+            {verticalMeta.emoji}
           </div>
           <div>
-            <div style={{ fontWeight: '700', fontSize: '16px', letterSpacing: '-0.3px', color: '#fff' }}>
-              Staff Portal
+            <div style={{ fontWeight: '700', fontSize: '15px', letterSpacing: '-0.3px', color: '#fff' }}>
+              {verticalMeta.name}
             </div>
             <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {staffProfile?.designation || 'Specialist'}
+              {verticalMeta.subtitle}
             </div>
           </div>
         </div>
@@ -166,7 +228,7 @@ export default function StaffLayout() {
                   {section.title}
                 </div>
                 {filteredItems.map((item) => {
-                  const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+                  const isActive = location.pathname === item.path || (item.path !== '/staff/dashboard' && location.pathname.startsWith(`${item.path}/`));
                   return (
                     <NavLink
                       key={item.path}
@@ -180,10 +242,8 @@ export default function StaffLayout() {
                         borderRadius: '8px',
                         textDecoration: 'none',
                         color: isActive ? '#fff' : '#94a3b8',
-                        background: isActive
-                          ? 'linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))'
-                          : 'transparent',
-                        borderLeft: isActive ? '3px solid #ec4899' : '3px solid transparent',
+                        background: isActive ? verticalMeta.activeBg : 'transparent',
+                        borderLeft: isActive ? `3px solid ${verticalMeta.accentColor}` : '3px solid transparent',
                         fontWeight: isActive ? '600' : '500',
                         fontSize: '13.5px',
                         marginBottom: '2px',
@@ -197,7 +257,7 @@ export default function StaffLayout() {
                       {item.badge > 0 && (
                         <span
                           style={{
-                            background: '#ec4899',
+                            background: verticalMeta.accentColor,
                             color: '#fff',
                             fontSize: '10px',
                             fontWeight: '700',
