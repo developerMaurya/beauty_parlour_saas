@@ -30,7 +30,7 @@ export const getGroupedPermissions = async (req, res) => {
 
 export const createRole = async (req, res) => {
   try {
-    const { name, code, description, permissions } = req.body;
+    const { name, code, description, targetBusiness, permissions, status } = req.body;
     if (!name) return sendError(res, 'Role name is required', [], 400);
 
     const Role = getTenantModel(req, 'Role');
@@ -43,12 +43,14 @@ export const createRole = async (req, res) => {
       tenantId: req.tenantId,
       name: name.trim(),
       code: roleCode,
+      targetBusiness: (targetBusiness || 'ALL').toUpperCase(),
       description: description || '',
       isSystem: false,
+      status: status || 'active',
       permissions: Array.isArray(permissions) ? permissions : [],
     });
 
-    return sendSuccess(res, 'Role created successfully', doc, 201);
+    return sendSuccess(res, 'Role created successfully in Database', doc, 201);
   } catch (error) {
     return sendError(res, `Failed to create role: ${error.message}`, [], 500);
   }
@@ -60,6 +62,17 @@ export const getRoles = async (req, res) => {
     const { page, limit, skip } = getPagination(req.query);
     const sort = getSort(req.query, 'name');
     const filter = buildTenantFilter(req);
+
+    if (req.query.targetBusiness && req.query.targetBusiness !== 'ALL') {
+      filter.$or = [
+        { targetBusiness: req.query.targetBusiness.toUpperCase() },
+        { targetBusiness: 'ALL' },
+      ];
+    }
+
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
 
     if (req.query.search) {
       filter.$or = [
@@ -73,76 +86,48 @@ export const getRoles = async (req, res) => {
       Role.countDocuments(filter),
     ]);
 
-    // If no roles exist for this tenant, auto-seed the standard predefined roles
+    // If no roles exist for this tenant, auto-seed exactly the 4 standard roles into MongoDB
     if (total === 0) {
       const defaultRoles = [
         {
           tenantId: req.tenantId,
           name: 'Administrator',
           code: 'ADMIN',
-          description: 'Full administrative rights across salon, billing, and staff',
+          targetBusiness: 'ALL',
+          description: 'Full administrative rights across all business portals',
           isSystem: true,
+          status: 'active',
           permissions: SYSTEM_PERMISSIONS.map((p) => p.code),
         },
         {
           tenantId: req.tenantId,
-          name: 'Salon Manager',
-          code: 'MANAGER',
-          description: 'Store operations, staff rosters, appointments, and inventory management',
-          isSystem: true,
-          permissions: [
-            'dashboard.view', 'staff.view', 'staff.update', 'attendance.manage',
-            'customer.view', 'customer.create', 'customer.update',
-            'service.view', 'package.view', 'appointment.view', 'appointment.create',
-            'appointment.update', 'billing.view', 'billing.create', 'inventory.view', 'inventory.create',
-          ],
-        },
-        {
-          tenantId: req.tenantId,
-          name: 'Senior Stylist & Artist',
-          code: 'SENIOR_STYLIST',
-          description: 'Client appointments, services execution, and daily attendance',
-          isSystem: false,
-          permissions: [
-            'dashboard.view', 'staff.view', 'attendance.manage',
-            'customer.view', 'service.view', 'appointment.view', 'appointment.update',
-          ],
-        },
-        {
-          tenantId: req.tenantId,
-          name: 'Staff Specialist',
+          name: 'Staff Member',
           code: 'STAFF',
-          description: 'General staff member with personal schedule and attendance rights',
+          targetBusiness: 'ALL',
+          description: 'Staff and operational team rights',
           isSystem: true,
-          permissions: ['staff.view', 'attendance.manage', 'appointment.view'],
+          status: 'active',
+          permissions: ['dashboard.view', 'staff.view', 'appointments.view', 'attendance.manage'],
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Customer / Client',
+          code: 'CUSTOMER',
+          targetBusiness: 'ALL',
+          description: 'Customer profile with booking and service history',
+          isSystem: true,
+          status: 'active',
+          permissions: ['customer.view', 'appointments.create', 'appointments.view'],
         },
         {
           tenantId: req.tenantId,
           name: 'Academy Student',
           code: 'STUDENT',
-          description: 'Enrolled academy trainee with course syllabus and schedule access',
+          targetBusiness: 'PARLOUR',
+          description: 'Cosmetology and beauty academy trainee access',
           isSystem: true,
+          status: 'active',
           permissions: ['student.view'],
-        },
-        {
-          tenantId: req.tenantId,
-          name: 'Customer & Client',
-          code: 'CUSTOMER',
-          description: 'Client profile with appointment booking and order history',
-          isSystem: true,
-          permissions: ['customer.view', 'service.view', 'appointment.create', 'appointment.view'],
-        },
-        {
-          tenantId: req.tenantId,
-          name: 'Front Desk Receptionist',
-          code: 'RECEPTIONIST',
-          description: 'Customer check-ins, instant billing POS, and appointment scheduling',
-          isSystem: false,
-          permissions: [
-            'dashboard.view', 'customer.view', 'customer.create', 'customer.update',
-            'appointment.view', 'appointment.create', 'appointment.update',
-            'billing.view', 'billing.create',
-          ],
         },
       ];
       await Role.insertMany(defaultRoles);

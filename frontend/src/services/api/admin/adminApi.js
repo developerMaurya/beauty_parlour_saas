@@ -55,7 +55,7 @@ export const userFetcher = {
   revokeSessions: (userId) => adminAxiosClient.post(`/admin/users/${userId}/revoke-sessions`),
 };
 
-// 4. Role Fetcher
+// 4. Role Fetcher (MongoDB RBAC)
 export const roleFetcher = {
   list: (params) => adminAxiosClient.get('/admin/roles', { params: buildParams(params) }),
   get: (roleId) => adminAxiosClient.get(`/admin/roles/${roleId}`),
@@ -64,6 +64,24 @@ export const roleFetcher = {
   delete: (roleId) => adminAxiosClient.delete(`/admin/roles/${roleId}`),
   getPermissions: (roleId) => adminAxiosClient.get(`/admin/roles/${roleId}/permissions`),
   updatePermissions: (roleId, permissions) => adminAxiosClient.put(`/admin/roles/${roleId}/permissions`, { permissions }),
+};
+
+// 4B. User Type Fetcher (MongoDB Stored)
+export const userTypeFetcher = {
+  list: (params) => adminAxiosClient.get('/admin/user-types', { params: buildParams(params) }),
+  get: (typeId) => adminAxiosClient.get(`/admin/user-types/${typeId}`),
+  create: (data) => adminAxiosClient.post('/admin/user-types', data),
+  update: (typeId, data) => adminAxiosClient.patch(`/admin/user-types/${typeId}`, data),
+  delete: (typeId) => adminAxiosClient.delete(`/admin/user-types/${typeId}`),
+};
+
+// 4C. Business Target / Vertical Fetcher (MongoDB Stored)
+export const businessTargetFetcher = {
+  list: (params) => adminAxiosClient.get('/admin/business-targets', { params: buildParams(params) }),
+  get: (targetId) => adminAxiosClient.get(`/admin/business-targets/${targetId}`),
+  create: (data) => adminAxiosClient.post('/admin/business-targets', data),
+  update: (targetId, data) => adminAxiosClient.patch(`/admin/business-targets/${targetId}`, data),
+  delete: (targetId) => adminAxiosClient.delete(`/admin/business-targets/${targetId}`),
 };
 
 // 5. Permission Fetcher
@@ -629,6 +647,17 @@ export const auditFetcher = {
   list: (params) => adminAxiosClient.get('/admin/audit-logs', { params: buildParams(params) }),
   get: (logId) => adminAxiosClient.get(`/admin/audit-logs/${logId}`),
   exportLogs: (params) => adminAxiosClient.get('/admin/audit-logs/export', { params: buildParams(params), responseType: 'blob' }),
+};
+
+// 54. Central System Integrations & Configuration Fetcher
+export const systemConfigFetcher = {
+  getConfig: () => adminAxiosClient.get('/admin/system-config'),
+  updateDatabase: (data) => adminAxiosClient.put('/admin/system-config/database', data),
+  testDatabase: (data) => adminAxiosClient.post('/admin/system-config/database/test', data),
+  updateCommunication: (data) => adminAxiosClient.put('/admin/system-config/communication', data),
+  testCommunication: (data) => adminAxiosClient.post('/admin/system-config/communication/test', data),
+  updatePaymentGateways: (data) => adminAxiosClient.put('/admin/system-config/payment-gateways', data),
+  updateCloudStorage: (data) => adminAxiosClient.put('/admin/system-config/cloud-storage', data),
 };
 
 // 54. Public Customer/Visitor Fetcher

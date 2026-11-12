@@ -17,6 +17,8 @@ const MODEL_SCHEMA_MAP = {
   Designation: schemas.DesignationSchema,
   Skill: schemas.SkillSchema,
   Role: schemas.RoleSchema,
+  UserType: schemas.UserTypeSchema,
+  BusinessTarget: schemas.BusinessTargetSchema,
   Permission: schemas.PermissionSchema,
   TenantUser: schemas.TenantUserSchema,
   Staff: schemas.StaffSchema,

@@ -83,20 +83,58 @@ export const SkillSchema = new Schema(
 SkillSchema.index({ tenantId: 1, name: 1 });
 
 /**
- * 5. Role Schema (Dynamic Roles per Tenant)
+ * 5. Role Schema (Dynamic Roles per Tenant across Multi-Business Verticals)
  */
 export const RoleSchema = new Schema(
   {
     tenantId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, trim: true, uppercase: true },
+    targetBusiness: { type: String, default: 'ALL', trim: true, uppercase: true },
     description: { type: String, default: '' },
     isSystem: { type: Boolean, default: false },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     permissions: [{ type: String }],
   },
   { timestamps: true }
 );
 RoleSchema.index({ tenantId: 1, code: 1 });
+
+/**
+ * 5B. Dynamic User Type Schema per Tenant
+ */
+export const UserTypeSchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    code: { type: String, required: true, trim: true, uppercase: true },
+    targetBusiness: { type: String, default: 'ALL', trim: true, uppercase: true },
+    description: { type: String, default: '' },
+    isSystem: { type: Boolean, default: false },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  },
+  { timestamps: true }
+);
+UserTypeSchema.index({ tenantId: 1, code: 1 });
+
+/**
+ * 5C. Business Target / Vertical Schema per Tenant
+ */
+export const BusinessTargetSchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    code: { type: String, required: true, trim: true, uppercase: true },
+    label: { type: String, required: true, trim: true },
+    emoji: { type: String, default: '🌐' },
+    color: { type: String, default: '#3b82f6' },
+    description: { type: String, default: '' },
+    isSystem: { type: Boolean, default: false },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  },
+  { timestamps: true }
+);
+BusinessTargetSchema.index({ tenantId: 1, code: 1 });
 
 /**
  * 6. Permission Schema
@@ -112,7 +150,7 @@ export const PermissionSchema = new Schema(
 );
 
 /**
- * 7. Tenant User Schema (Admin, Staff, Student, Customer)
+ * 7. Tenant User Schema (Multi-Business Dynamic Users)
  */
 export const TenantUserSchema = new Schema(
   {
@@ -122,10 +160,12 @@ export const TenantUserSchema = new Schema(
     phone: { type: String, trim: true, default: null },
     username: { type: String, trim: true, lowercase: true, default: null },
     passwordHash: { type: String, select: false },
+    targetBusiness: { type: String, default: 'ALL', uppercase: true, trim: true, index: true },
+    userType: { type: String, default: 'STAFF', uppercase: true, trim: true, index: true },
     role: {
       type: String,
-      enum: ['ADMIN', 'STAFF', 'STUDENT', 'CUSTOMER'],
       required: true,
+      trim: true,
       index: true,
     },
     customRoleId: { type: Schema.Types.ObjectId, ref: 'Role', default: null },
@@ -1549,6 +1589,51 @@ export const TenantSettingsSchema = new Schema(
       appointmentAlerts: { type: Boolean, default: true },
       birthdayAlerts: { type: Boolean, default: true },
       lowStockAlerts: { type: Boolean, default: true },
+    },
+    databaseConfig: {
+      customMongoUri: { type: String, default: '' },
+      customDbName: { type: String, default: '' },
+      isUsingCustomDb: { type: Boolean, default: false },
+      lastTestedAt: { type: Date, default: null },
+      status: { type: String, default: 'connected' },
+    },
+    smsWhatsappConfig: {
+      provider: { type: String, default: 'meta_whatsapp' },
+      whatsappPhoneNumberId: { type: String, default: '' },
+      whatsappBusinessAccountId: { type: String, default: '' },
+      whatsappApiToken: { type: String, default: '' },
+      whatsappWebhookToken: { type: String, default: '' },
+      smsProvider: { type: String, default: 'fast2sms' },
+      smsApiKey: { type: String, default: '' },
+      smsSenderId: { type: String, default: '' },
+      isEnabled: { type: Boolean, default: true },
+    },
+    paymentGatewayConfig: {
+      activeGateway: { type: String, default: 'razorpay' },
+      isLive: { type: Boolean, default: false },
+      razorpayKeyId: { type: String, default: '' },
+      razorpayKeySecret: { type: String, default: '' },
+      stripePublishableKey: { type: String, default: '' },
+      stripeSecretKey: { type: String, default: '' },
+      cashfreeAppId: { type: String, default: '' },
+      cashfreeSecretKey: { type: String, default: '' },
+      phonepeMerchantId: { type: String, default: '' },
+      phonepeSaltKey: { type: String, default: '' },
+      autoCapture: { type: Boolean, default: true },
+    },
+    cloudStorageConfig: {
+      provider: { type: String, default: 'cloudflare' },
+      cloudflareApiToken: { type: String, default: '' },
+      cloudflareAccountId: { type: String, default: '' },
+      cloudflareDeliveryUrl: { type: String, default: '' },
+      s3BucketName: { type: String, default: '' },
+      s3Region: { type: String, default: 'ap-south-1' },
+      s3AccessKey: { type: String, default: '' },
+      s3SecretKey: { type: String, default: '' },
+      cloudinaryCloudName: { type: String, default: '' },
+      cloudinaryApiKey: { type: String, default: '' },
+      cloudinaryApiSecret: { type: String, default: '' },
+      status: { type: String, default: 'configured' },
     },
   },
   { timestamps: true }

@@ -14,11 +14,24 @@ import { recordAuditLog } from '../../../utils/audit.utils.js';
 
 export const createUser = async (req, res) => {
   try {
-    const { name, email, phone, username, password, role, customRoleId, branchId, allowedBranches } = req.body;
+    const {
+      name,
+      email,
+      phone,
+      username,
+      password,
+      role,
+      userType,
+      targetBusiness,
+      customRoleId,
+      branchId,
+      allowedBranches,
+      status,
+    } = req.body;
 
-    if (!role || !['ADMIN', 'STAFF', 'STUDENT', 'CUSTOMER'].includes(role)) {
-      return sendError(res, 'Role must be one of: ADMIN, STAFF, STUDENT, CUSTOMER', [], 400);
-    }
+    const assignedRole = (role || userType || 'STAFF').trim().toUpperCase();
+    const assignedUserType = (userType || 'STAFF').trim().toUpperCase();
+    const assignedTargetBusiness = (targetBusiness || 'ALL').trim().toUpperCase();
 
     if (!password || password.length < 6) {
       return sendError(res, 'Password must be at least 6 characters long', [], 400);
@@ -35,7 +48,7 @@ export const createUser = async (req, res) => {
     if (query.$or.length > 0) {
       const existing = await TenantUser.findOne(query);
       if (existing) {
-        return sendError(res, 'A user with this email, phone, or username already exists in this salon', [], 409);
+        return sendError(res, 'A user with this email, phone, or username already exists', [], 409);
       }
     }
 
@@ -49,11 +62,13 @@ export const createUser = async (req, res) => {
       phone: phone ? phone.trim() : null,
       username: username ? username.trim().toLowerCase() : null,
       passwordHash,
-      role,
+      targetBusiness: assignedTargetBusiness,
+      userType: assignedUserType,
+      role: assignedRole,
       customRoleId: customRoleId || null,
       branchId: branchId || null,
       allowedBranches: Array.isArray(allowedBranches) ? allowedBranches : [],
-      status: 'active',
+      status: status || 'active',
     });
 
     await recordAuditLog({
@@ -61,15 +76,15 @@ export const createUser = async (req, res) => {
       action: 'USER_CREATED',
       resourceType: 'User',
       resourceId: user._id,
-      details: { role, email: user.email },
+      details: { role: assignedRole, userType: assignedUserType, targetBusiness: assignedTargetBusiness, email: user.email },
     });
 
     const userResponse = user.toObject();
     delete userResponse.passwordHash;
 
-    return sendSuccess(res, 'User created successfully', userResponse, 201);
+    return sendSuccess(res, 'User created successfully in Database', userResponse, 201);
   } catch (error) {
-    return sendError(res, `Failed to create user: ${error.message}`, [], 500);
+    return sendError(res, `Failed to create user in DB: ${error.message}`, [], 500);
   }
 };
 
@@ -80,9 +95,18 @@ export const getUsers = async (req, res) => {
     const sort = getSort(req.query, 'createdAt');
     const filter = buildTenantFilter(req);
 
-    const roleParam = req.query.role || req.query.userType;
-    if (roleParam && roleParam !== 'all') {
-      filter.role = roleParam.toUpperCase();
+    if (req.query.targetBusiness && req.query.targetBusiness !== 'ALL') {
+      filter.targetBusiness = req.query.targetBusiness.toUpperCase();
+    }
+
+    if (req.query.userType && req.query.userType !== 'all') {
+      filter.userType = req.query.userType.toUpperCase();
+    } else if (req.query.role && req.query.role !== 'all') {
+      filter.role = req.query.role.toUpperCase();
+    }
+
+    if (req.query.status) {
+      filter.status = req.query.status;
     }
 
     if (req.query.search) {
@@ -94,7 +118,7 @@ export const getUsers = async (req, res) => {
       ];
     }
 
-    const [items, total] = await Promise.all([
+    let [items, total] = await Promise.all([
       TenantUser.find(filter)
         .select('-passwordHash')
         .populate('branchId', 'name code')
@@ -105,9 +129,50 @@ export const getUsers = async (req, res) => {
       TenantUser.countDocuments(filter),
     ]);
 
+    // If no users exist, auto-seed only 2 standard accounts into MongoDB
+    if (total === 0) {
+      const defaultSalt = await bcrypt.genSalt(10);
+      const defaultPwHash = await bcrypt.hash('Kashi@123', defaultSalt);
+      const defaultUsers = [
+        {
+          tenantId: req.tenantId,
+          name: 'Kashi Super Admin',
+          email: 'admin@kashiservice.com',
+          phone: '+91 98765 43210',
+          username: 'superadmin',
+          passwordHash: defaultPwHash,
+          targetBusiness: 'ALL',
+          userType: 'ADMIN',
+          role: 'SUPER_ADMIN',
+          status: 'active',
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Priya Sharma (Beauty Stylist Lead)',
+          email: 'priya.stylist@kashiservice.com',
+          phone: '+91 98765 43211',
+          username: 'priya.stylist',
+          passwordHash: defaultPwHash,
+          targetBusiness: 'PARLOUR',
+          userType: 'STAFF',
+          role: 'SENIOR_STYLIST',
+          status: 'active',
+        },
+      ];
+      await TenantUser.insertMany(defaultUsers);
+      items = await TenantUser.find(filter)
+        .select('-passwordHash')
+        .populate('branchId', 'name code')
+        .populate('customRoleId', 'name code')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit);
+      total = items.length;
+    }
+
     return sendListResponse(res, items, { page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    return sendError(res, `Failed to retrieve users: ${error.message}`, [], 500);
+    return sendError(res, `Failed to retrieve users from DB: ${error.message}`, [], 500);
   }
 };
 
@@ -119,8 +184,8 @@ export const getUserById = async (req, res) => {
       .populate('branchId')
       .populate('customRoleId');
 
-    if (!user) return sendError(res, 'User not found', [], 404);
-    return sendSuccess(res, 'User retrieved', user);
+    if (!user) return sendError(res, 'User not found in DB', [], 404);
+    return sendSuccess(res, 'User retrieved from DB', user);
   } catch (error) {
     return sendError(res, error.message, [], 500);
   }
@@ -130,15 +195,31 @@ export const updateUser = async (req, res) => {
   try {
     const TenantUser = getTenantModel(req, 'TenantUser');
     const user = await TenantUser.findOne({ _id: req.params.userId, tenantId: req.tenantId });
-    if (!user) return sendError(res, 'User not found', [], 404);
+    if (!user) return sendError(res, 'User not found in DB', [], 404);
 
-    const { name, email, phone, username, role, customRoleId, branchId, allowedBranches, permissions } = req.body;
+    const {
+      name,
+      email,
+      phone,
+      username,
+      role,
+      userType,
+      targetBusiness,
+      customRoleId,
+      branchId,
+      allowedBranches,
+      permissions,
+      status,
+    } = req.body;
 
     if (name) user.name = name.trim();
     if (email) user.email = email.trim().toLowerCase();
     if (phone) user.phone = phone.trim();
     if (username) user.username = username.trim().toLowerCase();
-    if (role && ['ADMIN', 'STAFF', 'STUDENT', 'CUSTOMER'].includes(role)) user.role = role;
+    if (targetBusiness) user.targetBusiness = targetBusiness.toUpperCase();
+    if (userType) user.userType = userType.toUpperCase();
+    if (role) user.role = role.trim().toUpperCase();
+    if (status) user.status = status;
     if (customRoleId !== undefined) user.customRoleId = customRoleId || null;
     if (branchId !== undefined) user.branchId = branchId || null;
     if (Array.isArray(allowedBranches)) user.allowedBranches = allowedBranches;
@@ -147,10 +228,9 @@ export const updateUser = async (req, res) => {
     await user.save();
     const response = user.toObject();
     delete response.passwordHash;
-
-    return sendSuccess(res, 'User updated successfully', response);
+    return sendSuccess(res, 'User updated successfully in Database', response);
   } catch (error) {
-    return sendError(res, error.message, [], 500);
+    return sendError(res, `Failed to update user: ${error.message}`, [], 500);
   }
 };
 

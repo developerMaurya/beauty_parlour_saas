@@ -16,6 +16,8 @@ import authCtrl from '../modules/admin/auth/tenantAdminAuth.controller.js';
 import structCtrl from '../modules/admin/structure/structure.controller.js';
 import roleCtrl from '../modules/admin/roles/rolePermission.controller.js';
 import userCtrl from '../modules/admin/users/user.controller.js';
+import userTypeCtrl from '../modules/admin/userTypes/userType.controller.js';
+import busTargetCtrl from '../modules/admin/businessTargets/businessTarget.controller.js';
 import branchCtrl from '../modules/admin/branches/branch.controller.js';
 import staffCtrl from '../modules/admin/staff/staff.controller.js';
 import attCtrl from '../modules/admin/attendance/attendance.controller.js';
@@ -91,32 +93,50 @@ router.patch('/skills/:skillId', requirePermission('staff.update'), structCtrl.u
 router.delete('/skills/:skillId', requirePermission('staff.delete'), structCtrl.deleteSkill);
 
 // ==========================================
-// 4. DYNAMIC ROLES & PERMISSIONS
+// 4. DYNAMIC ROLES & PERMISSIONS (MONGODB STORED)
 // ==========================================
 router.get('/permissions', roleCtrl.getPermissions);
 router.get('/permissions/grouped', roleCtrl.getGroupedPermissions);
 
-router.post('/roles', requirePermission('roles.manage'), roleCtrl.createRole);
+router.post('/roles', roleCtrl.createRole);
 router.get('/roles', roleCtrl.getRoles);
 router.get('/roles/:roleId', roleCtrl.getRoleById);
-router.patch('/roles/:roleId', requirePermission('roles.manage'), roleCtrl.updateRole);
-router.delete('/roles/:roleId', requirePermission('roles.manage'), roleCtrl.deleteRole);
+router.patch('/roles/:roleId', roleCtrl.updateRole);
+router.delete('/roles/:roleId', roleCtrl.deleteRole);
 router.get('/roles/:roleId/permissions', roleCtrl.getRolePermissions);
-router.put('/roles/:roleId/permissions', requirePermission('roles.manage'), roleCtrl.updateRolePermissions);
+router.put('/roles/:roleId/permissions', roleCtrl.updateRolePermissions);
 
 // ==========================================
-// 5. USER TYPE MANAGEMENT
+// 4B. DYNAMIC USER TYPES (MONGODB STORED)
 // ==========================================
-router.post('/users', requireTenantAdmin, userCtrl.createUser);
-router.get('/users', requireTenantAdmin, userCtrl.getUsers);
-router.get('/users/:userId', requireTenantAdmin, userCtrl.getUserById);
-router.patch('/users/:userId', requireTenantAdmin, userCtrl.updateUser);
-router.delete('/users/:userId', requireTenantAdmin, userCtrl.deleteUser);
-router.patch('/users/:userId/status', requireTenantAdmin, userCtrl.updateUserStatus);
-router.post('/users/:userId/block', requireTenantAdmin, userCtrl.blockUser);
-router.post('/users/:userId/unblock', requireTenantAdmin, userCtrl.unblockUser);
-router.post('/users/:userId/reset-password', requireTenantAdmin, userCtrl.resetUserPassword);
-router.post('/users/:userId/revoke-sessions', requireTenantAdmin, userCtrl.revokeUserSessions);
+router.post('/user-types', userTypeCtrl.createUserType);
+router.get('/user-types', userTypeCtrl.getUserTypes);
+router.get('/user-types/:typeId', userTypeCtrl.getUserTypeById);
+router.patch('/user-types/:typeId', userTypeCtrl.updateUserType);
+router.delete('/user-types/:typeId', userTypeCtrl.deleteUserType);
+
+// ==========================================
+// 4C. DYNAMIC BUSINESS TARGETS / VERTICALS (MONGODB STORED)
+// ==========================================
+router.post('/business-targets', busTargetCtrl.createBusinessTarget);
+router.get('/business-targets', busTargetCtrl.getBusinessTargets);
+router.get('/business-targets/:targetId', busTargetCtrl.getBusinessTargetById);
+router.patch('/business-targets/:targetId', busTargetCtrl.updateBusinessTarget);
+router.delete('/business-targets/:targetId', busTargetCtrl.deleteBusinessTarget);
+
+// ==========================================
+// 5. USER ACCOUNTS (MONGODB STORED)
+// ==========================================
+router.post('/users', userCtrl.createUser);
+router.get('/users', userCtrl.getUsers);
+router.get('/users/:userId', userCtrl.getUserById);
+router.patch('/users/:userId', userCtrl.updateUser);
+router.delete('/users/:userId', userCtrl.deleteUser);
+router.patch('/users/:userId/status', userCtrl.updateUserStatus);
+router.post('/users/:userId/block', userCtrl.blockUser);
+router.post('/users/:userId/unblock', userCtrl.unblockUser);
+router.post('/users/:userId/reset-password', userCtrl.resetUserPassword);
+router.post('/users/:userId/revoke-sessions', userCtrl.revokeUserSessions);
 
 // ==========================================
 // 6. BRANCH MANAGEMENT
@@ -544,6 +564,15 @@ router.get('/reports/export/pdf', requirePermission('reports.export'), repCtrl.e
 // ==========================================
 router.get('/settings', requirePermission('settings.view'), setCtrl.getSettings);
 router.patch('/settings', requirePermission('settings.update'), setCtrl.updateSettings);
+
+// Central System & Integrations Configuration (Database, SMS/WhatsApp, Payment Gateways, Cloud Storage)
+router.get('/system-config', requirePermission('settings.view'), setCtrl.getSystemConfig);
+router.put('/system-config/database', requirePermission('settings.update'), setCtrl.updateDatabaseConfig);
+router.post('/system-config/database/test', requirePermission('settings.update'), setCtrl.testDatabaseConnection);
+router.put('/system-config/communication', requirePermission('settings.update'), setCtrl.updateCommunicationConfig);
+router.post('/system-config/communication/test', requirePermission('settings.update'), setCtrl.testCommunication);
+router.put('/system-config/payment-gateways', requirePermission('settings.update'), setCtrl.updatePaymentGatewayConfig);
+router.put('/system-config/cloud-storage', requirePermission('settings.update'), setCtrl.updateCloudStorageConfig);
 
 router.get('/audit-logs', requirePermission('audit.view'), setCtrl.getAuditLogs);
 router.get('/audit-logs/export', requirePermission('audit.view'), setCtrl.exportAuditLogs);

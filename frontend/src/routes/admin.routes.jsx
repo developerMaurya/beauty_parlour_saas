@@ -35,8 +35,10 @@ import SoftwareClientsManagement from '../modules/admin/pages/SoftwareClientsMan
 import BranchManagementPage from '../modules/admin/pages/BranchManagementPage.jsx';
 import StructureManagementPage from '../modules/admin/pages/StructureManagementPage.jsx';
 import RolePermissionPage from '../modules/admin/pages/RolePermissionPage.jsx';
+import RoleManagementPage from '../modules/admin/pages/RoleManagementPage.jsx';
 import UserManagementPage from '../modules/admin/pages/UserManagementPage.jsx';
 import StaffManagementPage from '../modules/admin/pages/StaffManagementPage.jsx';
+import SystemConfigPage from '../modules/admin/pages/SystemConfigPage.jsx';
 import AttendanceLeavesPage from '../modules/admin/pages/AttendanceLeavesPage.jsx';
 import StudentAcademyPage from '../modules/admin/pages/StudentAcademyPage.jsx';
 import CustomerManagementPage from '../modules/admin/pages/CustomerManagementPage.jsx';
@@ -66,15 +68,31 @@ export const AdminRoutes = (
     <Route path="/admin" element={<TenantAdminLayout />}>
       <Route index element={<Navigate to="/admin/dashboard" replace />} />
 
-      {/* ── 1. Golden Beauty Parlour Master View ── */}
-      <Route path="dashboard" element={<AdminParlourDashboard />} />
+      {/* ── Central Master Executive Dashboard (All 5 Businesses Combined) ── */}
+      <Route path="dashboard" element={<BusinessDirectoryManager />} />
+      <Route path="master-dashboard" element={<BusinessDirectoryManager />} />
+      <Route path="master-overview" element={<BusinessDirectoryManager />} />
+      <Route path="users" element={<UserManagementPage />} />
+      <Route path="master-users" element={<UserManagementPage />} />
+      <Route path="roles" element={<RoleManagementPage />} />
+      <Route path="master-roles" element={<RoleManagementPage />} />
+      <Route path="user-types" element={<Navigate to="/admin/roles" replace />} />
+      <Route path="master-user-types" element={<Navigate to="/admin/roles" replace />} />
       {/* ── Global Customer Service Requests & Inquiries ── */}
       <Route path="customer-requests" element={<AdminUnifiedRequestsPage />} />
       <Route path="service-requests" element={<AdminUnifiedRequestsPage />} />
       <Route path="inquiries" element={<AdminUnifiedRequestsPage />} />
 
       <Route path="golden-beauty-parlour" element={<AdminParlourDashboard />} />
-      <Route path="ops-radar" element={<AdminDashboardPage />} />
+      {/* ── Central Administration System Configurations ── */}
+      <Route path="system/database" element={<SystemConfigPage />} />
+      <Route path="system/communication" element={<SystemConfigPage />} />
+      <Route path="system/payment-gateways" element={<SystemConfigPage />} />
+      <Route path="system/cloud-storage" element={<SystemConfigPage />} />
+      <Route path="system/config" element={<SystemConfigPage />} />
+      <Route path="system-config" element={<SystemConfigPage />} />
+      <Route path="system" element={<Navigate to="/admin/system/database" replace />} />
+      <Route path="ops-radar" element={<Navigate to="/admin/system/database" replace />} />
       <Route path="parlour-users" element={<CustomerManagementPage />} />
       <Route path="parlour-staff" element={<StaffManagementPage />} />
       <Route path="parlour-students" element={<StudentAcademyPage />} />

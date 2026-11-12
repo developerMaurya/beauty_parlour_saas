@@ -35,6 +35,7 @@ import {
   Bell,
   UserCog,
   Crown,
+  Shield,
   HeartHandshake,
   Tag,
   BarChart3,
@@ -50,6 +51,8 @@ import {
   HelpCircle,
   Image,
   MessageSquareQuote,
+  Database,
+  Cloud,
   FileText,
   Camera,
   Video,
@@ -139,37 +142,16 @@ export const TenantAdminLayout = () => {
   }, [location.pathname, isPlottingRoute, isRentRoute, isEventsRoute, isSoftwareRoute]);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // INDEPENDENT MULTI-LEVEL DROPDOWN STATE FOR ALL MODULES
+  // INDEPENDENT SIMPLE DROPDOWN STATE (Master, Parlour, Event, Plot, Rent, etc.)
   // ══════════════════════════════════════════════════════════════════════════
   const [openSections, setOpenSections] = useState({
-    parlour: true,
-    parlour_bookings: true,
-    parlour_clients: false,
-    parlour_catalog: false,
-    parlour_finance: false,
-    parlour_web: false,
+    master: true,
+    parlour: false,
     events: false,
-    events_decor: true,
-    events_bookings: false,
-    events_ops: false,
-    events_web: false,
     plotting: false,
-    plotting_plots: true,
-    plotting_leads: false,
-    plotting_finance: false,
-    plotting_web: false,
     rent: false,
-    rent_spaces: true,
-    rent_tenants: false,
-    rent_finance: false,
-    rent_web: false,
     software: false,
-    software_saas: true,
-    software_media: false,
-    software_clients: false,
-    software_web: false,
     system: false,
-    system_core: true,
   });
 
   // Independent toggle handler — toggles only the targeted key, NEVER closes others!
@@ -189,12 +171,14 @@ export const TenantAdminLayout = () => {
       e.preventDefault();
       e.stopPropagation();
     }
-    setOpenSections((prev) => {
-      const allTrue = {};
-      Object.keys(prev).forEach((k) => {
-        allTrue[k] = true;
-      });
-      return allTrue;
+    setOpenSections({
+      master: true,
+      parlour: true,
+      events: true,
+      plotting: true,
+      rent: true,
+      software: true,
+      system: true,
     });
   };
 
@@ -203,18 +187,42 @@ export const TenantAdminLayout = () => {
       e.preventDefault();
       e.stopPropagation();
     }
-    setOpenSections((prev) => {
-      const allFalse = {};
-      Object.keys(prev).forEach((k) => {
-        allFalse[k] = false;
-      });
-      return allFalse;
+    setOpenSections({
+      master: false,
+      parlour: false,
+      events: false,
+      plotting: false,
+      rent: false,
+      software: false,
+      system: false,
     });
   };
 
-  // Auto-open active module on route change without closing previously opened modules
+  // Auto-open active module on route change without closing others
   useEffect(() => {
-    if (isSoftwareRoute) {
+    const searchParams = new URLSearchParams(location.search);
+    const business = (searchParams.get('business') || searchParams.get('vertical') || '').toUpperCase();
+
+    if (business === 'PARLOUR') {
+      setOpenSections((prev) => ({ ...prev, parlour: true }));
+    } else if (business === 'EVENTS') {
+      setOpenSections((prev) => ({ ...prev, events: true }));
+    } else if (business === 'PLOTTING') {
+      setOpenSections((prev) => ({ ...prev, plotting: true }));
+    } else if (business === 'RENT') {
+      setOpenSections((prev) => ({ ...prev, rent: true }));
+    } else if (business === 'SOFTWARE') {
+      setOpenSections((prev) => ({ ...prev, software: true }));
+    } else if (business === 'SYSTEM' || location.pathname.includes('system')) {
+      setOpenSections((prev) => ({ ...prev, system: true }));
+    } else if (
+      location.pathname === '/admin/dashboard' ||
+      (location.pathname === '/admin/users' && !business) ||
+      location.pathname.includes('role') ||
+      location.pathname.includes('master')
+    ) {
+      setOpenSections((prev) => ({ ...prev, master: true }));
+    } else if (isSoftwareRoute) {
       setOpenSections((prev) => ({ ...prev, software: true }));
     } else if (isEventsRoute) {
       setOpenSections((prev) => ({ ...prev, events: true }));
@@ -228,74 +236,37 @@ export const TenantAdminLayout = () => {
     ) {
       setOpenSections((prev) => ({ ...prev, parlour: true }));
     }
-  }, [location.pathname, isSoftwareRoute, isEventsRoute, isRentRoute, isPlottingRoute]);
+  }, [location.pathname, location.search, isSoftwareRoute, isEventsRoute, isRentRoute, isPlottingRoute]);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // COMPLETE MULTI-LEVEL DROPDOWN DATA FOR ALL 5 VERTICALS + SYSTEM ADMIN
+  // SIMPLE BUSINESS DROPDOWN DATA (Folder with Overview & User Management)
   // ══════════════════════════════════════════════════════════════════════════
   const menuDropdownSections = [
+    {
+      id: 'master',
+      title: 'Master Management',
+      shortTitle: 'Master Management',
+      iconEmoji: '👑',
+      accentColor: '#facc15',
+      badge: 'Master',
+      badgeBg: '#ca8a04',
+      items: [
+        { label: 'Master Overview', path: '/admin/dashboard', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'All Users Management', path: '/admin/users', icon: Users, badge: 'Users' },
+        { label: 'Role Management', path: '/admin/roles', icon: Shield, badge: 'Roles' },
+      ],
+    },
     {
       id: 'parlour',
       title: 'Golden Beauty Parlour',
       shortTitle: 'Golden Beauty Parlour',
       iconEmoji: '💄',
-      icon: Scissors,
       accentColor: '#c084fc',
       badge: 'Salon',
       badgeBg: '#7e22ce',
-      subGroups: [
-        {
-          id: 'parlour_bookings',
-          title: 'Bookings & Home Dispatch',
-          icon: Calendar,
-          items: [
-            { label: 'Appointments Calendar', path: '/admin/parlour-appointments', icon: Calendar, badge: '12' },
-            { label: 'Doorstep Home Services', path: '/admin/home-services', icon: Scissors, badge: 'Live' },
-            { label: 'Specialist Live Radar', path: '/admin/live-tracking', icon: Compass },
-            { label: 'Front Desk Receptionist', path: '/admin/receptionist', icon: UserCheck },
-          ],
-        },
-        {
-          id: 'parlour_clients',
-          title: 'Clients, Staff & Academy',
-          icon: Users,
-          items: [
-            { label: 'Customers Directory', path: '/admin/parlour-users', icon: Users },
-            { label: 'Stylists & Staff', path: '/admin/parlour-staff', icon: UserCheck },
-            { label: 'Beauty Academy & Students', path: '/admin/parlour-students', icon: GraduationCap },
-            { label: 'CRM & Client Retention', path: '/admin/crm', icon: HeartHandshake },
-          ],
-        },
-        {
-          id: 'parlour_catalog',
-          title: 'Services, Offers & Stock',
-          icon: Package,
-          items: [
-            { label: 'Salon Services Catalog', path: '/admin/parlour-services', icon: Scissors },
-            { label: 'Packages & Combos', path: '/admin/packages', icon: Package },
-            { label: 'Offers & Discounts', path: '/admin/offers', icon: Tag },
-            { label: 'Inventory & Cosmetics Stock', path: '/admin/parlour-inventory', icon: Box },
-          ],
-        },
-        {
-          id: 'parlour_finance',
-          title: 'Billing POS & Financials',
-          icon: CreditCard,
-          items: [
-            { label: 'POS Billing & Invoices', path: '/admin/parlour-billing', icon: CreditCard },
-            { label: 'Facilities & Expenses', path: '/admin/facilities-expenses', icon: Building },
-            { label: 'Salon Sales & Reports', path: '/admin/reports', icon: BarChart3 },
-          ],
-        },
-        {
-          id: 'parlour_web',
-          title: 'Website & CMS',
-          icon: Globe,
-          items: [
-            { label: 'Public Salon Website', path: '/storefront', icon: Globe, isExternal: true },
-            { label: 'Website Content CMS', path: '/admin/website-cms', icon: FileText },
-          ],
-        },
+      items: [
+        { label: 'Beauty Parlour Overview', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Parlour Users', path: '/admin/users?business=PARLOUR', icon: Users, badge: 'Users' },
       ],
     },
     {
@@ -303,50 +274,12 @@ export const TenantAdminLayout = () => {
       title: 'Jaygurudev Event & Management',
       shortTitle: 'Jaygurudev Event & Mgmt',
       iconEmoji: '🔱',
-      icon: Sparkles,
       accentColor: '#facc15',
-      badge: 'Royal Decor',
+      badge: 'Event',
       badgeBg: '#ca8a04',
-      subGroups: [
-        {
-          id: 'events_decor',
-          title: 'Stage Decor & Blueprints',
-          icon: Crown,
-          items: [
-            { label: 'Aadiyogi & Grand Stages', path: '/admin/event-decoration?tab=stages', icon: Crown },
-            { label: 'Royal Bridal Entries', path: '/admin/event-decoration?tab=entries', icon: Sparkles },
-            { label: 'Stage Blueprints & 3D', path: '/events#dimensions', icon: Image, isExternal: true },
-          ],
-        },
-        {
-          id: 'events_bookings',
-          title: 'Wedding Contracts & Couples',
-          icon: Calendar,
-          items: [
-            { label: 'Wedding Contracts & Dates', path: '/admin/event-decoration?tab=bookings', icon: Calendar },
-            { label: 'Proposals & Quotations', path: '/admin/event-decoration?tab=proposals', icon: FileText },
-            { label: 'Couples & Family Clients', path: '/admin/event-users', icon: Users },
-          ],
-        },
-        {
-          id: 'events_ops',
-          title: 'Production, Crew & Accounts',
-          icon: Box,
-          items: [
-            { label: 'Truss, DJ Sound & Lights', path: '/admin/event-decoration?tab=inventory', icon: Box },
-            { label: 'Crew & Florist Staff', path: '/admin/parlour-staff', icon: UserCheck },
-            { label: 'Payments Ledger & Advances', path: '/admin/parlour-billing', icon: CreditCard },
-            { label: 'Event Profitability Reports', path: '/admin/reports', icon: BarChart3 },
-          ],
-        },
-        {
-          id: 'events_web',
-          title: 'Public Portal',
-          icon: Globe,
-          items: [
-            { label: 'Jaygurudev Live Website', path: '/events', icon: Globe, isExternal: true },
-          ],
-        },
+      items: [
+        { label: 'Event & Management Overview', path: '/admin/event-decoration', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Event Users', path: '/admin/users?business=EVENTS', icon: Users, badge: 'Users' },
       ],
     },
     {
@@ -354,48 +287,12 @@ export const TenantAdminLayout = () => {
       title: 'Plotting & Real Estate',
       shortTitle: 'Plotting & Real Estate',
       iconEmoji: '🏡',
-      icon: Trees,
       accentColor: '#4ade80',
-      badge: 'Land & Plots',
+      badge: 'Plots',
       badgeBg: '#16a34a',
-      subGroups: [
-        {
-          id: 'plotting_plots',
-          title: 'Plots Directory & Map',
-          icon: Trees,
-          items: [
-            { label: 'Plots Directory & Status', path: '/admin/plotting', icon: Trees },
-            { label: 'Plot Bookings & Registry', path: '/admin/plotting', icon: Calendar },
-          ],
-        },
-        {
-          id: 'plotting_leads',
-          title: 'Buyers, Agents & Leads',
-          icon: Users,
-          items: [
-            { label: 'Land Buyers & Investors', path: '/admin/plotting-users', icon: Users },
-            { label: 'Real Estate Agents & Brokers', path: '/admin/plotting-agents', icon: UserCheck },
-            { label: 'Plot Customer Inquiries', path: '/admin/customer-requests', icon: MessageSquare },
-          ],
-        },
-        {
-          id: 'plotting_finance',
-          title: 'Installments & Commercial',
-          icon: CreditCard,
-          items: [
-            { label: 'Installments & Payments', path: '/admin/parlour-billing', icon: CreditCard },
-            { label: 'Colony Offers & Discounts', path: '/admin/packages', icon: Tag },
-            { label: 'Land Sales Analytics', path: '/admin/reports', icon: BarChart3 },
-          ],
-        },
-        {
-          id: 'plotting_web',
-          title: 'Public Portal',
-          icon: Globe,
-          items: [
-            { label: 'Public Plotting Website', path: '/plotting', icon: Globe, isExternal: true },
-          ],
-        },
+      items: [
+        { label: 'Plotting & Real Estate Overview', path: '/admin/plotting', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Plotting Users', path: '/admin/users?business=PLOTTING', icon: Users, badge: 'Users' },
       ],
     },
     {
@@ -403,47 +300,12 @@ export const TenantAdminLayout = () => {
       title: 'Office & Rental Management',
       shortTitle: 'Office & Rental Mgmt',
       iconEmoji: '🏢',
-      icon: Building,
       accentColor: '#fbbf24',
-      badge: '3 Floors',
+      badge: 'Rent',
       badgeBg: '#b45309',
-      subGroups: [
-        {
-          id: 'rent_spaces',
-          title: 'Commercial Spaces & Floors',
-          icon: Building,
-          items: [
-            { label: 'Commercial Projects Directory', path: '/admin/rent-office?tab=projects', icon: Building },
-            { label: 'Office, Shop & Godown Spaces', path: '/admin/rent-office?tab=spaces', icon: Layers },
-          ],
-        },
-        {
-          id: 'rent_tenants',
-          title: 'Tenants & Leases',
-          icon: Users,
-          items: [
-            { label: 'Lease Agreements & Bookings', path: '/admin/rent-office?tab=bookings', icon: Calendar },
-            { label: 'Registered Tenants', path: '/admin/rent-tenants', icon: Users },
-            { label: 'Space Enquiries & Leads', path: '/admin/rent-office?tab=enquiries', icon: MessageSquare },
-          ],
-        },
-        {
-          id: 'rent_finance',
-          title: 'Rental Accounts & Ledger',
-          icon: CreditCard,
-          items: [
-            { label: 'Monthly Rent Receipts & POS', path: '/admin/parlour-billing', icon: CreditCard },
-            { label: 'Occupancy & Revenue Reports', path: '/admin/reports', icon: BarChart3 },
-          ],
-        },
-        {
-          id: 'rent_web',
-          title: 'Public Portal',
-          icon: Globe,
-          items: [
-            { label: 'Public Rental Website', path: '/rent', icon: Globe, isExternal: true },
-          ],
-        },
+      items: [
+        { label: 'Office & Rental Overview', path: '/admin/rent-office', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Rental Users', path: '/admin/users?business=RENT', icon: Users, badge: 'Users' },
       ],
     },
     {
@@ -451,72 +313,24 @@ export const TenantAdminLayout = () => {
       title: 'Software & Media Services',
       shortTitle: 'Software & Media Services',
       iconEmoji: '💻',
-      icon: Code2,
       accentColor: '#38bdf8',
-      badge: 'SaaS Cloud',
+      badge: 'Software',
       badgeBg: '#4338ca',
-      subGroups: [
-        {
-          id: 'software_saas',
-          title: 'Cloud SaaS Products',
-          icon: Code2,
-          items: [
-            { label: 'Central SaaS Portfolio', path: '/admin/rb-software?tab=software', icon: Code2 },
-            { label: 'Beauty Parlour SaaS', path: '/admin/golden-beauty-parlour', icon: Scissors },
-            { label: 'Pharmacy Management SaaS', path: '/software', icon: Package },
-          ],
-        },
-        {
-          id: 'software_media',
-          title: 'Studio & 4K Media Production',
-          icon: Camera,
-          items: [
-            { label: 'Camera & Photo Studio', path: '/admin/rb-software?tab=media', icon: Camera },
-            { label: '4K Drone & Cinematography', path: '/admin/rb-software?tab=videography', icon: Video },
-            { label: 'Production Equipment Stock', path: '/admin/rb-software?tab=gear', icon: Box },
-          ],
-        },
-        {
-          id: 'software_clients',
-          title: 'Enterprise Clients & Bids',
-          icon: Users,
-          items: [
-            { label: 'Project Estimates & Quotes', path: '/admin/rb-software?tab=proposals', icon: FileText },
-            { label: 'Enterprise IT Clients', path: '/admin/software-clients', icon: Users },
-          ],
-        },
-        {
-          id: 'software_web',
-          title: 'Public Portal',
-          icon: Globe,
-          items: [
-            { label: 'Public Software Portal', path: '/software', icon: Globe, isExternal: true },
-          ],
-        },
+      items: [
+        { label: 'Software & Tech Overview', path: '/admin/rb-software', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Software Users', path: '/admin/users?business=SOFTWARE', icon: Users, badge: 'Users' },
       ],
     },
     {
       id: 'system',
-      title: 'Central Administration & Roles',
+      title: 'Central Administration',
       shortTitle: 'Central Administration',
       iconEmoji: '⚙️',
-      icon: Settings,
       accentColor: '#94a3b8',
-      badge: 'Core',
+      badge: 'System',
       badgeBg: '#334155',
-      subGroups: [
-        {
-          id: 'system_core',
-          title: 'System Control & Security',
-          icon: Settings,
-          items: [
-            { label: 'Branch & Multi-Location', path: '/admin/branches', icon: Building },
-            { label: 'Roles & Permissions', path: '/admin/roles', icon: UserCog },
-            { label: 'Global Platform Settings', path: '/admin/settings', icon: Settings },
-            { label: 'System Notifications', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
-            { label: '24/7 Support Desk', path: '/admin/support', icon: Headphones },
-          ],
-        },
+      items: [
+        { label: 'Configuration', path: '/admin/system/config', icon: Settings, badge: 'Config' },
       ],
     },
   ];
@@ -794,57 +608,8 @@ export const TenantAdminLayout = () => {
 
         {/* ── Main Navigation: Independent Multi-Level Dropdowns ── */}
         <div style={{ padding: '0.65rem 0.75rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-          {/* Quick Direct Items */}
-          <NavLink
-            to="/admin/dashboard"
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.65rem 0.85rem',
-              borderRadius: '10px',
-              fontSize: '0.84rem',
-              fontWeight: isActive ? 800 : 600,
-              color: isActive ? '#ffffff' : '#e2e8f0',
-              background: isActive ? activePillBg : 'rgba(255, 255, 255, 0.05)',
-              textDecoration: 'none',
-              boxShadow: isActive ? `0 4px 14px ${activePillBg}55` : 'none',
-              transition: 'all 0.15s ease',
-            })}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <LayoutDashboard size={17} color={accentColor} />
-              <span>Overview Dashboard</span>
-            </div>
-            <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.12)', padding: '1px 6px', borderRadius: '4px' }}>Main</span>
-          </NavLink>
-
-          <NavLink
-            to="/admin/customer-requests"
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.65rem 0.85rem',
-              borderRadius: '10px',
-              fontSize: '0.84rem',
-              fontWeight: isActive ? 800 : 600,
-              color: isActive ? '#ffffff' : '#e2e8f0',
-              background: isActive ? activePillBg : 'rgba(255, 255, 255, 0.05)',
-              textDecoration: 'none',
-              boxShadow: isActive ? `0 4px 14px ${activePillBg}55` : 'none',
-              transition: 'all 0.15s ease',
-            })}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <MessageSquare size={17} color="#38bdf8" />
-              <span>Customer Requests & Leads</span>
-            </div>
-            <span style={{ fontSize: '10px', background: '#6366f1', color: '#fff', padding: '1px 7px', borderRadius: '999px', fontWeight: 800 }}>New</span>
-          </NavLink>
-
           {/* Section Divider & Expand / Collapse Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.35rem 0.25rem', marginTop: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.35rem 0.25rem' }}>
             <span style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, color: 'rgba(255, 255, 255, 0.5)' }}>
               BUSINESS MODULES (DROPDOWNS)
             </span>
@@ -966,177 +731,61 @@ export const TenantAdminLayout = () => {
                   </div>
                 </div>
 
-                {/* Level 2: Inside Main Dropdown (Multiple Sub-Dropdowns) */}
+                {/* Inside Dropdown: Items (Overview & User Management for all business modules) */}
                 {isSectionOpen && (
                   <div style={{ padding: '4px 6px 6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    {section.subGroups.map((group) => {
-                      const isGroupOpen = !!openSections[group.id];
-                      const GroupIcon = group.icon;
+                    {section.items && section.items.map((item, iIdx) => {
+                      const ItemIcon = item.icon || LayoutDashboard;
+                      const currentFullPath = location.pathname + (location.search || '');
+                      const isItemActive =
+                        item.path === '/admin/system/config'
+                          ? location.pathname.includes('/admin/system')
+                          : item.path.includes('?')
+                          ? currentFullPath === item.path
+                          : location.pathname === item.path && (!location.search || location.search === '');
                       return (
-                        <div
-                          key={group.id}
+                        <NavLink
+                          key={iIdx}
+                          to={item.path}
+                          onClick={() => isMobile && setMobileMenuOpen(false)}
                           style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '7px 10px',
                             borderRadius: '8px',
-                            background: isGroupOpen ? 'rgba(0, 0, 0, 0.22)' : 'transparent',
-                            border: `1px solid ${isGroupOpen ? 'rgba(255, 255, 255, 0.08)' : 'transparent'}`,
-                            overflow: 'hidden',
+                            fontSize: '0.8rem',
+                            fontWeight: isItemActive ? 800 : 600,
+                            color: isItemActive ? '#ffffff' : '#f1f5f9',
+                            background: isItemActive
+                              ? 'rgba(255, 255, 255, 0.16)'
+                              : 'rgba(255, 255, 255, 0.05)',
+                            border: `1px solid ${isItemActive ? section.accentColor : 'rgba(255, 255, 255, 0.08)'}`,
+                            textDecoration: 'none',
+                            transition: 'all 0.15s ease',
+                            boxShadow: isItemActive ? `0 2px 10px ${section.accentColor}33` : 'none',
                           }}
                         >
-                          {/* Level 2 Header: Sub-Dropdown Toggle */}
-                          <div
-                            onClick={(e) => toggleSection(group.id, e)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '6px 8px',
-                              cursor: 'pointer',
-                              background: isGroupOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-                              userSelect: 'none',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = isGroupOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent';
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
-                              <GroupIcon size={13} color={section.accentColor} />
-                              <span
-                                style={{
-                                  fontWeight: 700,
-                                  fontSize: '0.76rem',
-                                  color: isGroupOpen ? '#ffffff' : '#94a3b8',
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {group.title}
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                color: '#94a3b8',
-                                transform: isGroupOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s ease',
-                                display: 'flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                              }}
-                            >
-                              <ChevronDown size={13} />
-                            </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ItemIcon size={14} color={section.accentColor} />
+                            <span>{item.label}</span>
                           </div>
-
-                          {/* Level 3: Feature Items inside Sub-Dropdown */}
-                          {isGroupOpen && (
-                            <div
+                          {item.badge && (
+                            <span
                               style={{
-                                padding: '3px 0 3px 14px',
-                                marginLeft: '8px',
-                                borderLeft: `1.5px solid ${section.accentColor}44`,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '2px',
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                background: section.accentColor,
+                                color: '#0f172a',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                letterSpacing: '0.04em',
                               }}
                             >
-                              {group.items.map((item, iIdx) => {
-                                const ItemIcon = item.icon;
-                                const isActive = location.pathname === item.path;
-                                if (item.isExternal) {
-                                  return (
-                                    <NavLink
-                                      key={iIdx}
-                                      to={item.path}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '5px 8px',
-                                        borderRadius: '6px',
-                                        fontSize: '0.76rem',
-                                        fontWeight: 600,
-                                        color: '#cbd5e1',
-                                        textDecoration: 'none',
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                                        e.currentTarget.style.color = '#ffffff';
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = 'transparent';
-                                        e.currentTarget.style.color = '#cbd5e1';
-                                      }}
-                                    >
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <ItemIcon size={12} color={section.accentColor} />
-                                        <span>{item.label}</span>
-                                      </div>
-                                      <span style={{ fontSize: '9px', color: section.accentColor }}>↗</span>
-                                    </NavLink>
-                                  );
-                                }
-
-                                return (
-                                  <NavLink
-                                    key={iIdx}
-                                    to={item.path}
-                                    onClick={() => isMobile && setMobileMenuOpen(false)}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      padding: '5px 8px',
-                                      borderRadius: '6px',
-                                      fontSize: '0.76rem',
-                                      fontWeight: isActive ? 800 : 500,
-                                      color: isActive ? '#ffffff' : '#cbd5e1',
-                                      background: isActive ? section.accentColor + '33' : 'transparent',
-                                      border: isActive ? `1px solid ${section.accentColor}66` : '1px solid transparent',
-                                      textDecoration: 'none',
-                                      transition: 'all 0.15s ease',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      if (!isActive) {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                                        e.currentTarget.style.color = '#ffffff';
-                                      }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (!isActive) {
-                                        e.currentTarget.style.background = 'transparent';
-                                        e.currentTarget.style.color = '#cbd5e1';
-                                      }
-                                    }}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <ItemIcon size={12} color={isActive ? '#ffffff' : section.accentColor} />
-                                      <span>{item.label}</span>
-                                    </div>
-                                    {item.badge && (
-                                      <span
-                                        style={{
-                                          fontSize: '9px',
-                                          fontWeight: 800,
-                                          background: section.accentColor,
-                                          color: '#0f172a',
-                                          padding: '1px 5px',
-                                          borderRadius: '999px',
-                                        }}
-                                      >
-                                        {item.badge}
-                                      </span>
-                                    )}
-                                  </NavLink>
-                                );
-                              })}
-                            </div>
+                              {item.badge}
+                            </span>
                           )}
-                        </div>
+                        </NavLink>
                       );
                     })}
                   </div>

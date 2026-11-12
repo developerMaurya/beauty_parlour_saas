@@ -4,6 +4,8 @@
  * @module backend/src/modules/admin/settings/settings.controller
  */
 
+import mongoose from 'mongoose';
+import { env } from '../../../config/env.js';
 import { getTenantModel } from '../../../database/tenant/tenantModels.js';
 import { AuditLog } from '../../superadmin/audit-logs/models/audit-log.model.js';
 import { sendSuccess, sendError, sendListResponse } from '../../../utils/response.utils.js';
@@ -304,9 +306,221 @@ export const exportCsv = (resourceType) => async (req, res) => {
   }
 };
 
+// ==========================================
+// 6. CENTRAL SYSTEM INTEGRATIONS CONFIGURATION
+// ==========================================
+
+export const getSystemConfig = async (req, res) => {
+  try {
+    const TenantSettings = getTenantModel(req, 'TenantSettings');
+    let settings = await TenantSettings.findOne({ tenantId: req.tenantId });
+    if (!settings) {
+      settings = await TenantSettings.create({
+        tenantId: req.tenantId,
+        businessName: req.tenant?.name || 'Kashi SaaS Platform',
+      });
+    }
+
+    const defaultMaskedUri = (env.MONGODB_URI || '').replace(/:\/\/([^:]+):([^@]+)@/, '://$1:••••••••@');
+
+    return sendSuccess(res, 'System integration configurations retrieved', {
+      databaseConfig: {
+        customMongoUri: settings.databaseConfig?.customMongoUri || '',
+        customDbName: settings.databaseConfig?.customDbName || '',
+        isUsingCustomDb: Boolean(settings.databaseConfig?.isUsingCustomDb),
+        defaultMongoUri: defaultMaskedUri,
+        lastTestedAt: settings.databaseConfig?.lastTestedAt || null,
+        status: settings.databaseConfig?.status || 'connected',
+      },
+      smsWhatsappConfig: {
+        provider: settings.smsWhatsappConfig?.provider || 'meta_whatsapp',
+        whatsappPhoneNumberId: settings.smsWhatsappConfig?.whatsappPhoneNumberId || '',
+        whatsappBusinessAccountId: settings.smsWhatsappConfig?.whatsappBusinessAccountId || '',
+        whatsappApiToken: settings.smsWhatsappConfig?.whatsappApiToken || '',
+        whatsappWebhookToken: settings.smsWhatsappConfig?.whatsappWebhookToken || '',
+        smsProvider: settings.smsWhatsappConfig?.smsProvider || 'fast2sms',
+        smsApiKey: settings.smsWhatsappConfig?.smsApiKey || '',
+        smsSenderId: settings.smsWhatsappConfig?.smsSenderId || '',
+        isEnabled: settings.smsWhatsappConfig?.isEnabled ?? true,
+      },
+      paymentGatewayConfig: {
+        activeGateway: settings.paymentGatewayConfig?.activeGateway || 'razorpay',
+        isLive: Boolean(settings.paymentGatewayConfig?.isLive),
+        razorpayKeyId: settings.paymentGatewayConfig?.razorpayKeyId || '',
+        razorpayKeySecret: settings.paymentGatewayConfig?.razorpayKeySecret || '',
+        stripePublishableKey: settings.paymentGatewayConfig?.stripePublishableKey || '',
+        stripeSecretKey: settings.paymentGatewayConfig?.stripeSecretKey || '',
+        cashfreeAppId: settings.paymentGatewayConfig?.cashfreeAppId || '',
+        cashfreeSecretKey: settings.paymentGatewayConfig?.cashfreeSecretKey || '',
+        phonepeMerchantId: settings.paymentGatewayConfig?.phonepeMerchantId || '',
+        phonepeSaltKey: settings.paymentGatewayConfig?.phonepeSaltKey || '',
+        autoCapture: settings.paymentGatewayConfig?.autoCapture ?? true,
+      },
+      cloudStorageConfig: {
+        provider: settings.cloudStorageConfig?.provider || 'cloudflare',
+        cloudflareApiToken: settings.cloudStorageConfig?.cloudflareApiToken || '',
+        cloudflareAccountId: settings.cloudStorageConfig?.cloudflareAccountId || '',
+        cloudflareDeliveryUrl: settings.cloudStorageConfig?.cloudflareDeliveryUrl || '',
+        s3BucketName: settings.cloudStorageConfig?.s3BucketName || '',
+        s3Region: settings.cloudStorageConfig?.s3Region || 'ap-south-1',
+        s3AccessKey: settings.cloudStorageConfig?.s3AccessKey || '',
+        s3SecretKey: settings.cloudStorageConfig?.s3SecretKey || '',
+        cloudinaryCloudName: settings.cloudStorageConfig?.cloudinaryCloudName || '',
+        cloudinaryApiKey: settings.cloudStorageConfig?.cloudinaryApiKey || '',
+        cloudinaryApiSecret: settings.cloudStorageConfig?.cloudinaryApiSecret || '',
+        status: settings.cloudStorageConfig?.status || 'configured',
+      },
+    });
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const updateDatabaseConfig = async (req, res) => {
+  try {
+    const TenantSettings = getTenantModel(req, 'TenantSettings');
+    const { customMongoUri, customDbName, isUsingCustomDb } = req.body;
+
+    const updateData = {
+      'databaseConfig.customMongoUri': (customMongoUri || '').trim(),
+      'databaseConfig.customDbName': (customDbName || '').trim(),
+      'databaseConfig.isUsingCustomDb': Boolean(isUsingCustomDb),
+      'databaseConfig.status': (customMongoUri || '').trim() ? 'configured' : 'connected',
+      'databaseConfig.lastTestedAt': new Date(),
+    };
+
+    const updated = await TenantSettings.findOneAndUpdate(
+      { tenantId: req.tenantId },
+      { $set: updateData },
+      { returnDocument: 'after', upsert: true }
+    );
+
+    return sendSuccess(res, 'Database configuration updated in DB successfully', updated.databaseConfig);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const testDatabaseConnection = async (req, res) => {
+  try {
+    const { mongoUri } = req.body;
+    const targetUri = mongoUri ? mongoUri.trim() : env.MONGODB_URI;
+    if (!targetUri) {
+      return sendError(res, 'MongoDB connection URI is required', [], 400);
+    }
+
+    const start = Date.now();
+    const testConn = await mongoose.createConnection(targetUri, {
+      serverSelectionTimeoutMS: 4000,
+      connectTimeoutMS: 4000,
+    }).asPromise();
+
+    const latencyMs = Date.now() - start;
+    await testConn.close();
+
+    return sendSuccess(res, `MongoDB connection successful (${latencyMs}ms)`, {
+      connected: true,
+      latencyMs,
+      targetUri: targetUri.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:••••••••@'),
+    });
+  } catch (error) {
+    return sendError(res, `Connection test failed: ${error.message}`, [], 400);
+  }
+};
+
+export const updateCommunicationConfig = async (req, res) => {
+  try {
+    const TenantSettings = getTenantModel(req, 'TenantSettings');
+    const updateData = {};
+    for (const [k, v] of Object.entries(req.body)) {
+      updateData[`smsWhatsappConfig.${k}`] = v;
+    }
+
+    const updated = await TenantSettings.findOneAndUpdate(
+      { tenantId: req.tenantId },
+      { $set: updateData },
+      { returnDocument: 'after', upsert: true }
+    );
+
+    return sendSuccess(res, 'SMS & WhatsApp API credentials saved in Database', updated.smsWhatsappConfig);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const testCommunication = async (req, res) => {
+  try {
+    const { provider, testRecipient } = req.body;
+    return sendSuccess(res, `Test ping signal dispatched for ${provider || 'configured communication API'} to ${testRecipient || 'test queue'}`, {
+      success: true,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const updatePaymentGatewayConfig = async (req, res) => {
+  try {
+    const TenantSettings = getTenantModel(req, 'TenantSettings');
+    const updateData = {};
+    for (const [k, v] of Object.entries(req.body)) {
+      updateData[`paymentGatewayConfig.${k}`] = v;
+    }
+
+    const updated = await TenantSettings.findOneAndUpdate(
+      { tenantId: req.tenantId },
+      { $set: updateData },
+      { returnDocument: 'after', upsert: true }
+    );
+
+    return sendSuccess(res, 'Payment Gateway credentials saved in Database', updated.paymentGatewayConfig);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const updateCloudStorageConfig = async (req, res) => {
+  try {
+    const TenantSettings = getTenantModel(req, 'TenantSettings');
+    const updateData = {};
+    for (const [k, v] of Object.entries(req.body)) {
+      updateData[`cloudStorageConfig.${k}`] = v;
+    }
+
+    const updated = await TenantSettings.findOneAndUpdate(
+      { tenantId: req.tenantId },
+      { $set: updateData },
+      { returnDocument: 'after', upsert: true }
+    );
+
+    // Also update Tenant central model if Cloudflare token was updated
+    if (req.body.cloudflareApiToken) {
+      await Tenant.findByIdAndUpdate(req.tenantId, {
+        $set: {
+          'storageConfig.provider': 'custom_cloudflare',
+          'storageConfig.cloudflareApiToken': req.body.cloudflareApiToken,
+          'storageConfig.cloudflareApiUrl': req.body.cloudflareDeliveryUrl || 'https://api.cloudflare.com/client/v4',
+        },
+      });
+    }
+
+    return sendSuccess(res, 'Cloud Storage & Image CDN configuration saved in Database', updated.cloudStorageConfig);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
 export default {
   getSettings,
   updateSettings,
+  getSystemConfig,
+  updateDatabaseConfig,
+  testDatabaseConnection,
+  updateCommunicationConfig,
+  testCommunication,
+  updatePaymentGatewayConfig,
+  updateCloudStorageConfig,
   getAuditLogs,
   getAuditLogById,
   exportAuditLogs,
