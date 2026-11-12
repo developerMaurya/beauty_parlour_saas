@@ -12,6 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@react-oauth/google': path.resolve(__dirname, '../node_modules/@react-oauth/google'),
     },
   },
   server: {

@@ -124,6 +124,13 @@ export const AdminRoutes = (
       <Route path="overview" element={<BusinessDirectoryManager />} />
 
       {/* ── Shared Modules ── */}
+      <Route path="home-services" element={<HomeServicesDispatchPage />} />
+      <Route path="live-tracking" element={<LiveTrackingPage />} />
+      <Route path="receptionist" element={<ReceptionistFrontDeskPage />} />
+      <Route path="facilities-expenses" element={<FacilitiesExpensesPage />} />
+      <Route path="website-cms" element={<WebsiteCMSPage />} />
+      <Route path="roles" element={<RolePermissionPage />} />
+      <Route path="branches" element={<BranchManagementPage />} />
       <Route path="customers" element={<CustomerManagementPage />} />
       <Route path="staff" element={<StaffManagementPage />} />
       <Route path="students" element={<StudentAcademyPage />} />

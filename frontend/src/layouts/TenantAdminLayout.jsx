@@ -7,7 +7,7 @@
  * @module frontend/src/layouts/TenantAdminLayout
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Scissors,
@@ -138,115 +138,387 @@ export const TenantAdminLayout = () => {
     }
   }, [location.pathname, isPlottingRoute, isRentRoute, isEventsRoute, isSoftwareRoute]);
 
-  // Multi-vertical dropdown state
-  const [verticalsDropdownOpen, setVerticalsDropdownOpen] = useState(false);
+  // ══════════════════════════════════════════════════════════════════════════
+  // INDEPENDENT MULTI-LEVEL DROPDOWN STATE FOR ALL MODULES
+  // ══════════════════════════════════════════════════════════════════════════
+  const [openSections, setOpenSections] = useState({
+    parlour: true,
+    parlour_bookings: true,
+    parlour_clients: false,
+    parlour_catalog: false,
+    parlour_finance: false,
+    parlour_web: false,
+    events: false,
+    events_decor: true,
+    events_bookings: false,
+    events_ops: false,
+    events_web: false,
+    plotting: false,
+    plotting_plots: true,
+    plotting_leads: false,
+    plotting_finance: false,
+    plotting_web: false,
+    rent: false,
+    rent_spaces: true,
+    rent_tenants: false,
+    rent_finance: false,
+    rent_web: false,
+    software: false,
+    software_saas: true,
+    software_media: false,
+    software_clients: false,
+    software_web: false,
+    system: false,
+    system_core: true,
+  });
+
+  // Independent toggle handler — toggles only the targeted key, NEVER closes others!
+  const toggleSection = (id, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setOpenSections((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const expandAllSections = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setOpenSections((prev) => {
+      const allTrue = {};
+      Object.keys(prev).forEach((k) => {
+        allTrue[k] = true;
+      });
+      return allTrue;
+    });
+  };
+
+  const collapseAllSections = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setOpenSections((prev) => {
+      const allFalse = {};
+      Object.keys(prev).forEach((k) => {
+        allFalse[k] = false;
+      });
+      return allFalse;
+    });
+  };
+
+  // Auto-open active module on route change without closing previously opened modules
+  useEffect(() => {
+    if (isSoftwareRoute) {
+      setOpenSections((prev) => ({ ...prev, software: true }));
+    } else if (isEventsRoute) {
+      setOpenSections((prev) => ({ ...prev, events: true }));
+    } else if (isRentRoute) {
+      setOpenSections((prev) => ({ ...prev, rent: true }));
+    } else if (isPlottingRoute) {
+      setOpenSections((prev) => ({ ...prev, plotting: true }));
+    } else if (
+      location.pathname.includes('parlour') ||
+      location.pathname.includes('beauty')
+    ) {
+      setOpenSections((prev) => ({ ...prev, parlour: true }));
+    }
+  }, [location.pathname, isSoftwareRoute, isEventsRoute, isRentRoute, isPlottingRoute]);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 1. GOLDEN BEAUTY PARLOUR MENU (Purple Theme)
+  // COMPLETE MULTI-LEVEL DROPDOWN DATA FOR ALL 5 VERTICALS + SYSTEM ADMIN
   // ══════════════════════════════════════════════════════════════════════════
-  const parlourMenuItems = [
-    { label: 'Dashboard', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard },
-    { label: 'Website', path: '/storefront', icon: Globe, isExternal: true },
-    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
-    { label: 'Appointments', path: '/admin/parlour-appointments', icon: Calendar, badge: '12' },
-    { label: 'Customers', path: '/admin/parlour-users', icon: Users },
-    { label: 'Staff', path: '/admin/parlour-staff', icon: UserCheck },
-    { label: 'Students', path: '/admin/parlour-students', icon: GraduationCap },
-    { label: 'Services', path: '/admin/parlour-services', icon: Scissors },
-    { label: 'Packages', path: '/admin/packages', icon: Package },
-    { label: 'Inventory', path: '/admin/parlour-inventory', icon: Box },
-    { label: 'Billing', path: '/admin/parlour-billing', icon: CreditCard },
-    { label: 'CRM', path: '/admin/crm', icon: HeartHandshake },
-    { label: 'Offers & Discounts', path: '/admin/offers', icon: Tag },
-    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
-    { label: 'Import / Export', path: '/admin/import-export', icon: Download },
-    { label: 'Notification', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
-    { label: 'Support', path: '/admin/support', icon: Headphones },
-    { label: 'Settings', path: '/admin/settings', icon: Settings },
-  ];
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 2. KASHI PLOTTING SERVICES MENU (Forest Green Theme Matching Image)
-  // ══════════════════════════════════════════════════════════════════════════
-  const plottingMenuItems = [
-    { label: 'Dashboard', path: '/admin/plotting', icon: LayoutDashboard },
-    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
-    { label: 'Plots Management', path: '/admin/plotting', icon: Trees },
-    { label: 'Bookings', path: '/admin/plotting', icon: Calendar },
-    { label: 'Customers', path: '/admin/plotting-users', icon: Users },
-    { label: 'Agents', path: '/admin/plotting-agents', icon: UserCheck },
-    { label: 'Inquiries', path: '/admin/plotting-users', icon: HelpCircle },
-    { label: 'Payments', path: '/admin/parlour-billing', icon: CreditCard },
-    { label: 'Offers & Discounts', path: '/admin/packages', icon: Tag },
-    { label: 'Gallery', path: '/plotting', icon: Image, isExternal: true },
-    { label: 'Testimonials', path: '/plotting', icon: MessageSquareQuote, isExternal: true },
-    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
-    { label: 'Settings', path: '/admin/settings', icon: Settings },
-    { label: 'Notification', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
-    { label: 'Support', path: '/admin/support', icon: Headphones },
-  ];
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 3. PRIME PLOTS / OFFICE & GODAM RENT MENU (Navy & Gold Theme Matching Image)
-  // ══════════════════════════════════════════════════════════════════════════
-  const rentMenuItems = [
-    { label: 'Dashboard', path: '/admin/rent-office', icon: LayoutDashboard },
-    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
-    { label: 'Projects', path: '/admin/rent-office?tab=projects', icon: Building },
-    { label: 'Plots', path: '/admin/rent-office?tab=spaces', icon: Layers },
-    { label: 'Bookings', path: '/admin/rent-office?tab=bookings', icon: Calendar },
-    { label: 'Customers', path: '/admin/rent-tenants', icon: Users },
-    { label: 'Enquiries', path: '/admin/rent-office?tab=enquiries', icon: MessageSquare },
-    { label: 'Payments', path: '/admin/parlour-billing', icon: CreditCard },
-    { label: 'Offers & Discounts', path: '/admin/offers', icon: Tag },
-    { label: 'Gallery', path: '/rent', icon: Image, isExternal: true },
-    { label: 'Website Content', path: '/rent', icon: Globe, isExternal: true },
-    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
-    { label: 'Users & Roles', path: '/admin/roles', icon: UserCog },
-    { label: 'Settings', path: '/admin/settings', icon: Settings },
-    { label: 'Notifications', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
-    { label: 'Support', path: '/admin/support', icon: Headphones },
-  ];
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 4. JAY GURUDEV EVENT & MANAGEMENT MENU (Crimson & Gold Royal Theme)
-  // ══════════════════════════════════════════════════════════════════════════
-  const eventsMenuItems = [
-    { label: 'Dashboard', path: '/admin/event-decoration', icon: LayoutDashboard },
-    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
-    { label: 'Aadiyogi Stages', path: '/admin/event-decoration?tab=stages', icon: Crown },
-    { label: 'Bridal Entries', path: '/admin/event-decoration?tab=entries', icon: Sparkles },
-    { label: 'Wedding Contracts', path: '/admin/event-decoration?tab=bookings', icon: Calendar },
-    { label: 'Proposals & Quotes', path: '/admin/event-decoration?tab=proposals', icon: FileText },
-    { label: 'Clients & Couples', path: '/admin/event-users', icon: Users },
-    { label: 'Hardware Inventory', path: '/admin/event-decoration?tab=inventory', icon: Box },
-    { label: 'Crew & Florists', path: '/admin/parlour-staff', icon: UserCheck },
-    { label: 'Payments Ledger', path: '/admin/parlour-billing', icon: CreditCard },
-    { label: 'Stage Blueprints', path: '/events#dimensions', icon: Image, isExternal: true },
-    { label: 'Public Website', path: '/events', icon: Globe, isExternal: true },
-    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
-    { label: 'Settings', path: '/admin/settings', icon: Settings },
-    { label: 'Notifications', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
-    { label: 'Support', path: '/admin/support', icon: Headphones },
-  ];
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 5. RB SOFTWARE & MEDIA TECH HUB (Cyber Slate & Electric Blue/Indigo Theme)
-  // ══════════════════════════════════════════════════════════════════════════
-  const softwareMenuItems = [
-    { label: 'Dashboard', path: '/admin/rb-software', icon: LayoutDashboard },
-    { label: 'Customer Requests', path: '/admin/customer-requests', icon: MessageSquare, badge: 'New', badgeColor: '#6366f1' },
-    { label: 'Cloud Microservices', path: '/admin/rb-software?tab=software', icon: Code2 },
-    { label: 'Camera & Photo Studio', path: '/admin/rb-software?tab=media', icon: Camera },
-    { label: '4K Drone & Video', path: '/admin/rb-software?tab=videography', icon: Video },
-    { label: 'Equipment Inventory', path: '/admin/rb-software?tab=gear', icon: Box },
-    { label: 'Estimates & Quotes', path: '/admin/rb-software?tab=proposals', icon: FileText },
-    { label: 'Clients & Contracts', path: '/admin/software-clients', icon: Users },
-    { label: 'Public Tech Website', path: '/software', icon: Globe, isExternal: true },
-    { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
-    { label: 'Settings', path: '/admin/settings', icon: Settings },
-    { label: 'Notifications', path: '/admin/notifications', icon: Bell, badge: '2', badgeColor: '#38bdf8' },
-    { label: 'Support', path: '/admin/support', icon: Headphones },
+  const menuDropdownSections = [
+    {
+      id: 'parlour',
+      title: 'Golden Beauty Parlour',
+      shortTitle: 'Golden Beauty Parlour',
+      iconEmoji: '💄',
+      icon: Scissors,
+      accentColor: '#c084fc',
+      badge: 'Salon',
+      badgeBg: '#7e22ce',
+      subGroups: [
+        {
+          id: 'parlour_bookings',
+          title: 'Bookings & Home Dispatch',
+          icon: Calendar,
+          items: [
+            { label: 'Appointments Calendar', path: '/admin/parlour-appointments', icon: Calendar, badge: '12' },
+            { label: 'Doorstep Home Services', path: '/admin/home-services', icon: Scissors, badge: 'Live' },
+            { label: 'Specialist Live Radar', path: '/admin/live-tracking', icon: Compass },
+            { label: 'Front Desk Receptionist', path: '/admin/receptionist', icon: UserCheck },
+          ],
+        },
+        {
+          id: 'parlour_clients',
+          title: 'Clients, Staff & Academy',
+          icon: Users,
+          items: [
+            { label: 'Customers Directory', path: '/admin/parlour-users', icon: Users },
+            { label: 'Stylists & Staff', path: '/admin/parlour-staff', icon: UserCheck },
+            { label: 'Beauty Academy & Students', path: '/admin/parlour-students', icon: GraduationCap },
+            { label: 'CRM & Client Retention', path: '/admin/crm', icon: HeartHandshake },
+          ],
+        },
+        {
+          id: 'parlour_catalog',
+          title: 'Services, Offers & Stock',
+          icon: Package,
+          items: [
+            { label: 'Salon Services Catalog', path: '/admin/parlour-services', icon: Scissors },
+            { label: 'Packages & Combos', path: '/admin/packages', icon: Package },
+            { label: 'Offers & Discounts', path: '/admin/offers', icon: Tag },
+            { label: 'Inventory & Cosmetics Stock', path: '/admin/parlour-inventory', icon: Box },
+          ],
+        },
+        {
+          id: 'parlour_finance',
+          title: 'Billing POS & Financials',
+          icon: CreditCard,
+          items: [
+            { label: 'POS Billing & Invoices', path: '/admin/parlour-billing', icon: CreditCard },
+            { label: 'Facilities & Expenses', path: '/admin/facilities-expenses', icon: Building },
+            { label: 'Salon Sales & Reports', path: '/admin/reports', icon: BarChart3 },
+          ],
+        },
+        {
+          id: 'parlour_web',
+          title: 'Website & CMS',
+          icon: Globe,
+          items: [
+            { label: 'Public Salon Website', path: '/storefront', icon: Globe, isExternal: true },
+            { label: 'Website Content CMS', path: '/admin/website-cms', icon: FileText },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'events',
+      title: 'Jaygurudev Event & Management',
+      shortTitle: 'Jaygurudev Event & Mgmt',
+      iconEmoji: '🔱',
+      icon: Sparkles,
+      accentColor: '#facc15',
+      badge: 'Royal Decor',
+      badgeBg: '#ca8a04',
+      subGroups: [
+        {
+          id: 'events_decor',
+          title: 'Stage Decor & Blueprints',
+          icon: Crown,
+          items: [
+            { label: 'Aadiyogi & Grand Stages', path: '/admin/event-decoration?tab=stages', icon: Crown },
+            { label: 'Royal Bridal Entries', path: '/admin/event-decoration?tab=entries', icon: Sparkles },
+            { label: 'Stage Blueprints & 3D', path: '/events#dimensions', icon: Image, isExternal: true },
+          ],
+        },
+        {
+          id: 'events_bookings',
+          title: 'Wedding Contracts & Couples',
+          icon: Calendar,
+          items: [
+            { label: 'Wedding Contracts & Dates', path: '/admin/event-decoration?tab=bookings', icon: Calendar },
+            { label: 'Proposals & Quotations', path: '/admin/event-decoration?tab=proposals', icon: FileText },
+            { label: 'Couples & Family Clients', path: '/admin/event-users', icon: Users },
+          ],
+        },
+        {
+          id: 'events_ops',
+          title: 'Production, Crew & Accounts',
+          icon: Box,
+          items: [
+            { label: 'Truss, DJ Sound & Lights', path: '/admin/event-decoration?tab=inventory', icon: Box },
+            { label: 'Crew & Florist Staff', path: '/admin/parlour-staff', icon: UserCheck },
+            { label: 'Payments Ledger & Advances', path: '/admin/parlour-billing', icon: CreditCard },
+            { label: 'Event Profitability Reports', path: '/admin/reports', icon: BarChart3 },
+          ],
+        },
+        {
+          id: 'events_web',
+          title: 'Public Portal',
+          icon: Globe,
+          items: [
+            { label: 'Jaygurudev Live Website', path: '/events', icon: Globe, isExternal: true },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'plotting',
+      title: 'Plotting & Real Estate',
+      shortTitle: 'Plotting & Real Estate',
+      iconEmoji: '🏡',
+      icon: Trees,
+      accentColor: '#4ade80',
+      badge: 'Land & Plots',
+      badgeBg: '#16a34a',
+      subGroups: [
+        {
+          id: 'plotting_plots',
+          title: 'Plots Directory & Map',
+          icon: Trees,
+          items: [
+            { label: 'Plots Directory & Status', path: '/admin/plotting', icon: Trees },
+            { label: 'Plot Bookings & Registry', path: '/admin/plotting', icon: Calendar },
+          ],
+        },
+        {
+          id: 'plotting_leads',
+          title: 'Buyers, Agents & Leads',
+          icon: Users,
+          items: [
+            { label: 'Land Buyers & Investors', path: '/admin/plotting-users', icon: Users },
+            { label: 'Real Estate Agents & Brokers', path: '/admin/plotting-agents', icon: UserCheck },
+            { label: 'Plot Customer Inquiries', path: '/admin/customer-requests', icon: MessageSquare },
+          ],
+        },
+        {
+          id: 'plotting_finance',
+          title: 'Installments & Commercial',
+          icon: CreditCard,
+          items: [
+            { label: 'Installments & Payments', path: '/admin/parlour-billing', icon: CreditCard },
+            { label: 'Colony Offers & Discounts', path: '/admin/packages', icon: Tag },
+            { label: 'Land Sales Analytics', path: '/admin/reports', icon: BarChart3 },
+          ],
+        },
+        {
+          id: 'plotting_web',
+          title: 'Public Portal',
+          icon: Globe,
+          items: [
+            { label: 'Public Plotting Website', path: '/plotting', icon: Globe, isExternal: true },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'rent',
+      title: 'Office & Rental Management',
+      shortTitle: 'Office & Rental Mgmt',
+      iconEmoji: '🏢',
+      icon: Building,
+      accentColor: '#fbbf24',
+      badge: '3 Floors',
+      badgeBg: '#b45309',
+      subGroups: [
+        {
+          id: 'rent_spaces',
+          title: 'Commercial Spaces & Floors',
+          icon: Building,
+          items: [
+            { label: 'Commercial Projects Directory', path: '/admin/rent-office?tab=projects', icon: Building },
+            { label: 'Office, Shop & Godown Spaces', path: '/admin/rent-office?tab=spaces', icon: Layers },
+          ],
+        },
+        {
+          id: 'rent_tenants',
+          title: 'Tenants & Leases',
+          icon: Users,
+          items: [
+            { label: 'Lease Agreements & Bookings', path: '/admin/rent-office?tab=bookings', icon: Calendar },
+            { label: 'Registered Tenants', path: '/admin/rent-tenants', icon: Users },
+            { label: 'Space Enquiries & Leads', path: '/admin/rent-office?tab=enquiries', icon: MessageSquare },
+          ],
+        },
+        {
+          id: 'rent_finance',
+          title: 'Rental Accounts & Ledger',
+          icon: CreditCard,
+          items: [
+            { label: 'Monthly Rent Receipts & POS', path: '/admin/parlour-billing', icon: CreditCard },
+            { label: 'Occupancy & Revenue Reports', path: '/admin/reports', icon: BarChart3 },
+          ],
+        },
+        {
+          id: 'rent_web',
+          title: 'Public Portal',
+          icon: Globe,
+          items: [
+            { label: 'Public Rental Website', path: '/rent', icon: Globe, isExternal: true },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'software',
+      title: 'Software & Media Services',
+      shortTitle: 'Software & Media Services',
+      iconEmoji: '💻',
+      icon: Code2,
+      accentColor: '#38bdf8',
+      badge: 'SaaS Cloud',
+      badgeBg: '#4338ca',
+      subGroups: [
+        {
+          id: 'software_saas',
+          title: 'Cloud SaaS Products',
+          icon: Code2,
+          items: [
+            { label: 'Central SaaS Portfolio', path: '/admin/rb-software?tab=software', icon: Code2 },
+            { label: 'Beauty Parlour SaaS', path: '/admin/golden-beauty-parlour', icon: Scissors },
+            { label: 'Pharmacy Management SaaS', path: '/software', icon: Package },
+          ],
+        },
+        {
+          id: 'software_media',
+          title: 'Studio & 4K Media Production',
+          icon: Camera,
+          items: [
+            { label: 'Camera & Photo Studio', path: '/admin/rb-software?tab=media', icon: Camera },
+            { label: '4K Drone & Cinematography', path: '/admin/rb-software?tab=videography', icon: Video },
+            { label: 'Production Equipment Stock', path: '/admin/rb-software?tab=gear', icon: Box },
+          ],
+        },
+        {
+          id: 'software_clients',
+          title: 'Enterprise Clients & Bids',
+          icon: Users,
+          items: [
+            { label: 'Project Estimates & Quotes', path: '/admin/rb-software?tab=proposals', icon: FileText },
+            { label: 'Enterprise IT Clients', path: '/admin/software-clients', icon: Users },
+          ],
+        },
+        {
+          id: 'software_web',
+          title: 'Public Portal',
+          icon: Globe,
+          items: [
+            { label: 'Public Software Portal', path: '/software', icon: Globe, isExternal: true },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'system',
+      title: 'Central Administration & Roles',
+      shortTitle: 'Central Administration',
+      iconEmoji: '⚙️',
+      icon: Settings,
+      accentColor: '#94a3b8',
+      badge: 'Core',
+      badgeBg: '#334155',
+      subGroups: [
+        {
+          id: 'system_core',
+          title: 'System Control & Security',
+          icon: Settings,
+          items: [
+            { label: 'Branch & Multi-Location', path: '/admin/branches', icon: Building },
+            { label: 'Roles & Permissions', path: '/admin/roles', icon: UserCog },
+            { label: 'Global Platform Settings', path: '/admin/settings', icon: Settings },
+            { label: 'System Notifications', path: '/admin/notifications', icon: Bell, badge: '3', badgeColor: '#ef4444' },
+            { label: '24/7 Support Desk', path: '/admin/support', icon: Headphones },
+          ],
+        },
+      ],
+    },
   ];
 
   // Colors & Configuration for Active Vertical
@@ -520,293 +792,379 @@ export const TenantAdminLayout = () => {
           )}
         </div>
 
-        {/* ── 5-Vertical Switcher Buttons (Parlour ⟷ Plotting ⟷ Rent ⟷ Events ⟷ Software/Media) ── */}
-        <div style={{ padding: '0.75rem 0.85rem 0.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', background: 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '10px' }}>
-            <button
-              onClick={() => {
-                setActiveVertical('PARLOUR');
-                navigate('/admin/golden-beauty-parlour');
-              }}
-              style={{
-                padding: '6px 1px',
-                borderRadius: '8px',
-                border: 'none',
-                background: isParlour ? '#7e22ce' : 'transparent',
-                color: isParlour ? '#ffffff' : '#94a3b8',
-                fontWeight: isParlour ? 800 : 600,
-                fontSize: '9px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                textAlign: 'center',
-              }}
-            >
-              💄 Salon
-            </button>
-            <button
-              onClick={() => {
-                setActiveVertical('PLOTTING');
-                navigate('/admin/plotting');
-              }}
-              style={{
-                padding: '6px 1px',
-                borderRadius: '8px',
-                border: 'none',
-                background: isPlotting ? '#16a34a' : 'transparent',
-                color: isPlotting ? '#ffffff' : '#94a3b8',
-                fontWeight: isPlotting ? 800 : 600,
-                fontSize: '9px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                textAlign: 'center',
-              }}
-            >
-              🏡 Plot
-            </button>
-            <button
-              onClick={() => {
-                setActiveVertical('RENT');
-                navigate('/admin/rent-office');
-              }}
-              style={{
-                padding: '6px 1px',
-                borderRadius: '8px',
-                border: 'none',
-                background: isRent ? '#facc15' : 'transparent',
-                color: isRent ? '#0f172a' : '#94a3b8',
-                fontWeight: isRent ? 800 : 600,
-                fontSize: '9px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                textAlign: 'center',
-              }}
-            >
-              🏢 Rent
-            </button>
-            <button
-              onClick={() => {
-                setActiveVertical('EVENTS');
-                navigate('/admin/event-decoration');
-              }}
-              style={{
-                padding: '6px 1px',
-                borderRadius: '8px',
-                border: 'none',
-                background: isEvents ? '#facc15' : 'transparent',
-                color: isEvents ? '#0f172a' : '#94a3b8',
-                fontWeight: isEvents ? 800 : 600,
-                fontSize: '9px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                textAlign: 'center',
-              }}
-            >
-              🔱 Event
-            </button>
-            <button
-              onClick={() => {
-                setActiveVertical('SOFTWARE');
-                navigate('/admin/rb-software');
-              }}
-              style={{
-                padding: '6px 1px',
-                borderRadius: '8px',
-                border: 'none',
-                background: isSoftware ? '#6366f1' : 'transparent',
-                color: isSoftware ? '#ffffff' : '#94a3b8',
-                fontWeight: isSoftware ? 800 : 600,
-                fontSize: '9px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                textAlign: 'center',
-              }}
-            >
-              💻 Tech
-            </button>
+        {/* ── Main Navigation: Independent Multi-Level Dropdowns ── */}
+        <div style={{ padding: '0.65rem 0.75rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+          {/* Quick Direct Items */}
+          <NavLink
+            to="/admin/dashboard"
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.65rem 0.85rem',
+              borderRadius: '10px',
+              fontSize: '0.84rem',
+              fontWeight: isActive ? 800 : 600,
+              color: isActive ? '#ffffff' : '#e2e8f0',
+              background: isActive ? activePillBg : 'rgba(255, 255, 255, 0.05)',
+              textDecoration: 'none',
+              boxShadow: isActive ? `0 4px 14px ${activePillBg}55` : 'none',
+              transition: 'all 0.15s ease',
+            })}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <LayoutDashboard size={17} color={accentColor} />
+              <span>Overview Dashboard</span>
+            </div>
+            <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.12)', padding: '1px 6px', borderRadius: '4px' }}>Main</span>
+          </NavLink>
+
+          <NavLink
+            to="/admin/customer-requests"
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.65rem 0.85rem',
+              borderRadius: '10px',
+              fontSize: '0.84rem',
+              fontWeight: isActive ? 800 : 600,
+              color: isActive ? '#ffffff' : '#e2e8f0',
+              background: isActive ? activePillBg : 'rgba(255, 255, 255, 0.05)',
+              textDecoration: 'none',
+              boxShadow: isActive ? `0 4px 14px ${activePillBg}55` : 'none',
+              transition: 'all 0.15s ease',
+            })}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <MessageSquare size={17} color="#38bdf8" />
+              <span>Customer Requests & Leads</span>
+            </div>
+            <span style={{ fontSize: '10px', background: '#6366f1', color: '#fff', padding: '1px 7px', borderRadius: '999px', fontWeight: 800 }}>New</span>
+          </NavLink>
+
+          {/* Section Divider & Expand / Collapse Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.35rem 0.25rem', marginTop: '4px' }}>
+            <span style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, color: 'rgba(255, 255, 255, 0.5)' }}>
+              BUSINESS MODULES (DROPDOWNS)
+            </span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                type="button"
+                onClick={expandAllSections}
+                title="Expand all dropdowns"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#94a3b8',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  padding: '2px 5px',
+                  cursor: 'pointer',
+                }}
+              >
+                + Expand All
+              </button>
+              <button
+                type="button"
+                onClick={collapseAllSections}
+                title="Collapse all dropdowns"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#94a3b8',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  padding: '2px 5px',
+                  cursor: 'pointer',
+                }}
+              >
+                - Collapse All
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* ── Main Navigation Menu Items ── */}
-        <div style={{ padding: '0.65rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
-          {(isParlour ? parlourMenuItems : isPlotting ? plottingMenuItems : isRent ? rentMenuItems : isEvents ? eventsMenuItems : softwareMenuItems).map((item, idx) => {
-            const Icon = item.icon;
-            const isActive =
-              location.pathname === item.path ||
-              (item.label === 'Dashboard' &&
-                (isParlour
-                  ? location.pathname === '/admin/dashboard' || location.pathname === '/admin/golden-beauty-parlour'
-                  : isPlotting
-                  ? location.pathname === '/admin/plotting'
-                  : isRent
-                  ? location.pathname === '/admin/rent-office' || location.pathname === '/admin/rent'
-                  : isEvents
-                  ? location.pathname === '/admin/event-decoration' || location.pathname === '/admin/events'
-                  : location.pathname === '/admin/rb-software' || location.pathname === '/admin/software'));
-
-            if (item.isExternal) {
-              return (
-                <NavLink
-                  key={idx}
-                  to={item.path}
-                  target="_blank"
-                  rel="noreferrer"
+          {/* Dropdown Sections (Each completely independent) */}
+          {menuDropdownSections.map((section) => {
+            const isSectionOpen = !!openSections[section.id];
+            return (
+              <div
+                key={section.id}
+                style={{
+                  borderRadius: '11px',
+                  background: isSectionOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+                  border: `1px solid ${isSectionOpen ? section.accentColor + '33' : 'rgba(255, 255, 255, 0.06)'}`,
+                  overflow: 'hidden',
+                  transition: 'all 0.2s ease',
+                  marginTop: '2px',
+                }}
+              >
+                {/* Level 1: Main Business Dropdown Header */}
+                <div
+                  onClick={(e) => toggleSection(section.id, e)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.6rem 0.85rem',
-                    borderRadius: '10px',
-                    fontSize: '0.84rem',
-                    fontWeight: 600,
-                    color: '#cbd5e1',
-                    textDecoration: 'none',
-                    transition: 'all 0.15s ease',
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                    background: isSectionOpen ? 'rgba(255, 255, 255, 0.07)' : 'transparent',
+                    userSelect: 'none',
+                    transition: 'background 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.color = '#ffffff';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.09)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#cbd5e1';
+                    e.currentTarget.style.background = isSectionOpen ? 'rgba(255, 255, 255, 0.07)' : 'transparent';
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Icon size={17} color={accentColor} />
-                    <span>{item.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <span style={{ fontSize: '15px', flexShrink: 0 }}>{section.iconEmoji}</span>
+                    <span
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        color: isSectionOpen ? '#ffffff' : '#cbd5e1',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {section.shortTitle}
+                    </span>
+                    {section.badge && (
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          fontWeight: 800,
+                          background: section.badgeBg,
+                          color: '#ffffff',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {section.badge}
+                      </span>
+                    )}
                   </div>
-                  <span style={{ fontSize: '10px', color: accentColor }}>↗</span>
-                </NavLink>
-              );
-            }
-
-            return (
-              <NavLink
-                key={idx}
-                to={item.path}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '10px',
-                  fontSize: '0.84rem',
-                  fontWeight: isActive ? 800 : 600,
-                  color: isActive ? activeTextColor : '#cbd5e1',
-                  background: isActive ? activePillBg : 'transparent',
-                  textDecoration: 'none',
-                  boxShadow: isActive ? `0 4px 14px ${activePillBg}55` : 'none',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.color = '#ffffff';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#cbd5e1';
-                  }
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Icon size={17} color={isActive ? activeTextColor : accentColor} />
-                  <span>{item.label}</span>
-                </div>
-
-                {item.badge && (
-                  <span
+                  <div
                     style={{
-                      background: item.badgeColor || '#ec4899',
-                      color: '#ffffff',
-                      fontSize: '10.5px',
-                      fontWeight: 900,
-                      padding: '1px 7px',
-                      borderRadius: '999px',
-                      lineHeight: '16px',
+                      color: section.accentColor,
+                      transform: isSectionOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                      marginLeft: '4px',
                     }}
                   >
-                    {item.badge}
-                  </span>
+                    <ChevronDown size={15} />
+                  </div>
+                </div>
+
+                {/* Level 2: Inside Main Dropdown (Multiple Sub-Dropdowns) */}
+                {isSectionOpen && (
+                  <div style={{ padding: '4px 6px 6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {section.subGroups.map((group) => {
+                      const isGroupOpen = !!openSections[group.id];
+                      const GroupIcon = group.icon;
+                      return (
+                        <div
+                          key={group.id}
+                          style={{
+                            borderRadius: '8px',
+                            background: isGroupOpen ? 'rgba(0, 0, 0, 0.22)' : 'transparent',
+                            border: `1px solid ${isGroupOpen ? 'rgba(255, 255, 255, 0.08)' : 'transparent'}`,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {/* Level 2 Header: Sub-Dropdown Toggle */}
+                          <div
+                            onClick={(e) => toggleSection(group.id, e)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '6px 8px',
+                              cursor: 'pointer',
+                              background: isGroupOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+                              userSelect: 'none',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = isGroupOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent';
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                              <GroupIcon size={13} color={section.accentColor} />
+                              <span
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: '0.76rem',
+                                  color: isGroupOpen ? '#ffffff' : '#94a3b8',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {group.title}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                color: '#94a3b8',
+                                transform: isGroupOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <ChevronDown size={13} />
+                            </div>
+                          </div>
+
+                          {/* Level 3: Feature Items inside Sub-Dropdown */}
+                          {isGroupOpen && (
+                            <div
+                              style={{
+                                padding: '3px 0 3px 14px',
+                                marginLeft: '8px',
+                                borderLeft: `1.5px solid ${section.accentColor}44`,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                              }}
+                            >
+                              {group.items.map((item, iIdx) => {
+                                const ItemIcon = item.icon;
+                                const isActive = location.pathname === item.path;
+                                if (item.isExternal) {
+                                  return (
+                                    <NavLink
+                                      key={iIdx}
+                                      to={item.path}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '5px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.76rem',
+                                        fontWeight: 600,
+                                        color: '#cbd5e1',
+                                        textDecoration: 'none',
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                        e.currentTarget.style.color = '#ffffff';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'transparent';
+                                        e.currentTarget.style.color = '#cbd5e1';
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <ItemIcon size={12} color={section.accentColor} />
+                                        <span>{item.label}</span>
+                                      </div>
+                                      <span style={{ fontSize: '9px', color: section.accentColor }}>↗</span>
+                                    </NavLink>
+                                  );
+                                }
+
+                                return (
+                                  <NavLink
+                                    key={iIdx}
+                                    to={item.path}
+                                    onClick={() => isMobile && setMobileMenuOpen(false)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '5px 8px',
+                                      borderRadius: '6px',
+                                      fontSize: '0.76rem',
+                                      fontWeight: isActive ? 800 : 500,
+                                      color: isActive ? '#ffffff' : '#cbd5e1',
+                                      background: isActive ? section.accentColor + '33' : 'transparent',
+                                      border: isActive ? `1px solid ${section.accentColor}66` : '1px solid transparent',
+                                      textDecoration: 'none',
+                                      transition: 'all 0.15s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (!isActive) {
+                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                        e.currentTarget.style.color = '#ffffff';
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (!isActive) {
+                                        e.currentTarget.style.background = 'transparent';
+                                        e.currentTarget.style.color = '#cbd5e1';
+                                      }
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <ItemIcon size={12} color={isActive ? '#ffffff' : section.accentColor} />
+                                      <span>{item.label}</span>
+                                    </div>
+                                    {item.badge && (
+                                      <span
+                                        style={{
+                                          fontSize: '9px',
+                                          fontWeight: 800,
+                                          background: section.accentColor,
+                                          color: '#0f172a',
+                                          padding: '1px 5px',
+                                          borderRadius: '999px',
+                                        }}
+                                      >
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </NavLink>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
-              </NavLink>
+              </div>
             );
           })}
 
-          {/* Logout Menu Item */}
+          {/* Logout Button */}
           <div
             onClick={logout}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
-              padding: '0.6rem 0.85rem',
+              padding: '0.65rem 0.85rem',
               borderRadius: '10px',
               fontSize: '0.84rem',
               fontWeight: 600,
               color: '#ef4444',
               cursor: 'pointer',
-              marginTop: '4px',
+              marginTop: '8px',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.15)',
             }}
           >
             <LogOut size={16} />
-            <span>Logout</span>
-          </div>
-
-          {/* ── Other Business Verticals Switcher ── */}
-          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div
-              onClick={() => setVerticalsDropdownOpen(!verticalsDropdownOpen)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.55rem 0.85rem',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                color: accentColor,
-                background: verticalsDropdownOpen ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-              }}
-            >
-              <span>ALL 5 KASHI VERTICALS</span>
-              {verticalsDropdownOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </div>
-
-            {verticalsDropdownOpen && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px', paddingLeft: '4px' }}>
-                {[
-                  { label: '💄 Golden Beauty Parlour', path: '/admin/golden-beauty-parlour' },
-                  { label: '🏡 Kashi Plotting Services', path: '/admin/plotting' },
-                  { label: '🔱 Jay Gurudev Event & Management', path: '/admin/event-decoration' },
-                  { label: '🔑 Office & Rent Commercial', path: '/admin/rent-office' },
-                  { label: '💻 RB Software Hub', path: '/admin/rb-software' },
-                  { label: '📊 Master Business Overview', path: '/admin/business-folders' },
-                ].map((ov, oIdx) => (
-                  <NavLink
-                    key={oIdx}
-                    to={ov.path}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.65rem',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      fontWeight: isActive ? 800 : 500,
-                      color: isActive ? '#ffffff' : '#cbd5e1',
-                      background: isActive ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                      textDecoration: 'none',
-                    })}
-                  >
-                    <span>{ov.label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            )}
+            <span>Logout Account</span>
           </div>
         </div>
 
