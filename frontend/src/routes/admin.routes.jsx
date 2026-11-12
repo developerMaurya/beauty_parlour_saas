@@ -40,6 +40,9 @@ import UserManagementPage from '../modules/admin/pages/UserManagementPage.jsx';
 import StaffManagementPage from '../modules/admin/pages/StaffManagementPage.jsx';
 import SystemConfigPage from '../modules/admin/pages/SystemConfigPage.jsx';
 import AttendanceLeavesPage from '../modules/admin/pages/AttendanceLeavesPage.jsx';
+import AdminStaffAttendancePage from '../modules/admin/pages/AdminStaffAttendancePage.jsx';
+import AdminLeaveManagementPage from '../modules/admin/pages/AdminLeaveManagementPage.jsx';
+import AdminStaffSalaryPage from '../modules/admin/pages/AdminStaffSalaryPage.jsx';
 import StudentAcademyPage from '../modules/admin/pages/StudentAcademyPage.jsx';
 import CustomerManagementPage from '../modules/admin/pages/CustomerManagementPage.jsx';
 import ServiceCatalogPage from '../modules/admin/pages/ServiceCatalogPage.jsx';
@@ -82,6 +85,14 @@ export const AdminRoutes = (
       <Route path="customer-requests" element={<AdminUnifiedRequestsPage />} />
       <Route path="service-requests" element={<AdminUnifiedRequestsPage />} />
       <Route path="inquiries" element={<AdminUnifiedRequestsPage />} />
+
+      {/* ── Master HR, Staff Attendance, Leave Approvals & Salary ── */}
+      <Route path="staff-attendance" element={<AdminStaffAttendancePage />} />
+      <Route path="attendance" element={<AdminStaffAttendancePage />} />
+      <Route path="leave-management" element={<AdminLeaveManagementPage />} />
+      <Route path="leaves" element={<AdminLeaveManagementPage />} />
+      <Route path="staff-salary" element={<AdminStaffSalaryPage />} />
+      <Route path="payroll" element={<AdminStaffSalaryPage />} />
 
       <Route path="golden-beauty-parlour" element={<AdminParlourDashboard />} />
       {/* ── Central Administration System Configurations ── */}

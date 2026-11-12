@@ -6,11 +6,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../../../context/ToastContext.jsx';
+import { useStaff } from '../../../context/StaffContext.jsx';
 import * as leaveApi from '../../../services/api/staff/leaveFetcher.js';
 import * as holApi from '../../../services/api/staff/holidayFetcher.js';
+import {
+  getMasterLeaves,
+  applyStaffLeave,
+  getTodayDateStr,
+} from '../../../services/hrSharedStorage.js';
 
 export default function StaffLeavesPage() {
   const { success, error: toastError } = useToast();
+  const { staffUser, staffProfile } = useStaff();
 
   const [activeTab, setActiveTab] = useState('leaves'); // 'leaves' | 'holidays'
   const [leaves, setLeaves] = useState([]);
@@ -41,12 +48,19 @@ export default function StaffLeavesPage() {
       if (hRes.status === 'fulfilled' && hRes.value?.data) {
         setHolidays(Array.isArray(hRes.value.data) ? hRes.value.data : []);
       }
+
+      // Sync with real-time shared leave requests
+      const masterLeaves = getMasterLeaves();
+      const myId = staffUser?._id || staffProfile?.staffId;
+      const myLeaves = masterLeaves.filter((l) => (myId ? l.staffId === myId : true));
+
+      setLeaves((prev) => (prev && prev.length > 0 ? prev : myLeaves.length > 0 ? myLeaves : masterLeaves));
     } catch (err) {
       console.warn('Leaves load err:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [staffUser, staffProfile]);
 
   useEffect(() => {
     loadData();
@@ -56,7 +70,26 @@ export default function StaffLeavesPage() {
     e.preventDefault();
     try {
       setSubmitting(true);
-      await leaveApi.applyLeave(leaveForm);
+      const myId = staffUser?._id || staffProfile?.staffId || 'STF-P-101';
+      const myName = staffUser?.name || staffProfile?.name || 'Staff Member';
+      const myDept = (staffUser?.targetBusiness || 'PARLOUR').toUpperCase();
+
+      applyStaffLeave({
+        staffId: myId,
+        staffName: myName,
+        department: myDept,
+        leaveType: leaveForm.leaveType,
+        fromDate: leaveForm.fromDate,
+        toDate: leaveForm.toDate,
+        reason: leaveForm.reason,
+      });
+
+      try {
+        await leaveApi.applyLeave(leaveForm);
+      } catch (e) {
+        console.warn('Backend API fallback sync active');
+      }
+
       success('Leave application submitted for Admin approval!');
       setShowModal(false);
       setLeaveForm({

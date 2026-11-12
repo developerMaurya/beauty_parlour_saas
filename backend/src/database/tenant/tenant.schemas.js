@@ -634,6 +634,19 @@ export const CustomerSchema = new Schema(
       default: 'CLIENT', // 'CLIENT' | 'BUYER' | 'TENANT' | 'EVENT_HOST' | 'TECH_CLIENT'
       index: true,
     },
+    targetBusiness: {
+      type: String,
+      default: 'ALL',
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+    registrationMethod: {
+      type: String,
+      enum: ['GOOGLE_AUTH', 'SELF_FORM', 'STAFF_ENTRY', 'ADMIN_ENTRY'],
+      default: 'SELF_FORM',
+      index: true,
+    },
     customFields: {
       type: Schema.Types.Mixed,
       default: {},

@@ -88,8 +88,10 @@ export const TenantAdminProvider = ({ children }) => {
   const login = async ({ tenantSlugOrId, email, password }) => {
     setIsLoading(true);
     try {
-      localStorage.setItem('active_tenant_id', tenantSlugOrId);
-      localStorage.setItem('active_tenant_slug', tenantSlugOrId);
+      if (tenantSlugOrId) {
+        localStorage.setItem('active_tenant_id', tenantSlugOrId);
+        localStorage.setItem('active_tenant_slug', tenantSlugOrId);
+      }
 
       const res = await authFetcher.login({ email, password });
       const { accessToken, refreshToken, user: userData, tenant: tenantData, branch } = res.data;
@@ -101,6 +103,12 @@ export const TenantAdminProvider = ({ children }) => {
       localStorage.setItem('tenant_user', JSON.stringify(userData));
       if (tenantData) {
         localStorage.setItem('tenant_meta', JSON.stringify(tenantData));
+        if (tenantData.slug) {
+          localStorage.setItem('active_tenant_slug', tenantData.slug);
+        }
+        if (tenantData.id || tenantData._id) {
+          localStorage.setItem('active_tenant_id', tenantData.id || tenantData._id);
+        }
         setTenant(tenantData);
       }
       if (branch?._id) {

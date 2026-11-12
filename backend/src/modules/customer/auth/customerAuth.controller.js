@@ -15,7 +15,7 @@ import { sendSuccess, sendError } from '../../../utils/response.utils.js';
  */
 export const register = async (req, res) => {
   try {
-    const { name, phone, email, password, gender, preferredBranch } = req.body;
+    const { name, phone, email, password, gender, preferredBranch, targetBusiness, registrationMethod } = req.body;
 
     if (!name || !phone || !password) {
       return sendError(res, 'Name, phone and password are required', [], 400);
@@ -48,6 +48,8 @@ export const register = async (req, res) => {
       passwordHash,
       gender: gender || 'female',
       preferredBranch: preferredBranch || null,
+      targetBusiness: (targetBusiness || 'ALL').toUpperCase(),
+      registrationMethod: registrationMethod || 'SELF_FORM',
       status: 'ACTIVE',
       registrationDate: new Date(),
     });
@@ -477,6 +479,8 @@ export const googleLogin = async (req, res) => {
         googleId: googleId || '',
         profilePhoto: picture || '',
         authProvider: 'GOOGLE',
+        registrationMethod: 'GOOGLE_AUTH',
+        targetBusiness: 'ALL',
         status: 'ACTIVE',
         isVerified: true,
       });

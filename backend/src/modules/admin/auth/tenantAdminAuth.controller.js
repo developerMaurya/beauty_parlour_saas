@@ -25,15 +25,31 @@ export const tenantLogin = async (req, res) => {
     const TenantUserModel = getTenantModel(req, 'TenantUser');
     const normalizedIdentifier = identifier.trim().toLowerCase();
 
-    // Find user across email, phone, or username within current tenant
-    const user = await TenantUserModel.findOne({
-      tenantId: req.tenantId,
-      $or: [
-        { email: normalizedIdentifier },
-        { phone: identifier.trim() },
-        { username: normalizedIdentifier },
-      ],
-    }).select('+passwordHash');
+    // Find user across email, phone, or username within current tenant or across tenants
+    let user = null;
+    if (req.tenantId) {
+      user = await TenantUserModel.findOne({
+        tenantId: req.tenantId,
+        $or: [
+          { email: normalizedIdentifier },
+          { phone: identifier.trim() },
+          { username: normalizedIdentifier },
+        ],
+      }).select('+passwordHash');
+    }
+
+    if (!user) {
+      user = await TenantUserModel.findOne({
+        $or: [
+          { email: normalizedIdentifier },
+          { phone: identifier.trim() },
+          { username: normalizedIdentifier },
+        ],
+      }).select('+passwordHash');
+      if (user && user.tenantId && !req.tenantId) {
+        req.tenantId = user.tenantId.toString();
+      }
+    }
 
     if (!user) {
       return sendError(res, 'Invalid credentials provided', [], 401);

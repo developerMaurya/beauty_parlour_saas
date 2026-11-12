@@ -45,6 +45,8 @@ export default function StaffLayout() {
       activeBg: 'linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15))',
       dashboardPath: '/staff/event-dashboard',
       dashboardLabel: 'Event Crew Desk',
+      customerLabel: 'Event Clients',
+      customerIcon: '🔱',
     },
     PLOTTING: {
       name: 'Plotting & Realty',
@@ -55,6 +57,8 @@ export default function StaffLayout() {
       activeBg: 'linear-gradient(90deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15))',
       dashboardPath: '/staff/plotting-dashboard',
       dashboardLabel: 'Plotting Field Desk',
+      customerLabel: 'Property Buyers',
+      customerIcon: '🏡',
     },
     SOFTWARE: {
       name: 'RB Software Hub',
@@ -65,6 +69,8 @@ export default function StaffLayout() {
       activeBg: 'linear-gradient(90deg, rgba(56, 189, 248, 0.15), rgba(2, 132, 199, 0.15))',
       dashboardPath: '/staff/software-dashboard',
       dashboardLabel: 'Engineer Workspace',
+      customerLabel: 'Software Clients',
+      customerIcon: '💻',
     },
     PARLOUR: {
       name: 'Golden Beauty Parlour',
@@ -75,6 +81,8 @@ export default function StaffLayout() {
       activeBg: 'linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))',
       dashboardPath: '/staff/dashboard',
       dashboardLabel: 'Salon Dashboard',
+      customerLabel: 'Salon Customers',
+      customerIcon: '💄',
     },
   }[vertical] || {
     name: 'Staff Portal',
@@ -85,70 +93,25 @@ export default function StaffLayout() {
     activeBg: 'linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))',
     dashboardPath: '/staff/dashboard',
     dashboardLabel: 'Dashboard',
+    customerLabel: 'Customers',
+    customerIcon: '👥',
   };
 
-  // Define navigation items with permission, vertical and role rules
+  // Clean, Step-by-Step Navigation (Only Dashboard and Customers per request)
   const navSections = [
     {
-      title: 'Work & Schedule',
+      title: 'Operations & Clients',
       items: [
         { label: verticalMeta.dashboardLabel, path: verticalMeta.dashboardPath, icon: verticalMeta.emoji },
-        { label: 'Calendar', path: '/staff/calendar', icon: '📅' },
-        ...(vertical === 'PARLOUR'
-          ? [
-              { label: 'Appointments', path: '/staff/appointments', icon: '✂️' },
-              {
-                label: 'Home Services',
-                path: '/staff/home-services',
-                icon: '🚗',
-                highlight: true,
-                permission: 'home_service',
-              },
-            ]
-          : []),
-        { label: vertical === 'SOFTWARE' ? 'Sprint Tasks' : 'Field Tasks', path: '/staff/tasks', icon: '📋' },
+        { label: verticalMeta.customerLabel, path: '/staff/customers', icon: verticalMeta.customerIcon },
       ],
     },
     {
-      title: vertical === 'PLOTTING' ? 'Clients & Inquiries' : vertical === 'SOFTWARE' ? 'Team & Tickets' : 'Clients & Catalog',
+      title: 'Attendance & HR',
       items: [
-        { label: 'Staff CRM & Operations', path: '/staff/crm', icon: '🤝', highlight: true },
-        { label: 'Customers & Leads', path: '/staff/customers', icon: '👥', permission: 'customers_read' },
-        ...(vertical === 'PARLOUR'
-          ? [
-              { label: 'Services & Skills', path: '/staff/services', icon: '✨' },
-              { label: 'Packages & Offers', path: '/staff/packages', icon: '🎁' },
-            ]
-          : []),
-      ],
-    },
-    {
-      title: 'Time & Attendance',
-      items: [
-        { label: 'Attendance & Clock-In', path: '/staff/attendance', icon: '⏱️' },
-        { label: 'Leaves & Holidays', path: '/staff/leaves', icon: '🏖️' },
-        { label: 'Work Shifts', path: '/staff/schedule', icon: '🗓️' },
-      ],
-    },
-    {
-      title: 'Finance & Career',
-      items: [
-        { label: 'Earnings & Commission', path: '/staff/earnings', icon: '💰' },
-        { label: 'Payslips', path: '/staff/payslips', icon: '🧾' },
-        { label: 'Documents & Certs', path: '/staff/documents', icon: '📜' },
-        { label: vertical === 'PLOTTING' ? 'Plot Inventory' : 'Inventory & Stock', path: '/staff/inventory', icon: '📦', permission: 'inventory_read' },
-      ],
-    },
-    {
-      title: 'Communication & Reports',
-      items: [
-        { label: 'My Requests', path: '/staff/requests', icon: '📬' },
-        { label: 'Team Chat', path: '/staff/chat', icon: '💬' },
-        { label: 'Notifications', path: '/staff/notifications', icon: '🔔', badge: unreadCount },
-        { label: 'Performance & KPI', path: '/staff/performance', icon: '📈' },
-        { label: 'My Reports', path: '/staff/reports', icon: '📊' },
-        { label: 'Account Settings', path: '/staff/settings', icon: '⚙️' },
-        { label: 'Security & Devices', path: '/staff/security', icon: '🛡️' },
+        { label: 'Staff Attendance', path: '/staff/attendance', icon: '⏱️' },
+        { label: 'Leave Requests', path: '/staff/leaves', icon: '🏖️' },
+        { label: 'Salary & Payslips', path: '/staff/salary', icon: '💰' },
       ],
     },
   ];

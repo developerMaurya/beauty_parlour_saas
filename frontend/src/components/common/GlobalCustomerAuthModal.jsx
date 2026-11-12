@@ -46,6 +46,7 @@ export default function GlobalCustomerAuthModal() {
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [regTargetBusiness, setRegTargetBusiness] = useState('ALL');
 
   useEffect(() => {
     if (authModalOpen) {
@@ -75,6 +76,8 @@ export default function GlobalCustomerAuthModal() {
         name: decoded.name || decoded.given_name || decoded.email.split('@')[0],
         picture: decoded.picture || '',
         googleId: decoded.sub,
+        targetBusiness: 'ALL',
+        registrationMethod: 'GOOGLE_AUTH',
       });
 
       addToast?.(`Signed in with Google as ${user.name}! (${user.email})`, 'success');
@@ -132,6 +135,8 @@ export default function GlobalCustomerAuthModal() {
         email: regEmail.trim(),
         phone: regPhone.trim(),
         password: regPassword.trim(),
+        targetBusiness: regTargetBusiness,
+        registrationMethod: 'SELF_FORM',
       });
       addToast?.(`Account created successfully! Welcome, ${user.name}`, 'success');
       closeAuthModal();
@@ -642,6 +647,41 @@ export default function GlobalCustomerAuthModal() {
                     }}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Interested Business / Service Portal *
+                </label>
+                <select
+                  value={regTargetBusiness}
+                  onChange={(e) => setRegTargetBusiness(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    boxSizing: 'border-box',
+                    background: '#f8fafc',
+                    color: '#0f172a',
+                    fontWeight: '600',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="ALL">👑 All Services & Portals (Master Global Access)</option>
+                  <option value="PARLOUR">💄 Golden Beauty Parlour & Salon</option>
+                  <option value="EVENTS">🔱 Jaygurudev Event & Management</option>
+                  <option value="PLOTTING">🏡 Plotting & Real Estate</option>
+                  <option value="RENT">🏢 Commercial & Office Rent</option>
+                  <option value="SOFTWARE">💻 RB Software & Tech Hub</option>
+                </select>
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  {regTargetBusiness === 'ALL'
+                    ? '✨ Account visible across all service departments & staff portals'
+                    : `✨ Account registered specifically for the ${regTargetBusiness} department`}
+                </span>
               </div>
 
               <button

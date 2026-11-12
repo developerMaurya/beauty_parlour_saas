@@ -35,11 +35,11 @@ export const tenantResolverMiddleware = async (req, res, next) => {
     }
 
     // If not provided in headers, check login body for email or username to auto-resolve tenant
-    if (!tenantIdentifier && req.body && (req.body.email || req.body.username)) {
+    if (!tenantIdentifier && req.body && (req.body.email || req.body.username || req.body.identifier)) {
       try {
         const { getTenantModel } = await import('../database/tenant/tenantModels.js');
         const TenantUserModel = getTenantModel(null, 'TenantUser');
-        const lookupKey = (req.body.email || req.body.username).toLowerCase().trim();
+        const lookupKey = (req.body.email || req.body.username || req.body.identifier).toLowerCase().trim();
         const matchedUser = await TenantUserModel.findOne({
           $or: [{ email: lookupKey }, { username: lookupKey }],
         });

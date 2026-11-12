@@ -56,6 +56,8 @@ import {
   FileText,
   Camera,
   Video,
+  Clock,
+  DollarSign,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -254,6 +256,9 @@ export const TenantAdminLayout = () => {
         { label: 'Master Overview', path: '/admin/dashboard', icon: LayoutDashboard, badge: 'Overview' },
         { label: 'All Users Management', path: '/admin/users', icon: Users, badge: 'Users' },
         { label: 'Role Management', path: '/admin/roles', icon: Shield, badge: 'Roles' },
+        { label: 'Staff Attendance', path: '/admin/staff-attendance', icon: Clock, badge: 'HR' },
+        { label: 'Leave Management', path: '/admin/leave-management', icon: Calendar, badge: 'Leaves' },
+        { label: 'Staff Salary & Payroll', path: '/admin/staff-salary', icon: DollarSign, badge: 'Payroll' },
       ],
     },
     {

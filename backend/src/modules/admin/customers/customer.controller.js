@@ -65,6 +65,8 @@ export const createCustomer = async (req, res) => {
       tags: Array.isArray(tags) ? tags : [],
       notes: notes || '',
       businessVertical: (businessVertical || 'BEAUTY').toUpperCase(),
+      targetBusiness: (req.body.targetBusiness || 'ALL').toUpperCase(),
+      registrationMethod: req.body.registrationMethod || 'STAFF_ENTRY',
       verticalRole: (verticalRole || 'CLIENT').toUpperCase(),
       customFields: customFields || {},
       status: 'active',

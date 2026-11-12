@@ -199,8 +199,8 @@ export function CustomerProvider({ children }) {
     }
   };
 
-  // Full Customer Registration (Name, Email, Mobile, Password)
-  const register = async ({ name, email, phone, password }) => {
+  // Full Customer Registration (Name, Email, Mobile, Password, Business Portal)
+  const register = async ({ name, email, phone, password, targetBusiness = 'ALL', registrationMethod = 'SELF_FORM' }) => {
     setLoading(true);
     try {
       let userProfile = null;
@@ -208,7 +208,14 @@ export function CustomerProvider({ children }) {
       let refreshToken = 'ref_' + Date.now();
 
       try {
-        const res = await authApi.register({ name, email, phone, password });
+        const res = await authApi.register({
+          name,
+          email,
+          phone,
+          password,
+          targetBusiness: targetBusiness.toUpperCase(),
+          registrationMethod,
+        });
         if (res?.data?.customer) {
           userProfile = res.data.customer;
           accessToken = res.data.accessToken || accessToken;
@@ -225,6 +232,8 @@ export function CustomerProvider({ children }) {
           name: name || 'Customer',
           email: email || '',
           phone: phone || '',
+          targetBusiness: targetBusiness.toUpperCase(),
+          registrationMethod,
           status: 'ACTIVE',
         };
       }
@@ -232,10 +241,62 @@ export function CustomerProvider({ children }) {
       // Save to local vault
       try {
         const vault = JSON.parse(localStorage.getItem('registered_customers_vault') || '[]');
-        vault.push({ id: userProfile.id, name, email, phone, password });
+        vault.push({
+          id: userProfile.id,
+          name,
+          email,
+          phone,
+          password,
+          targetBusiness: targetBusiness.toUpperCase(),
+          registrationMethod,
+        });
         localStorage.setItem('registered_customers_vault', JSON.stringify(vault));
       } catch (e) {
         console.warn(e);
+      }
+
+      // Sync into staff_vertical_customers so staff dashboard and admin see it in real-time
+      try {
+        const stored = localStorage.getItem('staff_vertical_customers');
+        let list = [];
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+              list = parsed;
+            } else if (typeof parsed === 'object' && parsed !== null) {
+              // Flatten existing structure
+              Object.values(parsed).forEach((arr) => {
+                if (Array.isArray(arr)) list.push(...arr);
+              });
+            }
+          } catch {
+            list = [];
+          }
+        }
+        const exists = list.some(
+          (c) =>
+            (c.email && c.email.toLowerCase() === (email || '').toLowerCase()) ||
+            (c.phone && c.phone === phone)
+        );
+        if (!exists) {
+          const newEntry = {
+            id: userProfile.id || `CUST-REG-${Date.now().toString().slice(-4)}`,
+            name: name,
+            phone: phone,
+            email: email || '',
+            password: password,
+            category: targetBusiness === 'ALL' ? 'Global Multi-Service' : `${targetBusiness} Client`,
+            targetBusiness: targetBusiness.toUpperCase(),
+            registrationMethod: 'SELF_FORM',
+            status: 'Active Client',
+            createdAt: new Date().toISOString().split('T')[0],
+          };
+          list.unshift(newEntry);
+          localStorage.setItem('staff_vertical_customers', JSON.stringify(list));
+        }
+      } catch (sErr) {
+        console.warn('Sync to staff customers error:', sErr);
       }
 
       localStorage.setItem('customer_access_token', accessToken);
@@ -258,7 +319,7 @@ export function CustomerProvider({ children }) {
   };
 
   // Google Sign-In with Email
-  const loginWithGoogle = async ({ email, name, picture, googleId }) => {
+  const loginWithGoogle = async ({ email, name, picture, googleId, targetBusiness = 'ALL', registrationMethod = 'GOOGLE_AUTH' }) => {
     setLoading(true);
     try {
       let userProfile = null;
@@ -266,7 +327,14 @@ export function CustomerProvider({ children }) {
       let refreshToken = 'ref_' + Date.now();
 
       try {
-        const res = await authApi.googleLogin({ email, name, picture, googleId });
+        const res = await authApi.googleLogin({
+          email,
+          name,
+          picture,
+          googleId,
+          targetBusiness: 'ALL',
+          registrationMethod: 'GOOGLE_AUTH',
+        });
         if (res?.data?.customer) {
           userProfile = res.data.customer;
           if (picture) userProfile.profilePhoto = picture;
@@ -286,10 +354,58 @@ export function CustomerProvider({ children }) {
           phone: '',
           profilePhoto: picture || '',
           authProvider: 'GOOGLE',
+          targetBusiness: 'ALL',
+          registrationMethod: 'GOOGLE_AUTH',
           status: 'ACTIVE',
         };
       } else if (picture && !userProfile.profilePhoto) {
         userProfile.profilePhoto = picture;
+      }
+
+      // Sync into staff_vertical_customers as a GLOBAL Google user visible everywhere
+      try {
+        const stored = localStorage.getItem('staff_vertical_customers');
+        let list = [];
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+              list = parsed;
+            } else if (typeof parsed === 'object' && parsed !== null) {
+              Object.values(parsed).forEach((arr) => {
+                if (Array.isArray(arr)) list.push(...arr);
+              });
+            }
+          } catch {
+            list = [];
+          }
+        }
+        const exists = list.some(
+          (c) =>
+            (c.email && c.email.toLowerCase() === (email || '').toLowerCase()) ||
+            (c.id && c.id === userProfile.id)
+        );
+        if (!exists) {
+          const newEntry = {
+            id: userProfile.id || `CUST-G-${Date.now().toString().slice(-4)}`,
+            name: userProfile.name,
+            phone: userProfile.phone || 'Google Verified',
+            email: userProfile.email,
+            password: 'Google SSO (OAuth 2.0)',
+            category: 'VIP Global Client',
+            serviceInterested: 'All Multi-Services (Google SSO)',
+            targetBusiness: 'ALL',
+            registrationMethod: 'GOOGLE_AUTH',
+            authProvider: 'GOOGLE',
+            status: 'Active Client',
+            createdAt: new Date().toISOString().split('T')[0],
+            profilePhoto: userProfile.profilePhoto || '',
+          };
+          list.unshift(newEntry);
+          localStorage.setItem('staff_vertical_customers', JSON.stringify(list));
+        }
+      } catch (sErr) {
+        console.warn('Sync Google user to staff error:', sErr);
       }
 
       localStorage.setItem('customer_access_token', accessToken);
