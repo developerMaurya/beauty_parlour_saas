@@ -292,33 +292,7 @@ export default function AdminStaffAttendancePage() {
       );
     }
 
-    // If currently active (on duty right now)
-    if (dayInfo.isActive) {
-      return (
-        <div
-          title={`${dayNum} ${monthNames[currentMonth]}: 🟢 Live Working On Duty (Shift in progress)`}
-          style={{
-            width: '26px',
-            height: '24px',
-            borderRadius: '5px',
-            background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.25)',
-            border: '1.5px solid #22c55e',
-            color: '#15803d',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '8.5px',
-            fontWeight: '900',
-            cursor: 'pointer',
-            margin: '0 auto',
-            boxShadow: '0 0 8px rgba(34, 197, 94, 0.45)',
-          }}
-        >
-          LIVE
-        </div>
-      );
-    }
-
+    // Dynamic status symbol & colors
     const st = dayInfo.status;
     const styleMap = {
       PRESENT: {
@@ -366,17 +340,18 @@ export default function AdminStaffAttendancePage() {
     };
 
     const s = styleMap[st] || styleMap.PRESENT;
+    const isLive = !!dayInfo.isActive;
 
     return (
       <div
-        title={`${dayNum} ${monthNames[currentMonth]}: ${s.title}`}
+        title={`${dayNum} ${monthNames[currentMonth]}: ${isLive ? '🟢 Live Working (On Duty) - ' : ''}${s.title}`}
         style={{
           width: '26px',
           height: '24px',
           borderRadius: '5px',
-          background: s.bg,
-          border: `1px solid ${s.border}`,
-          color: s.color,
+          background: isLive ? (isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.25)') : s.bg,
+          border: isLive ? '1.5px solid #22c55e' : `1px solid ${s.border}`,
+          color: isLive ? '#15803d' : s.color,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -385,6 +360,8 @@ export default function AdminStaffAttendancePage() {
           cursor: 'pointer',
           transition: 'all 0.15s ease',
           margin: '0 auto',
+          position: 'relative',
+          boxShadow: isLive ? '0 0 8px rgba(34, 197, 94, 0.45)' : 'none',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.15)';
@@ -392,10 +369,24 @@ export default function AdminStaffAttendancePage() {
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = 'none';
+          e.currentTarget.style.boxShadow = isLive ? '0 0 8px rgba(34, 197, 94, 0.45)' : 'none';
         }}
       >
         {s.symbol}
+        {isLive && (
+          <span
+            style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: '#22c55e',
+              boxShadow: '0 0 4px #22c55e',
+            }}
+          />
+        )}
       </div>
     );
   };
@@ -613,10 +604,11 @@ export default function AdminStaffAttendancePage() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '26px', height: '18px', borderRadius: '4px', background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.25)', border: '1.5px solid #22c55e', color: '#15803d', fontSize: '8.5px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 6px rgba(34, 197, 94, 0.45)' }}>
-              LIVE
+            <span style={{ position: 'relative', width: '22px', height: '18px', borderRadius: '4px', background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.25)', border: '1.5px solid #22c55e', color: '#15803d', fontSize: '9px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 6px rgba(34, 197, 94, 0.45)' }}>
+              P
+              <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '5px', height: '5px', borderRadius: '50%', background: '#22c55e' }} />
             </span>
-            <span style={{ color: themeStyles.textSecondary, fontWeight: '700' }}>Live Working (On Duty)</span>
+            <span style={{ color: themeStyles.textSecondary, fontWeight: '700' }}>Live Working (Active Punch)</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

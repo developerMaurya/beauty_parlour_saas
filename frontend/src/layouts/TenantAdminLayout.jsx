@@ -271,6 +271,9 @@ export const TenantAdminLayout = () => {
       badgeBg: '#7e22ce',
       items: [
         { label: 'Beauty Parlour Overview', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Parlour Services', path: '/admin/parlour-services', icon: Scissors, badge: 'Services' },
+        { label: 'Parlour Plans & Packages', path: '/admin/parlour-plans', icon: Layers, badge: 'Plans' },
+        { label: 'Parlour Offers & Coupons', path: '/admin/parlour-offers', icon: Tag, badge: 'Offers' },
         { label: 'Parlour Users', path: '/admin/users?business=PARLOUR', icon: Users, badge: 'Users' },
       ],
     },

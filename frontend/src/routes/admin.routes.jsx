@@ -46,6 +46,11 @@ import AdminStaffSalaryPage from '../modules/admin/pages/AdminStaffSalaryPage.js
 import StudentAcademyPage from '../modules/admin/pages/StudentAcademyPage.jsx';
 import CustomerManagementPage from '../modules/admin/pages/CustomerManagementPage.jsx';
 import ServiceCatalogPage from '../modules/admin/pages/ServiceCatalogPage.jsx';
+import OfferCatalogPage, { OfferCatalogPage as OfferCatalogPageNamed } from '../modules/admin/pages/OfferCatalogPage.jsx';
+import PlanCatalogPage, { PlanCatalogPage as PlanCatalogPageNamed } from '../modules/admin/pages/PlanCatalogPage.jsx';
+
+const AdminOfferCatalogPage = OfferCatalogPage || OfferCatalogPageNamed;
+const AdminPlanCatalogPage = PlanCatalogPage || PlanCatalogPageNamed;
 import PackagesOffersPage from '../modules/admin/pages/PackagesOffersPage.jsx';
 import AppointmentsCalendarPage from '../modules/admin/pages/AppointmentsCalendarPage.jsx';
 import HomeServicesDispatchPage from '../modules/admin/pages/HomeServicesDispatchPage.jsx';
@@ -109,10 +114,14 @@ export const AdminRoutes = (
       <Route path="parlour-students" element={<StudentAcademyPage />} />
       <Route path="parlour-appointments" element={<AppointmentsCalendarPage />} />
       <Route path="parlour-services" element={<ServiceCatalogPage />} />
+      <Route path="services" element={<ServiceCatalogPage />} />
+      <Route path="parlour-offers" element={<AdminOfferCatalogPage />} />
+      <Route path="offers" element={<AdminOfferCatalogPage />} />
+      <Route path="parlour-plans" element={<AdminPlanCatalogPage />} />
+      <Route path="parlour-packages" element={<AdminPlanCatalogPage />} />
+      <Route path="plans" element={<AdminPlanCatalogPage />} />
+      <Route path="packages" element={<AdminPlanCatalogPage />} />
       <Route path="parlour-billing" element={<BillingPOSPage />} />
-      <Route path="parlour-inventory" element={<InventorySuppliersPage />} />
-      <Route path="packages" element={<PackagesOffersPage />} />
-      <Route path="offers" element={<PackagesOffersPage />} />
       <Route path="crm" element={<CRMPage />} />
       <Route path="support" element={<SupportCenterPage />} />
       <Route path="import-export" element={<ReportsPage />} />
