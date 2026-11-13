@@ -73,8 +73,8 @@ export const WebsiteCMSPage = () => {
   const [websiteConfig, setWebsiteConfig] = useState({
     businessName: '',
     tagline: '',
-    logoUrl: '',
-    faviconUrl: '',
+    logoUrl: '/kashi-logo.png',
+    faviconUrl: '/favicon.png',
     primaryColor: '#ec4899',
     secondaryColor: '#8b5cf6',
     heroHeading: '',

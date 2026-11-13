@@ -249,7 +249,7 @@ export default function GlobalCustomerAuthModal() {
                 }}
               >
                 <ArrowLeft size={16} />
-                <span>Back to Google</span>
+                <span>Switch Sign-In Method</span>
               </button>
             ) : (
               <div
@@ -259,15 +259,15 @@ export default function GlobalCustomerAuthModal() {
                   gap: '6px',
                   padding: '4px 10px',
                   borderRadius: '12px',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  color: '#1d4ed8',
+                  background: '#faf5ff',
+                  border: '1px solid #e9d5ff',
+                  color: '#7e22ce',
                   fontSize: '11px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
-                <ShieldCheck size={13} color="#2563eb" />
-                <span>OFFICIAL GOOGLE OAUTH 2.0</span>
+                <ShieldCheck size={13} color="#7e22ce" />
+                <span>KASHI SERVICE SECURE DB & OAUTH</span>
               </div>
             )}
 
@@ -292,36 +292,52 @@ export default function GlobalCustomerAuthModal() {
             </button>
           </div>
 
-          {/* Logo & Heading */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <svg width="44" height="44" viewBox="0 0 24 24" style={{ display: 'inline-block', marginBottom: '12px' }}>
-              <path
-                fill="#4285F4"
-                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+          {/* Master Kashi Service Logo & Heading */}
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+              <img
+                src="/kashi-logo.png"
+                alt="Kashi Service Logo"
+                style={{
+                  maxHeight: '52px',
+                  maxWidth: '220px',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
               />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.33 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.92 0 12s.45 3.85 1.24 5.42l4.04-3.15z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-              />
-            </svg>
+            </div>
 
-            <h1 style={{ fontSize: '24px', fontWeight: 500, color: '#202124', margin: '0 0 6px 0' }}>
-              {view === 'google_popup' && 'Sign in with Google'}
-              {view === 'email_login' && 'Sign in with Password'}
-              {view === 'register' && 'Create Account'}
+            <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+              {view === 'google_popup' && 'Customer Sign-In & Registration'}
+              {view === 'email_login' && 'Sign In with Email & Password'}
+              {view === 'register' && 'Create Kashi Service Account'}
               {view === 'client_id_settings' && 'Google Client ID Setup'}
             </h1>
-            <p style={{ fontSize: '14px', color: '#5f6368', margin: 0, lineHeight: 1.45 }}>
-              {authModalPrompt || 'Secure sign-in for Beauty Parlour, Event Decor, Real Estate, Rent & Tech Hub.'}
+            <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: 1.45 }}>
+              {authModalPrompt || 'Registered in Kashi Service Central Database for Beauty Parlour, Events, Plotting & Tech Services.'}
             </p>
+          </div>
+
+          {/* Database Synchronization Notice */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              color: '#475569',
+              marginBottom: '16px',
+            }}
+          >
+            <Sparkles size={13} color="#7e22ce" />
+            <span>
+              All logins & registrations sync directly into <strong>Kashi Service Database (DB)</strong>
+            </span>
           </div>
 
           {/* Error Message */}

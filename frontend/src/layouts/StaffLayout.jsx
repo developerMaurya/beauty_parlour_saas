@@ -117,14 +117,13 @@ export default function StaffLayout() {
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0f172a', color: '#f8fafc', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', color: '#0f172a', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Sidebar Navigation */}
       <aside
         style={{
           width: '260px',
-          background: 'rgba(15, 23, 42, 0.95)',
-          backdropFilter: 'blur(16px)',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#ffffff',
+          borderRight: '1px solid #e2e8f0',
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
@@ -132,34 +131,70 @@ export default function StaffLayout() {
           bottom: 0,
           left: 0,
           zIndex: 40,
+          boxShadow: '2px 0 12px rgba(0, 0, 0, 0.03)',
           transform: mobileMenuOpen ? 'translateX(0)' : undefined,
           transition: 'transform 0.3s ease',
         }}
         className={mobileMenuOpen ? 'sidebar-open' : 'sidebar-desktop'}
       >
-        {/* Brand Logo & Title */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Master Corporate Brand Logo & Vertical Header */}
+        <div
+          style={{
+            padding: '16px 18px 14px',
+            borderBottom: '1px solid #e2e8f0',
+            background: '#ffffff',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img
+              src="/kashi-logo.png"
+              alt="Kashi Service Logo"
+              style={{
+                maxHeight: '48px',
+                width: 'auto',
+                maxWidth: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
           <div
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: verticalMeta.gradient,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              boxShadow: `0 4px 12px ${verticalMeta.accentColor}44`,
+              gap: '10px',
+              padding: '8px 10px',
+              background: '#faf5ff',
+              border: '1px solid #e9d5ff',
+              borderRadius: '10px',
             }}
           >
-            {verticalMeta.emoji}
-          </div>
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '15px', letterSpacing: '-0.3px', color: '#fff' }}>
-              {verticalMeta.name}
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: verticalMeta.gradient,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                boxShadow: `0 3px 8px ${verticalMeta.accentColor}33`,
+                flexShrink: 0,
+              }}
+            >
+              {verticalMeta.emoji}
             </div>
-            <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {verticalMeta.subtitle}
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontWeight: '800', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {verticalMeta.name}
+              </div>
+              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>
+                {verticalMeta.subtitle}
+              </div>
             </div>
           </div>
         </div>
@@ -183,7 +218,7 @@ export default function StaffLayout() {
                     fontSize: '11px',
                     textTransform: 'uppercase',
                     color: '#64748b',
-                    fontWeight: '700',
+                    fontWeight: '800',
                     letterSpacing: '0.8px',
                     padding: '0 12px 6px',
                   }}
@@ -204,13 +239,15 @@ export default function StaffLayout() {
                         padding: '9px 12px',
                         borderRadius: '8px',
                         textDecoration: 'none',
-                        color: isActive ? '#fff' : '#94a3b8',
-                        background: isActive ? verticalMeta.activeBg : 'transparent',
-                        borderLeft: isActive ? `3px solid ${verticalMeta.accentColor}` : '3px solid transparent',
-                        fontWeight: isActive ? '600' : '500',
+                        color: isActive ? '#6b21a8' : '#334155',
+                        background: isActive ? '#faf5ff' : 'transparent',
+                        borderLeft: isActive ? `3px solid #7e22ce` : '3px solid transparent',
+                        border: isActive ? '1px solid #d8b4fe' : '1px solid transparent',
+                        fontWeight: isActive ? '750' : '500',
                         fontSize: '13.5px',
-                        marginBottom: '2px',
+                        marginBottom: '4px',
                         transition: 'all 0.15s ease',
+                        boxShadow: isActive ? '0 2px 6px rgba(126, 34, 206, 0.08)' : 'none',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -220,7 +257,7 @@ export default function StaffLayout() {
                       {item.badge > 0 && (
                         <span
                           style={{
-                            background: verticalMeta.accentColor,
+                            background: '#7e22ce',
                             color: '#fff',
                             fontSize: '10px',
                             fontWeight: '700',
@@ -243,8 +280,8 @@ export default function StaffLayout() {
         <div
           style={{
             padding: '14px 16px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'rgba(30, 41, 59, 0.5)',
+            borderTop: '1px solid #e2e8f0',
+            background: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -256,7 +293,8 @@ export default function StaffLayout() {
                 width: '34px',
                 height: '34px',
                 borderRadius: '50%',
-                background: staffProfile?.photo ? `url(${staffProfile.photo}) center/cover` : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                background: staffProfile?.photo ? `url(${staffProfile.photo}) center/cover` : 'linear-gradient(135deg, #7e22ce, #9333ea)',
+                color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -268,10 +306,10 @@ export default function StaffLayout() {
               {!staffProfile?.photo && (staffProfile?.name?.[0] || staffUser?.username?.[0] || 'S')}
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                 {staffProfile?.name || staffUser?.username}
               </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>
                 ID: {staffProfile?.employeeId || 'STAFF'}
               </div>
             </div>
@@ -280,12 +318,16 @@ export default function StaffLayout() {
             onClick={handleLogout}
             title="Sign out"
             style={{
-              background: 'transparent',
-              border: 'none',
+              background: '#fef2f2',
+              border: '1px solid #fee2e2',
+              borderRadius: '6px',
               color: '#ef4444',
               cursor: 'pointer',
-              fontSize: '16px',
-              padding: '6px',
+              fontSize: '15px',
+              padding: '6px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             🚪
@@ -294,14 +336,14 @@ export default function StaffLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, marginLeft: '260px', display: 'flex', flexDirection: 'column', minWidth: 0 }} className="main-content-layout">
+      <div style={{ flex: 1, marginLeft: '260px', display: 'flex', flexDirection: 'column', minWidth: 0, background: '#f8fafc' }} className="main-content-layout">
         {/* Top Header Bar */}
         <header
           style={{
             height: '64px',
-            background: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#ffffff',
+            borderBottom: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -317,9 +359,9 @@ export default function StaffLayout() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
                 display: 'none',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#fff',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                color: '#0f172a',
                 fontSize: '18px',
                 borderRadius: '8px',
                 padding: '6px 10px',
@@ -332,7 +374,7 @@ export default function StaffLayout() {
 
             {/* Branch Switcher Dropdown */}
             {branches.length > 1 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(30, 41, 59, 0.8)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '5px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '13px' }}>🏢</span>
                 <select
                   value={currentBranchId}
@@ -340,7 +382,7 @@ export default function StaffLayout() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#f8fafc',
+                    color: '#0f172a',
                     fontSize: '13px',
                     fontWeight: '600',
                     outline: 'none',
@@ -348,16 +390,16 @@ export default function StaffLayout() {
                   }}
                 >
                   {branches.map((b) => (
-                    <option key={b._id} value={b._id} style={{ background: '#1e293b', color: '#fff' }}>
+                    <option key={b._id} value={b._id} style={{ background: '#ffffff', color: '#0f172a' }}>
                       {b.name} {b.isDefault ? '(Main)' : ''}
                     </option>
                   ))}
                 </select>
               </div>
             ) : currentBranch ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#94a3b8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b' }}>
                 <span>🏢</span>
-                <span style={{ fontWeight: '600', color: '#f8fafc' }}>{currentBranch.name}</span>
+                <span style={{ fontWeight: '700', color: '#0f172a' }}>{currentBranch.name}</span>
               </div>
             ) : null}
           </div>
@@ -371,14 +413,14 @@ export default function StaffLayout() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2))',
-                border: '1px solid rgba(236, 72, 153, 0.3)',
+                background: '#faf5ff',
+                border: '1px solid #e9d5ff',
                 padding: '5px 12px',
                 borderRadius: '8px',
                 textDecoration: 'none',
-                color: '#ec4899',
+                color: '#7e22ce',
                 fontSize: '12.5px',
-                fontWeight: '600',
+                fontWeight: '700',
               }}
             >
               <span>🚗</span>
@@ -393,14 +435,14 @@ export default function StaffLayout() {
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
+                background: '#f8fafc',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textDecoration: 'none',
-                color: '#cbd5e1',
+                color: '#475569',
                 fontSize: '16px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                border: '1px solid #e2e8f0',
               }}
             >
               💬
@@ -414,14 +456,14 @@ export default function StaffLayout() {
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
+                background: '#f8fafc',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textDecoration: 'none',
-                color: '#cbd5e1',
+                color: '#475569',
                 fontSize: '16px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                border: '1px solid #e2e8f0',
                 position: 'relative',
               }}
             >
@@ -435,14 +477,14 @@ export default function StaffLayout() {
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    background: '#ec4899',
+                    background: '#ef4444',
                     color: '#fff',
                     fontSize: '10px',
                     fontWeight: '700',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid #0f172a',
+                    border: '2px solid #ffffff',
                   }}
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -458,12 +500,12 @@ export default function StaffLayout() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '20px',
                   padding: '4px 10px 4px 4px',
                   cursor: 'pointer',
-                  color: '#fff',
+                  color: '#0f172a',
                 }}
               >
                 <div
@@ -471,7 +513,8 @@ export default function StaffLayout() {
                     width: '28px',
                     height: '28px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                    background: 'linear-gradient(135deg, #7e22ce, #9333ea)',
+                    color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -481,10 +524,10 @@ export default function StaffLayout() {
                 >
                   {staffProfile?.name?.[0] || 'S'}
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: '500' }}>
+                <span style={{ fontSize: '13px', fontWeight: '600' }}>
                   {staffProfile?.name?.split(' ')?.[0] || 'Staff'}
                 </span>
-                <span style={{ fontSize: '10px', color: '#94a3b8' }}>▼</span>
+                <span style={{ fontSize: '10px', color: '#64748b' }}>▼</span>
               </button>
 
               {profileDropdownOpen && (
@@ -494,19 +537,19 @@ export default function StaffLayout() {
                     top: '42px',
                     right: 0,
                     width: '210px',
-                    background: '#1e293b',
+                    background: '#ffffff',
                     borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.5)',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.1)',
                     padding: '8px 0',
                     zIndex: 50,
                   }}
                 >
-                  <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>
+                  <div style={{ padding: '8px 16px', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
                       {staffProfile?.name || staffUser?.username}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
                       {staffProfile?.department || 'Salon Specialist'}
                     </div>
                   </div>
@@ -516,7 +559,7 @@ export default function StaffLayout() {
                     style={{
                       display: 'block',
                       padding: '8px 16px',
-                      color: '#cbd5e1',
+                      color: '#334155',
                       textDecoration: 'none',
                       fontSize: '13px',
                     }}
@@ -529,7 +572,7 @@ export default function StaffLayout() {
                     style={{
                       display: 'block',
                       padding: '8px 16px',
-                      color: '#cbd5e1',
+                      color: '#334155',
                       textDecoration: 'none',
                       fontSize: '13px',
                     }}
@@ -542,7 +585,7 @@ export default function StaffLayout() {
                     style={{
                       display: 'block',
                       padding: '8px 16px',
-                      color: '#cbd5e1',
+                      color: '#334155',
                       textDecoration: 'none',
                       fontSize: '13px',
                     }}
@@ -555,14 +598,14 @@ export default function StaffLayout() {
                     style={{
                       display: 'block',
                       padding: '8px 16px',
-                      color: '#cbd5e1',
+                      color: '#334155',
                       textDecoration: 'none',
                       fontSize: '13px',
                     }}
                   >
                     🛡️ Active Devices & Sessions
                   </NavLink>
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+                  <div style={{ borderTop: '1px solid #e2e8f0', margin: '4px 0' }} />
                   <button
                     onClick={handleLogout}
                     style={{
@@ -575,7 +618,7 @@ export default function StaffLayout() {
                       border: 'none',
                       fontSize: '13px',
                       cursor: 'pointer',
-                      fontWeight: '500',
+                      fontWeight: '600',
                     }}
                   >
                     🚪 Logout

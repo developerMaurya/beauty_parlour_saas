@@ -141,15 +141,11 @@ export default function PublicLayout({ children }) {
               color: '#ffffff',
             }}
           >
-            {business?.websiteConfig?.logoUrl ? (
-              <img
-                src={business.websiteConfig.logoUrl}
-                alt={businessName}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            ) : (
-              '💄'
-            )}
+            <img
+              src={business?.websiteConfig?.logoUrl || '/kashi-logo.png'}
+              alt={businessName}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
           <div>
             <div

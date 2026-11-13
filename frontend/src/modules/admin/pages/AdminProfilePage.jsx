@@ -40,7 +40,7 @@ export const AdminProfilePage = () => {
   const [brandingData, setBrandingData] = useState({
     businessName: tenant?.name || 'Blossom Luxury Salon & Spa',
     tagline: tenant?.tagline || 'Luxury Grooming Sanctuary & Wellness Oasis',
-    logoUrl: tenant?.branding?.logoUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80',
+    logoUrl: tenant?.branding?.logoUrl || '/kashi-logo.png',
     primaryColor: tenant?.branding?.primaryColor || '#ec4899',
     contactPhone: '+91 98765 43210',
     contactEmail: `concierge@${tenant?.slug || 'salon'}.com`,

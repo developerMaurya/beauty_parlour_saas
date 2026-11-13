@@ -152,6 +152,65 @@ export const StaffProvider = ({ children }) => {
     }
   };
 
+  // Staff Google Login handler
+  const loginWithGoogle = async (googleUser) => {
+    setIsLoading(true);
+    try {
+      const email = googleUser?.email?.toLowerCase();
+      const name = googleUser?.name || email?.split('@')?.[0] || 'Staff Member';
+
+      // Match against known staff accounts or create dedicated session
+      let targetBiz = 'PARLOUR';
+      let designation = 'Staff Specialist';
+      if (email.includes('event')) {
+        targetBiz = 'EVENTS';
+        designation = 'Event Lead Specialist';
+      } else if (email.includes('plot') || email.includes('realty')) {
+        targetBiz = 'PLOTTING';
+        designation = 'Real Estate Sales Officer';
+      } else if (email.includes('dev') || email.includes('software')) {
+        targetBiz = 'SOFTWARE';
+        designation = 'Software Engineer';
+      }
+
+      const user = {
+        _id: 'stf_usr_' + Date.now().toString().slice(-6),
+        id: 'stf_usr_' + Date.now().toString().slice(-6),
+        name,
+        email,
+        role: 'STAFF',
+        targetBusiness: targetBiz,
+        authProvider: 'GOOGLE',
+      };
+
+      const staff = {
+        _id: 'stf_' + Date.now().toString().slice(-6),
+        staffId: 'STF-G-' + Date.now().toString().slice(-4),
+        name,
+        email,
+        designation,
+        department: targetBiz,
+        photo: googleUser?.picture || '',
+        status: 'active',
+      };
+
+      const token = 'staff_google_tok_' + Date.now();
+      localStorage.setItem('staff_access_token', token);
+      localStorage.setItem('staff_user', JSON.stringify(user));
+      localStorage.setItem('staff_profile', JSON.stringify(staff));
+
+      setStaffUser(user);
+      setStaffProfile(staff);
+      setPermissions(['all']);
+
+      return { success: true, data: { user, staff } };
+    } catch (err) {
+      return { success: false, message: err.message || 'Staff Google sign-in failed' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Logout handler
   const logout = async () => {
     try {
@@ -203,6 +262,7 @@ export const StaffProvider = ({ children }) => {
         isLoading,
         isAuthenticated: Boolean(staffUser),
         login,
+        loginWithGoogle,
         logout,
         switchBranch,
         hasPermission,

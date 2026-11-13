@@ -203,31 +203,21 @@ export default function RealEstatePlottingWebsite() {
         }}
       >
         <div className="kashiplot-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {/* Brand Logo: Green House/Tree Icon + "Kashi Plotting Services" */}
+          {/* Brand Logo: Official Kashi Logo + "Ploting Services" */}
           <div
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
             onClick={() => setActiveTab('HOME')}
           >
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
-              }}
-            >
-              <Trees size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#064e3b', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            <img
+              src="/kashi-logo.png"
+              alt="Kashi Service Logo"
+              style={{ height: '42px', width: 'auto', objectFit: 'contain' }}
+            />
+            <div style={{ borderLeft: '2px solid #cbd5e1', paddingLeft: '10px' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#064e3b', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                 Ploting Services
               </div>
-              <div style={{ fontSize: '10px', color: '#059669', fontWeight: 800, letterSpacing: '0.08em' }}>
+              <div style={{ fontSize: '9.5px', color: '#059669', fontWeight: 800, letterSpacing: '0.08em' }}>
                 KASHIPLOT • VARANASI
               </div>
             </div>

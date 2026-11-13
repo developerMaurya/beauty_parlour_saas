@@ -391,28 +391,31 @@ export default function CustomerJourneyWizardModal({
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img
+                src="/kashi-logo.png"
+                alt="Kashi Service Logo"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  maxHeight: '36px',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.4))',
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(99, 102, 241, 0.25)',
+                  color: '#a5b4fc',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  textTransform: 'uppercase',
                 }}
               >
-                <Zap size={18} color="#ffffff" />
-              </div>
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: 900, letterSpacing: '-0.02em' }}>
-                  KASHI SERVICE • CUSTOMER ONBOARDING
-                </div>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                  7-Step Autonomous Tenant Provisioning Journey
-                </div>
-              </div>
+                Customer Registration
+              </span>
             </div>
 
             <button

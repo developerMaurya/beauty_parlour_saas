@@ -347,34 +347,11 @@ export const TenantAdminLayout = () => {
   const isEvents = activeVertical === 'EVENTS';
   const isSoftware = activeVertical === 'SOFTWARE';
 
-  const sidebarBg = isParlour
-    ? '#241434'
-    : isPlotting
-    ? '#0a2618'
-    : isRent
-    ? '#0d1b2a'
-    : isEvents
-    ? '#180527'
-    : '#0b0f19'; // Cyber slate obsidian for RB Software & Media
-  const activePillBg = isParlour
-    ? '#7e22ce'
-    : isPlotting
-    ? '#16a34a'
-    : isRent
-    ? '#facc15'
-    : isEvents
-    ? '#facc15'
-    : '#6366f1'; // Indigo glow pill
-  const activeTextColor = isRent || isEvents ? '#0f172a' : '#ffffff';
-  const accentColor = isParlour
-    ? '#c084fc'
-    : isPlotting
-    ? '#4ade80'
-    : isRent
-    ? '#facc15'
-    : isEvents
-    ? '#facc15'
-    : '#38bdf8';
+  // Luxury White Sidebar Theme matching the Kashi Service Logo
+  const sidebarBg = '#ffffff';
+  const activePillBg = '#7e22ce';
+  const activeTextColor = '#ffffff';
+  const accentColor = '#7e22ce';
 
   if (isLoading) {
     return (
@@ -406,8 +383,9 @@ export const TenantAdminLayout = () => {
       <aside
         style={{
           width: isMobile ? '280px' : '260px',
-          background: sidebarBg,
-          color: '#e2e8f0',
+          background: '#ffffff',
+          color: '#0f172a',
+          borderRight: '1px solid #e2e8f0',
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
@@ -416,207 +394,71 @@ export const TenantAdminLayout = () => {
           left: 0,
           zIndex: isMobile ? 99999 : 50,
           overflowY: 'auto',
-          boxShadow: isMobile ? '8px 0 30px rgba(0,0,0,0.4)' : '4px 0 20px rgba(0,0,0,0.15)',
+          boxShadow: isMobile ? '8px 0 30px rgba(0,0,0,0.15)' : '2px 0 12px rgba(0,0,0,0.03)',
           transform: isMobile ? (mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-          transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease',
+          transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        {/* Brand Header */}
+        {/* Master Corporate Brand Logo (Pure White Background for Crisp Contrast) */}
         <div
           style={{
-            padding: '1.2rem 1.1rem 1rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '20px 18px 16px',
+            borderBottom: '1px solid #e2e8f0',
+            background: '#ffffff',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            position: 'relative',
           }}
+          onClick={() => navigate('/admin/dashboard')}
+          title="Kashi Service Multi-Business Administration"
         >
-          {isParlour ? (
-            /* Golden Beauty Parlour Header */
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => navigate('/admin/golden-beauty-parlour')}
-            >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #db2777 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4)',
-                  flexShrink: 0,
-                }}
-              >
-                <Crown size={22} />
-              </div>
-              <div>
-                <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontWeight: 900, fontSize: '1.2rem', color: '#ffffff', lineHeight: 1.05 }}>
-                  Golden
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#d8b4fe', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
-                  BEAUTY PARLOUR
-                </div>
-              </div>
-            </div>
-          ) : isPlotting ? (
-            /* Kashi Plotting Services Header Matching Screenshot */
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => navigate('/admin/plotting')}
-            >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #4ade80 0%, #16a34a 50%, #15803d 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.4)',
-                  flexShrink: 0,
-                }}
-              >
-                <Trees size={22} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff', lineHeight: 1.1 }}>
-                  Ploting
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#86efac', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
-                  SERVICES • KASHIPLOT
-                </div>
-              </div>
-            </div>
-          ) : isRent ? (
-            /* Prime Plots / Kashi Office & Godam Rent Header Matching Screenshot */
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => navigate('/admin/rent-office')}
-            >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#0f172a',
-                  boxShadow: '0 4px 14px rgba(250, 204, 21, 0.4)',
-                  flexShrink: 0,
-                }}
-              >
-                <Building size={22} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff', lineHeight: 1.1 }}>
-                  Prime Plots
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#facc15', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
-                  ADMIN PANEL • 3 FLOORS
-                </div>
-              </div>
-            </div>
-          ) : isEvents ? (
-            /* Jay Gurudev Event & Management Header */
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => navigate('/admin/event-decoration')}
-            >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#0f172a',
-                  boxShadow: '0 4px 14px rgba(250, 204, 21, 0.4)',
-                  flexShrink: 0,
-                  fontSize: '20px',
-                }}
-              >
-                🔱
-              </div>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff', lineHeight: 1.1 }}>
-                  Jay Gurudev
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#facc15', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
-                  EVENT & MANAGEMENT
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* RB Software & Media Tech Hub Header */
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => navigate('/admin/rb-software')}
-            >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #6366f1 0%, #38bdf8 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
-                  flexShrink: 0,
-                }}
-              >
-                <Code2 size={22} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff', lineHeight: 1.1 }}>
-                  RB Software & Media
-                </div>
-                <div style={{ fontSize: '9px', color: '#38bdf8', fontWeight: 800, letterSpacing: '0.08em', marginTop: '2px' }}>
-                  TECH & CINEMA HUB
-                </div>
-              </div>
-            </div>
-          )}
-
+          <img
+            src="/kashi-logo.png"
+            alt="Kashi Service Logo"
+            style={{
+              maxHeight: '56px',
+              maxWidth: '100%',
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
           {isMobile && (
             <button
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMobileMenuOpen(false);
+              }}
               style={{
-                background: 'rgba(255, 255, 255, 0.12)',
-                border: 'none',
+                position: 'absolute',
+                top: '16px',
+                right: '12px',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
                 borderRadius: '8px',
                 width: '32px',
                 height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#ffffff',
+                color: '#64748b',
                 cursor: 'pointer',
               }}
               title="Close Navigation"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           )}
         </div>
 
         {/* ── Main Navigation: Independent Multi-Level Dropdowns ── */}
-        <div style={{ padding: '0.65rem 0.75rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+        <div style={{ padding: '0.85rem 0.75rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, background: '#ffffff' }}>
           {/* Section Divider & Expand / Collapse Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.35rem 0.25rem' }}>
-            <span style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, color: 'rgba(255, 255, 255, 0.5)' }}>
-              BUSINESS MODULES (DROPDOWNS)
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.35rem 0.35rem' }}>
+            <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, color: '#64748b' }}>
+              BUSINESS MODULES
             </span>
             <div style={{ display: 'flex', gap: '4px' }}>
               <button
@@ -624,13 +466,13 @@ export const TenantAdminLayout = () => {
                 onClick={expandAllSections}
                 title="Expand all dropdowns"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#94a3b8',
-                  fontSize: '9px',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  color: '#475569',
+                  fontSize: '9.5px',
                   fontWeight: 700,
-                  padding: '2px 5px',
+                  padding: '3px 7px',
                   cursor: 'pointer',
                 }}
               >
@@ -641,13 +483,13 @@ export const TenantAdminLayout = () => {
                 onClick={collapseAllSections}
                 title="Collapse all dropdowns"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#94a3b8',
-                  fontSize: '9px',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  color: '#475569',
+                  fontSize: '9.5px',
                   fontWeight: 700,
-                  padding: '2px 5px',
+                  padding: '3px 7px',
                   cursor: 'pointer',
                 }}
               >
@@ -663,12 +505,13 @@ export const TenantAdminLayout = () => {
               <div
                 key={section.id}
                 style={{
-                  borderRadius: '11px',
-                  background: isSectionOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-                  border: `1px solid ${isSectionOpen ? section.accentColor + '33' : 'rgba(255, 255, 255, 0.06)'}`,
+                  borderRadius: '12px',
+                  background: isSectionOpen ? '#faf5ff' : '#ffffff',
+                  border: `1px solid ${isSectionOpen ? '#d8b4fe' : '#e2e8f0'}`,
                   overflow: 'hidden',
                   transition: 'all 0.2s ease',
-                  marginTop: '2px',
+                  marginTop: '3px',
+                  boxShadow: isSectionOpen ? '0 2px 8px rgba(124, 58, 237, 0.06)' : 'none',
                 }}
               >
                 {/* Level 1: Main Business Dropdown Header */}
@@ -678,26 +521,26 @@ export const TenantAdminLayout = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '8px 10px',
+                    padding: '9px 12px',
                     cursor: 'pointer',
-                    background: isSectionOpen ? 'rgba(255, 255, 255, 0.07)' : 'transparent',
+                    background: isSectionOpen ? '#f5f3ff' : '#ffffff',
                     userSelect: 'none',
                     transition: 'background 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.09)';
+                    e.currentTarget.style.background = isSectionOpen ? '#ede9fe' : '#f8fafc';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = isSectionOpen ? 'rgba(255, 255, 255, 0.07)' : 'transparent';
+                    e.currentTarget.style.background = isSectionOpen ? '#f5f3ff' : '#ffffff';
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                    <span style={{ fontSize: '15px', flexShrink: 0 }}>{section.iconEmoji}</span>
+                    <span style={{ fontSize: '16px', flexShrink: 0 }}>{section.iconEmoji}</span>
                     <span
                       style={{
                         fontWeight: 800,
-                        fontSize: '0.82rem',
-                        color: isSectionOpen ? '#ffffff' : '#cbd5e1',
+                        fontSize: '0.84rem',
+                        color: isSectionOpen ? '#581c87' : '#0f172a',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -710,11 +553,12 @@ export const TenantAdminLayout = () => {
                         style={{
                           fontSize: '9px',
                           fontWeight: 800,
-                          background: section.badgeBg,
+                          background: section.badgeBg || '#f59e0b',
                           color: '#ffffff',
-                          padding: '1px 5px',
+                          padding: '2px 6px',
                           borderRadius: '4px',
                           flexShrink: 0,
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
                         }}
                       >
                         {section.badge}
@@ -723,7 +567,7 @@ export const TenantAdminLayout = () => {
                   </div>
                   <div
                     style={{
-                      color: section.accentColor,
+                      color: isSectionOpen ? '#7c3aed' : '#94a3b8',
                       transform: isSectionOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                       transition: 'transform 0.2s ease',
                       display: 'flex',
@@ -738,7 +582,7 @@ export const TenantAdminLayout = () => {
 
                 {/* Inside Dropdown: Items (Overview & User Management for all business modules) */}
                 {isSectionOpen && (
-                  <div style={{ padding: '4px 6px 6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ padding: '6px 8px 8px', display: 'flex', flexDirection: 'column', gap: '3px', background: '#faf5ff' }}>
                     {section.items && section.items.map((item, iIdx) => {
                       const ItemIcon = item.icon || LayoutDashboard;
                       const currentFullPath = location.pathname + (location.search || '');
@@ -757,22 +601,32 @@ export const TenantAdminLayout = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '7px 10px',
+                            padding: '8px 10px',
                             borderRadius: '8px',
                             fontSize: '0.8rem',
                             fontWeight: isItemActive ? 800 : 600,
-                            color: isItemActive ? '#ffffff' : '#f1f5f9',
-                            background: isItemActive
-                              ? 'rgba(255, 255, 255, 0.16)'
-                              : 'rgba(255, 255, 255, 0.05)',
-                            border: `1px solid ${isItemActive ? section.accentColor : 'rgba(255, 255, 255, 0.08)'}`,
+                            color: isItemActive ? '#6b21a8' : '#334155',
+                            background: isItemActive ? '#ffffff' : 'transparent',
+                            border: `1px solid ${isItemActive ? '#c084fc' : 'transparent'}`,
                             textDecoration: 'none',
                             transition: 'all 0.15s ease',
-                            boxShadow: isItemActive ? `0 2px 10px ${section.accentColor}33` : 'none',
+                            boxShadow: isItemActive ? '0 2px 8px rgba(168, 85, 247, 0.15)' : 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isItemActive) {
+                              e.currentTarget.style.background = '#ffffff';
+                              e.currentTarget.style.color = '#0f172a';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isItemActive) {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = '#334155';
+                            }
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <ItemIcon size={14} color={section.accentColor} />
+                            <ItemIcon size={14} color={isItemActive ? '#7c3aed' : '#64748b'} />
                             <span>{item.label}</span>
                           </div>
                           {item.badge && (
@@ -780,8 +634,8 @@ export const TenantAdminLayout = () => {
                               style={{
                                 fontSize: '9px',
                                 fontWeight: 800,
-                                background: section.accentColor,
-                                color: '#0f172a',
+                                background: isItemActive ? '#facc15' : '#e2e8f0',
+                                color: isItemActive ? '#0f172a' : '#475569',
                                 padding: '1px 6px',
                                 borderRadius: '4px',
                                 letterSpacing: '0.04em',
@@ -809,13 +663,16 @@ export const TenantAdminLayout = () => {
               padding: '0.65rem 0.85rem',
               borderRadius: '10px',
               fontSize: '0.84rem',
-              fontWeight: 600,
-              color: '#ef4444',
+              fontWeight: 700,
+              color: '#dc2626',
               cursor: 'pointer',
               marginTop: '8px',
-              background: 'rgba(239, 68, 68, 0.08)',
-              border: '1px solid rgba(239, 68, 68, 0.15)',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              transition: 'background 0.15s ease',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#fee2e2')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#fef2f2')}
           >
             <LogOut size={16} />
             <span>Logout Account</span>
@@ -876,8 +733,8 @@ export const TenantAdminLayout = () => {
           <header
             style={{
               height: '56px',
-              background: sidebarBg,
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              background: '#ffffff',
+              borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -885,8 +742,8 @@ export const TenantAdminLayout = () => {
               position: 'sticky',
               top: 0,
               zIndex: 40,
-              color: '#ffffff',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+              color: '#0f172a',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -894,15 +751,15 @@ export const TenantAdminLayout = () => {
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: 'none',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '8px',
                   width: '36px',
                   height: '36px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#ffffff',
+                  color: '#0f172a',
                   cursor: 'pointer',
                 }}
                 title="Open Navigation Menu"
@@ -910,21 +767,12 @@ export const TenantAdminLayout = () => {
                 <Menu size={20} />
               </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                <span style={{ fontSize: '18px' }}>
-                  {isParlour ? '👑' : isPlotting ? '🏡' : isRent ? '🏢' : isEvents ? '🔱' : '💻'}
-                </span>
-                <span style={{ fontWeight: 900, fontSize: '13.5px', letterSpacing: '0.01em' }}>
-                  {isParlour
-                    ? 'Golden Beauty Parlour'
-                    : isPlotting
-                    ? 'Kashi Plotting'
-                    : isRent
-                    ? 'Prime Plots Rent'
-                    : isEvents
-                    ? 'Jay Gurudev Events'
-                    : 'RB Software Hub'}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img
+                  src="/kashi-logo.png"
+                  alt="Kashi Service Logo"
+                  style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+                />
               </div>
             </div>
 

@@ -15,9 +15,13 @@ import {
   Building2,
   Sparkles,
   CheckCircle2,
+  Cake,
+  Gift,
 } from 'lucide-react';
+import { useToast } from '../../../context/ToastContext.jsx';
 
 export default function AdminDashboardOverview() {
+  const toast = useToast();
   const verticals = [
     {
       id: 'golden-beauty-parlour',
@@ -124,6 +128,103 @@ export default function AdminDashboardOverview() {
         <div style={{ fontSize: '12px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
           <span>Real-time Live Sync</span>
+        </div>
+      </div>
+
+      {/* ── Master Cockpit Employee Birthday Spotlight Card ── */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #faf5ff 0%, #fdf4ff 100%)',
+          border: '1px solid #e9d5ff',
+          borderRadius: '14px',
+          padding: '14px 18px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          boxShadow: '0 2px 10px rgba(126, 34, 206, 0.05)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              background: '#f3e8ff',
+              border: '1px solid #d8b4fe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+            }}
+          >
+            🎂
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#581c87' }}>
+                Employee Birthday Spotlight
+              </span>
+              <span
+                style={{
+                  fontSize: '9.5px',
+                  fontWeight: '800',
+                  background: '#7e22ce',
+                  color: '#ffffff',
+                  padding: '1px 7px',
+                  borderRadius: '10px',
+                }}
+              >
+                WELFARE RADAR
+              </span>
+            </div>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b21a8' }}>
+              Radhika Sharma (Senior Bridal Stylist) • Birthday on <strong>Nov 18</strong> • Base Salary: ₹32,000/mo
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <a
+            href="https://wa.me/919876511111?text=Happy%20Birthday%20Radhika!%20Wishing%20you%20great%20joy%20and%20success%20from%20the%20entire%20Kashi%20Service%20Management%20Team!%20%F0%9F%8E%82%E2%9C%A8"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: '#22c55e',
+              color: '#ffffff',
+              padding: '7px 12px',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              fontWeight: '700',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>💬 Wish WhatsApp</span>
+          </a>
+          <button
+            type="button"
+            onClick={() => toast.success('🎁 ₹2,000 Birthday Bonus Voucher dispatched to employee account!')}
+            style={{
+              background: '#7e22ce',
+              color: '#ffffff',
+              border: 'none',
+              padding: '7px 12px',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>🎁 Birthday Bonus</span>
+          </button>
         </div>
       </div>
 

@@ -204,43 +204,32 @@ export default function PlatformHubPage() {
               navigate('/');
             }}
           >
-            <div
+            <img
+              src="/kashi-logo.png"
+              alt="Kashi Service Logo"
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                height: '46px',
+                width: 'auto',
+                maxWidth: '180px',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                padding: '3px 9px',
+                borderRadius: '999px',
+                background: '#eff6ff',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
               }}
             >
-              <Zap size={22} color="#ffffff" />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a' }}>
-                  KASHI SERVICE
-                </span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    background: '#eff6ff',
-                    color: '#2563eb',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Services Portal
-                </span>
-              </div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                Beauty Parlour • Event Decor • Plotting • Office/Rent • RB Software
-              </div>
-            </div>
+              Services Portal
+            </span>
           </div>
 
           {/* Navigation Links: Clean About, Contact, Services, Gallery & Academy */}

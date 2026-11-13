@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileText, Award, DollarSign, Calendar, CheckCircle, Ban, Eye, X, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Award, DollarSign, Calendar, CheckCircle, Ban, Eye, X, Phone, Mail, MapPin, Cake, Gift, Sparkles } from 'lucide-react';
 import DataTable from '../../../components/DataTable.jsx';
 import FormModal from '../../../components/FormEngine/FormModal.jsx';
 import {
@@ -382,6 +382,103 @@ export const StaffManagementPage = () => {
         >
           <Plus className="w-4 h-4" /> Add Staff Member
         </button>
+      </div>
+
+      {/* ── Employee Birthday Radar & Celebrations Card ── */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #faf5ff 0%, #fdf4ff 100%)',
+          border: '1px solid #e9d5ff',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          boxShadow: '0 2px 8px rgba(126, 34, 206, 0.05)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              background: '#f3e8ff',
+              border: '1px solid #d8b4fe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '22px',
+            }}
+          >
+            🎂
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: '800', color: '#581c87' }}>
+                Employee Birthday Spotlight & Welfare Radar
+              </span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: '800',
+                  background: '#7e22ce',
+                  color: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                }}
+              >
+                AUTO-SYNCED WITH DOB
+              </span>
+            </div>
+            <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#6b21a8' }}>
+              Radhika Sharma (Senior Bridal Stylist) • Birthday on <strong>Nov 18</strong> • Base Salary: ₹32,000/mo
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <a
+            href="https://wa.me/919876511111?text=Happy%20Birthday%20Radhika!%20Wishing%20you%20great%20joy%20and%20success%20from%20the%20entire%20Kashi%20Service%20Management%20Team!%20%F0%9F%8E%82%E2%9C%A8"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: '#22c55e',
+              color: '#ffffff',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: '700',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>💬 Wish on WhatsApp</span>
+          </a>
+          <button
+            type="button"
+            onClick={() => toast.success('🎁 ₹2,000 Birthday Bonus Voucher dispatched to employee account!')}
+            style={{
+              background: '#7e22ce',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>🎁 Send Birthday Bonus</span>
+          </button>
+        </div>
       </div>
 
       <DataTable

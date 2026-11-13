@@ -1090,15 +1090,22 @@ export default function AdminStaffSalaryPage() {
           >
             {/* Header / Brand */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px' }}>
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1px', color: '#6366f1', textTransform: 'uppercase' }}>
-                  OFFICIAL SALARY VOUCHER
-                </span>
-                <h2 style={{ fontSize: '20px', fontWeight: '900', margin: '4px 0 0', color: '#0f172a' }}>
-                  Kashi Service Group
-                </h2>
-                <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                  Multi-Business Enterprise • Varanasi (UP)
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <img
+                  src="/kashi-logo.png"
+                  alt="Kashi Service Logo"
+                  style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
+                />
+                <div>
+                  <span style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1px', color: '#6366f1', textTransform: 'uppercase' }}>
+                    OFFICIAL SALARY VOUCHER
+                  </span>
+                  <h2 style={{ fontSize: '19px', fontWeight: '900', margin: '2px 0 0', color: '#0f172a' }}>
+                    Kashi Service Group
+                  </h2>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                    Multi-Business Enterprise • Varanasi (UP)
+                  </div>
                 </div>
               </div>
               <button

@@ -63,7 +63,7 @@ export const AdminLoginPage = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(ellipse at top, #1e1b4b 0%, #0f172a 100%)',
+        background: 'radial-gradient(ellipse at top, #faf5ff 0%, #f1f5f9 100%)',
         padding: '1.5rem',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}
@@ -72,35 +72,31 @@ export const AdminLoginPage = () => {
         style={{
           width: '100%',
           maxWidth: '440px',
-          background: 'rgba(30, 41, 59, 0.85)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          borderRadius: '20px',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '24px',
           padding: '2.5rem 2rem',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+          boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.02)',
         }}
       >
         {/* Header Branding */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              margin: '0 auto 1rem',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 10px 25px -5px rgba(236, 72, 153, 0.45)',
-            }}
-          >
-            <Sparkles className="w-8 h-8 text-white" />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <img
+              src="/kashi-logo.png"
+              alt="Kashi Service Logo"
+              style={{
+                maxHeight: '76px',
+                maxWidth: '260px',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
           </div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', margin: '0 0 0.35rem' }}>
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.35rem' }}>
             Admin Login
           </h1>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
             Sign in to access your administrative dashboard
           </p>
         </div>
@@ -109,11 +105,11 @@ export const AdminLoginPage = () => {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Email */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '0.4rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
               Admin Email Address
             </label>
             <div style={{ position: 'relative' }}>
-              <Mail className="w-4 h-4 text-slate-400" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <Mail className="w-4 h-4" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="email"
                 value={email}
@@ -124,9 +120,9 @@ export const AdminLoginPage = () => {
                   width: '100%',
                   padding: '11px 12px 11px 36px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  color: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#0f172a',
                   fontSize: '0.88rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -137,11 +133,11 @@ export const AdminLoginPage = () => {
 
           {/* Password */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '0.4rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
               Password
             </label>
             <div style={{ position: 'relative' }}>
-              <Lock className="w-4 h-4 text-slate-400" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <Lock className="w-4 h-4" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -152,9 +148,9 @@ export const AdminLoginPage = () => {
                   width: '100%',
                   padding: '11px 38px 11px 36px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  color: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#0f172a',
                   fontSize: '0.88rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -170,7 +166,7 @@ export const AdminLoginPage = () => {
                   transform: 'translateY(-50%)',
                   background: 'transparent',
                   border: 'none',
-                  color: '#94a3b8',
+                  color: '#64748b',
                   cursor: 'pointer',
                   padding: '4px',
                 }}
@@ -189,7 +185,7 @@ export const AdminLoginPage = () => {
               padding: '13px',
               borderRadius: '10px',
               border: 'none',
-              background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%)',
               color: '#ffffff',
               fontWeight: 800,
               fontSize: '14px',
@@ -200,8 +196,8 @@ export const AdminLoginPage = () => {
               justifyContent: 'center',
               gap: '8px',
               marginTop: '0.5rem',
-              boxShadow: '0 8px 20px rgba(236, 72, 153, 0.3)',
-              transition: 'opacity 0.2s ease',
+              boxShadow: '0 8px 20px rgba(126, 34, 206, 0.25)',
+              transition: 'all 0.2s ease',
             }}
           >
             <span>{isLoading ? 'Verifying...' : 'Sign In as Admin'}</span>
@@ -210,11 +206,11 @@ export const AdminLoginPage = () => {
         </form>
 
         {/* Footer */}
-        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.78rem', color: '#64748b' }}>
+        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.8rem', color: '#64748b' }}>
           Switch portal:&nbsp;
-          <a href="/staff/login" style={{ color: '#94a3b8', textDecoration: 'underline', marginRight: '8px' }}>Staff Portal</a>|
-          <a href="/student/login" style={{ color: '#94a3b8', textDecoration: 'underline', margin: '0 8px' }}>Academy</a>|
-          <a href="/customer/login" style={{ color: '#94a3b8', textDecoration: 'underline', marginLeft: '8px' }}>Customer</a>
+          <a href="/staff/login" style={{ color: '#7e22ce', fontWeight: 600, textDecoration: 'underline', marginRight: '8px' }}>Staff Portal</a>|
+          <a href="/student/login" style={{ color: '#7e22ce', fontWeight: 600, textDecoration: 'underline', margin: '0 8px' }}>Academy</a>|
+          <a href="/customer/login" style={{ color: '#7e22ce', fontWeight: 600, textDecoration: 'underline', marginLeft: '8px' }}>Customer</a>
         </div>
       </div>
     </div>

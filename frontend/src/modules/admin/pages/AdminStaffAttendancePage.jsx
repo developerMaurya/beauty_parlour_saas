@@ -32,10 +32,12 @@ import {
   Layers,
 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext.jsx';
+import { staffFetcher } from '../../../services/api/admin/adminApi.js';
 import {
   getMasterAttendance,
   saveMasterAttendance,
   DEFAULT_STAFF_MEMBERS,
+  getAllStaffRoster,
   getTodayDateStr,
   getMonthlyAttendanceMatrix,
   updateDayAttendance,
@@ -79,10 +81,48 @@ export default function AdminStaffAttendancePage() {
 
   // Matrix Data & Daily Attendance State
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [dbStaffList, setDbStaffList] = useState([]);
+
+  // Fetch real staff accounts from DB / Backend on mount
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const res = await staffFetcher.list({ limit: 100 });
+        const list = res?.data?.items || res?.data?.data || res?.data || [];
+        if (isMounted && Array.isArray(list) && list.length > 0) {
+          setDbStaffList(list);
+        }
+      } catch (e) {
+        // Fallback gracefully to hrSharedStorage
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Real-time listener: when any staff clocks in/out, auto-refresh Admin view instantly
+  useEffect(() => {
+    const handleUpdate = () => {
+      setRefreshTrigger((prev) => prev + 1);
+    };
+    window.addEventListener('staff_attendance_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('staff_attendance_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  // Dynamic Unified Staff Roster across all verticals
+  const allStaffList = useMemo(() => {
+    return getAllStaffRoster(dbStaffList);
+  }, [dbStaffList, refreshTrigger]);
 
   const monthlyMatrix = useMemo(() => {
-    return getMonthlyAttendanceMatrix(currentYear, currentMonth);
-  }, [currentYear, currentMonth, refreshTrigger]);
+    return getMonthlyAttendanceMatrix(currentYear, currentMonth, dbStaffList);
+  }, [currentYear, currentMonth, refreshTrigger, dbStaffList]);
 
   const dailyRecords = useMemo(() => {
     return getMasterAttendance();
@@ -136,7 +176,7 @@ export default function AdminStaffAttendancePage() {
     if (!activeCellData) return;
 
     updateDayAttendance({
-      staffId: activeCellData.staff.id,
+      staffId: activeCellData.staff._id || activeCellData.staff.id,
       staffName: activeCellData.staff.name,
       department: activeCellData.staff.department,
       date: activeCellData.date,
@@ -190,7 +230,12 @@ export default function AdminStaffAttendancePage() {
   const filteredDailyRecords = useMemo(() => {
     return dailyRecords.filter((rec) => {
       const matchesDept = selectedDept === 'ALL' || rec.department?.toUpperCase() === selectedDept;
-      const matchesStatus = dailyStatusFilter === 'ALL' || rec.status === dailyStatusFilter;
+      const matchesStatus =
+        dailyStatusFilter === 'ALL'
+          ? true
+          : dailyStatusFilter === 'LIVE_WORKING'
+          ? !!rec.isActive
+          : rec.status === dailyStatusFilter;
       const matchesDate = !selectedDate || rec.date === selectedDate;
       const q = search.toLowerCase().trim();
       const matchesSearch =
@@ -206,19 +251,24 @@ export default function AdminStaffAttendancePage() {
   // Overall KPIs
   const dailyStats = useMemo(() => {
     const forDate = dailyRecords.filter((r) => r.date === selectedDate);
-    const present = forDate.filter((r) => r.status === 'PRESENT').length;
+    const liveWorking = forDate.filter((r) => !!r.isActive).length;
+    const present = forDate.filter((r) => r.status === 'PRESENT' && !r.isActive).length;
+    const halfDay = forDate.filter((r) => r.status === 'HALF_DAY').length;
     const late = forDate.filter((r) => r.status === 'LATE').length;
     const onLeave = forDate.filter((r) => r.status === 'ON_LEAVE').length;
     const absent = forDate.filter((r) => r.status === 'ABSENT').length;
+    const totalStaff = allStaffList.length || DEFAULT_STAFF_MEMBERS.length;
     return {
-      total: DEFAULT_STAFF_MEMBERS.length,
+      total: totalStaff,
+      liveWorking,
       present,
+      halfDay,
       late,
       onLeave,
       absent,
-      rate: Math.round(((present + late) / (DEFAULT_STAFF_MEMBERS.length || 1)) * 100),
+      rate: Math.round(((present + liveWorking + late + halfDay) / (totalStaff || 1)) * 100),
     };
-  }, [dailyRecords, selectedDate]);
+  }, [dailyRecords, selectedDate, allStaffList]);
 
   // Department metadata
   const departmentMeta = {
@@ -231,11 +281,41 @@ export default function AdminStaffAttendancePage() {
 
   // Visual cell badge renderer for the Matrix sheet
   const renderMatrixCellSymbol = (dayInfo, dayNum) => {
-    if (!dayInfo || dayInfo.status === 'UPCOMING') {
+    if (!dayInfo || dayInfo.status === 'UPCOMING' || dayInfo.status === 'NOT_CLOCKED_IN') {
       return (
-        <span style={{ color: isLight ? '#cbd5e1' : '#475569', fontSize: '11px', fontWeight: 'bold' }}>
+        <span
+          title={dayInfo?.status === 'NOT_CLOCKED_IN' ? `${dayNum} ${monthNames[currentMonth]}: Shift not clocked in yet` : undefined}
+          style={{ color: isLight ? '#cbd5e1' : '#475569', fontSize: '11px', fontWeight: 'bold' }}
+        >
           ·
         </span>
+      );
+    }
+
+    // If currently active (on duty right now)
+    if (dayInfo.isActive) {
+      return (
+        <div
+          title={`${dayNum} ${monthNames[currentMonth]}: 🟢 Live Working On Duty (Shift in progress)`}
+          style={{
+            width: '26px',
+            height: '24px',
+            borderRadius: '5px',
+            background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.25)',
+            border: '1.5px solid #22c55e',
+            color: '#15803d',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '8.5px',
+            fontWeight: '900',
+            cursor: 'pointer',
+            margin: '0 auto',
+            boxShadow: '0 0 8px rgba(34, 197, 94, 0.45)',
+          }}
+        >
+          LIVE
+        </div>
       );
     }
 
@@ -532,6 +612,13 @@ export default function AdminStaffAttendancePage() {
         </span>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '26px', height: '18px', borderRadius: '4px', background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.25)', border: '1.5px solid #22c55e', color: '#15803d', fontSize: '8.5px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 6px rgba(34, 197, 94, 0.45)' }}>
+              LIVE
+            </span>
+            <span style={{ color: themeStyles.textSecondary, fontWeight: '700' }}>Live Working (On Duty)</span>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '20px', height: '18px', borderRadius: '4px', background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.22)', border: `1px solid ${isLight ? '#86efac' : 'rgba(34, 197, 94, 0.4)'}`, color: isLight ? '#15803d' : '#4ade80', fontSize: '9.5px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               P
@@ -1004,6 +1091,70 @@ export default function AdminStaffAttendancePage() {
               boxShadow: isLight ? '0 4px 20px -2px rgba(0, 0, 0, 0.05)' : 'none',
             }}
           >
+            {/* Daily Date & Status Filter Bar */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                padding: '12px 18px',
+                background: themeStyles.tableHeaderBg,
+                borderBottom: `1px solid ${themeStyles.border}`,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: '800', color: themeStyles.textPrimary }}>
+                  Shift Date:
+                </span>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    border: `1px solid ${themeStyles.border}`,
+                    fontSize: '12.5px',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    color: themeStyles.textPrimary,
+                    fontWeight: '700',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: '800', color: themeStyles.textPrimary }}>
+                  Filter Status:
+                </span>
+                <select
+                  value={dailyStatusFilter}
+                  onChange={(e) => setDailyStatusFilter(e.target.value)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${themeStyles.border}`,
+                    fontSize: '12.5px',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    color: themeStyles.textPrimary,
+                    fontWeight: '700',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="ALL">All Statuses ({dailyRecords.length})</option>
+                  <option value="LIVE_WORKING">🟢 Live Working Now (Active On Duty)</option>
+                  <option value="PRESENT">Full Day Present (On-Time)</option>
+                  <option value="HALF_DAY">Half Day</option>
+                  <option value="LATE">Late Clock-In</option>
+                  <option value="ON_LEAVE">On Approved Leave</option>
+                  <option value="ABSENT">Absent</option>
+                </select>
+              </div>
+            </div>
+
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
                 <thead>
@@ -1030,7 +1181,7 @@ export default function AdminStaffAttendancePage() {
                   {filteredDailyRecords.length === 0 ? (
                     <tr>
                       <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: themeStyles.textMuted }}>
-                        No attendance records for date {selectedDate}.
+                        No attendance records for date {selectedDate} matching filter.
                       </td>
                     </tr>
                   ) : (
@@ -1041,6 +1192,12 @@ export default function AdminStaffAttendancePage() {
                         color: '#64748b',
                         bg: '#f1f5f9',
                       };
+
+                      const isHalfDay = rec.status === 'HALF_DAY';
+                      const isPresent = rec.status === 'PRESENT';
+                      const isLate = rec.status === 'LATE';
+                      const isLeave = rec.status === 'ON_LEAVE';
+                      const isAbsent = rec.status === 'ABSENT' || rec.status === 'SHORT_SHIFT';
 
                       return (
                         <tr
@@ -1061,25 +1218,69 @@ export default function AdminStaffAttendancePage() {
                               {dept.emoji} {dept.name}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 16px', fontWeight: '700', color: rec.status === 'LATE' ? '#d97706' : '#16a34a' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: '700', color: isLate ? '#d97706' : '#16a34a' }}>
                             {rec.checkIn || '--:--'}
                           </td>
-                          <td style={{ padding: '12px 16px', color: themeStyles.textSecondary }}>
-                            {rec.checkOut || (rec.checkIn ? '⚡ Active working' : '--:--')}
+                          <td style={{ padding: '12px 16px' }}>
+                            {rec.isActive ? (
+                              <span style={{ color: '#16a34a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+                                Live Working (On Duty)
+                              </span>
+                            ) : (
+                              <span style={{ color: themeStyles.textSecondary, fontWeight: rec.checkOut ? '700' : '500' }}>
+                                {rec.checkOut || '--:--'}
+                              </span>
+                            )}
                           </td>
-                          <td style={{ padding: '12px 16px', color: themeStyles.textMuted }}>{rec.workHours || '-'}</td>
+                          <td style={{ padding: '12px 16px', color: themeStyles.textPrimary, fontWeight: '600' }}>
+                            {rec.isActive ? 'Active Timer Running' : rec.workHours || '-'}
+                          </td>
                           <td style={{ padding: '12px 16px' }}>
                             <span
                               style={{
-                                padding: '3px 8px',
-                                borderRadius: '5px',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
                                 fontSize: '11px',
-                                fontWeight: '700',
-                                background: rec.status === 'PRESENT' ? '#dcfce7' : rec.status === 'LATE' ? '#fef3c7' : '#fee2e2',
-                                color: rec.status === 'PRESENT' ? '#15803d' : rec.status === 'LATE' ? '#b45309' : '#b91c1c',
+                                fontWeight: '800',
+                                background: rec.isActive
+                                  ? (isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.25)')
+                                  : isHalfDay
+                                  ? (isLight ? '#f3e8ff' : 'rgba(147, 51, 234, 0.22)')
+                                  : isPresent
+                                  ? (isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.22)')
+                                  : isLate
+                                  ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.22)')
+                                  : isLeave
+                                  ? (isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.22)')
+                                  : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.22)'),
+                                color: rec.isActive
+                                  ? '#15803d'
+                                  : isHalfDay
+                                  ? (isLight ? '#7e22ce' : '#c084fc')
+                                  : isPresent
+                                  ? (isLight ? '#15803d' : '#4ade80')
+                                  : isLate
+                                  ? (isLight ? '#b45309' : '#fbbf24')
+                                  : isLeave
+                                  ? (isLight ? '#0369a1' : '#38bdf8')
+                                  : (isLight ? '#b91c1c' : '#f87171'),
+                                border: rec.isActive ? '1px solid #22c55e' : 'none',
                               }}
                             >
-                              {rec.status}
+                              {rec.isActive
+                                ? '🟢 LIVE WORKING'
+                                : isHalfDay
+                                ? 'HALF DAY'
+                                : isPresent
+                                ? 'FULL DAY PRESENT'
+                                : isLate
+                                ? 'LATE CLOCK-IN'
+                                : isLeave
+                                ? 'ON APPROVED LEAVE'
+                                : isAbsent
+                                ? 'ABSENT'
+                                : rec.status}
                             </span>
                           </td>
                           <td style={{ padding: '12px 16px', color: themeStyles.textMuted, fontSize: '11.5px' }}>

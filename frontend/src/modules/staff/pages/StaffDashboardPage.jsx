@@ -200,6 +200,85 @@ export default function StaffDashboardPage() {
         </div>
       </div>
 
+      {/* ── Employee Personal Birthday Celebration Card ── */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #faf5ff 0%, #fdf4ff 100%)',
+          border: '1.5px solid #d8b4fe',
+          borderRadius: '16px',
+          padding: '20px 24px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          boxShadow: '0 4px 16px rgba(126, 34, 206, 0.08)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              background: '#f3e8ff',
+              border: '1px solid #c084fc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '26px',
+            }}
+          >
+            🎂
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '15px', fontWeight: '800', color: '#581c87' }}>
+                Happy Birthday Season, {staffProfile?.name || staffUser?.name || 'Valued Specialist'}! 🎉
+              </span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: '800',
+                  background: '#7e22ce',
+                  color: '#ffffff',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                }}
+              >
+                SPECIALIST CELEBRATION
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b21a8' }}>
+              The Kashi Service executive team wishes you a wonderful year filled with health, joy and professional excellence!
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => success('🎉 Birthday wishes acknowledged! Have an amazing day!')}
+            style={{
+              background: 'linear-gradient(135deg, #7e22ce, #9333ea)',
+              color: '#ffffff',
+              border: 'none',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px rgba(126, 34, 206, 0.25)',
+            }}
+          >
+            <span>🎈 Thank You & Celebrate</span>
+          </button>
+        </div>
+      </div>
+
       {/* KPI Cards Grid */}
       <div
         style={{
