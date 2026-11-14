@@ -41,7 +41,16 @@ import {
   Layers,
   Check,
   MessageSquare,
+  DollarSign,
+  Receipt,
+  RotateCcw,
 } from 'lucide-react';
+
+import ParlourBillingManager from '../components/parlour/ParlourBillingManager.jsx';
+import ParlourPaymentHistory from '../components/parlour/ParlourPaymentHistory.jsx';
+import ParlourProductAssignments from '../components/parlour/ParlourProductAssignments.jsx';
+import ParlourStaffSalaryManager from '../components/parlour/ParlourStaffSalaryManager.jsx';
+import ParlourAttendanceManager from '../components/parlour/ParlourAttendanceManager.jsx';
 
 export function GoldenBeautyAdminDashboard({ defaultTab }) {
   const navigate = useNavigate();
@@ -58,6 +67,16 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
     activeView = 'products';
   } else if (location.pathname.includes('certificates')) {
     activeView = 'certificates';
+  } else if (location.pathname.includes('billing') || location.pathname.includes('invoice')) {
+    activeView = 'billing';
+  } else if (location.pathname.includes('payments') || location.pathname.includes('ledger') || location.pathname.includes('revenue')) {
+    activeView = 'payments';
+  } else if (location.pathname.includes('assignments') || location.pathname.includes('allocate')) {
+    activeView = 'assignments';
+  } else if (location.pathname.includes('salary') || location.pathname.includes('payroll')) {
+    activeView = 'salary';
+  } else if (location.pathname.includes('attendance')) {
+    activeView = 'attendance';
   } else if (searchParams.get('tab')) {
     activeView = searchParams.get('tab');
   }
@@ -540,6 +559,15 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
     window.print();
   };
 
+  const handleDeleteCertificate = (certId, studentName) => {
+    if (window.confirm(`Are you sure you want to delete certificate ${certId} for ${studentName}? This action cannot be undone.`)) {
+      const updated = certificates.filter((c) => c.id !== certId);
+      setCertificates(updated);
+      localStorage.setItem('parlour_academy_certificates', JSON.stringify(updated));
+      showToast(`Certificate ${certId} deleted successfully.`);
+    }
+  };
+
   const lowStockCount = products.filter((p) => p.stock <= p.minStock).length;
   const outOfStockCount = products.filter((p) => p.stock === 0).length;
 
@@ -727,8 +755,8 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
             {/* Quick Action Navigation Tiles */}
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: '0 0 1rem' }}>Parlour Management Links</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: '0 0 1rem' }}>Parlour Management Modules</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1rem' }}>
                 <div
                   onClick={() => navigate('/admin/parlour-inquiries')}
                   style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
@@ -749,6 +777,61 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                   </div>
                   <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Products & Stock</div>
                   <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>{products.length} products, {lowStockCount} low-stock</div>
+                </div>
+
+                <div
+                  onClick={() => navigate('/admin/parlour-billing')}
+                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                >
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#faf5ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                    <Receipt size={20} />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>POS Billing & Invoices</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Generate tax bills with auto-stock sync</div>
+                </div>
+
+                <div
+                  onClick={() => navigate('/admin/parlour-payments')}
+                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                >
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ecfdf5', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                    <DollarSign size={20} />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Payment History Ledger</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Today, Monthly & Yearly collection</div>
+                </div>
+
+                <div
+                  onClick={() => navigate('/admin/parlour-assignments')}
+                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                >
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#f5f3ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                    <Package size={20} />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Product Allocation</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Issue items to staff & academy students</div>
+                </div>
+
+                <div
+                  onClick={() => navigate('/admin/parlour-salary')}
+                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                >
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#f0f9ff', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                    <Users size={20} />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Staff Salary & Payroll</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Disbursements, bonus & printable slips</div>
+                </div>
+
+                <div
+                  onClick={() => navigate('/admin/parlour-attendance')}
+                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                >
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#fffbeb', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                    <Calendar size={20} />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Attendance Register</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Daily tracking for staff & students</div>
                 </div>
 
                 <div
@@ -1797,27 +1880,49 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                           </td>
                           <td style={{ padding: '12px 8px', color: '#64748b' }}>{cert.issueDate}</td>
                           <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                            <button
-                              onClick={() => {
-                                setCertForm({
-                                  studentName: cert.studentName,
-                                  course: cert.course,
-                                  companyName: cert.companyName || 'Golden Beauty Parlour & Academy',
-                                  description: cert.description || 'for outstanding performance and successful completion of course.',
-                                  certId: cert.id,
-                                  issueDate: cert.issueDate,
-                                  grade: cert.grade,
-                                  duration: cert.duration || '3 Months',
-                                  instructor: cert.instructor || 'Rekha Maurya',
-                                  instructorTitle: cert.instructorTitle || 'Director of Academy',
-                                  photo: cert.photo || '',
-                                });
-                                setCertViewMode('DESIGNER');
-                              }}
-                              style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-                            >
-                              View / Reprint
-                            </button>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                              <button
+                                onClick={() => {
+                                  setCertForm({
+                                    studentName: cert.studentName,
+                                    course: cert.course,
+                                    companyName: cert.companyName || 'Golden Beauty Parlour & Academy',
+                                    description: cert.description || 'for outstanding performance and successful completion of course.',
+                                    certId: cert.id,
+                                    issueDate: cert.issueDate,
+                                    grade: cert.grade,
+                                    duration: cert.duration || '3 Months',
+                                    instructor: cert.instructor || 'Rekha Maurya',
+                                    instructorTitle: cert.instructorTitle || 'Director of Academy',
+                                    photo: cert.photo || '',
+                                  });
+                                  setCertViewMode('DESIGNER');
+                                }}
+                                style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                              >
+                                View / Reprint
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCertificate(cert.id, cert.studentName)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #fecaca',
+                                  background: '#fff1f2',
+                                  color: '#dc2626',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                                title="Delete Certificate Record"
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1827,6 +1932,55 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
               </div>
             )}
           </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 5: POS BILLING & TAX INVOICES
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'billing' && (
+          <ParlourBillingManager
+            products={products}
+            setProducts={setProducts}
+            showToast={showToast}
+          />
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 6: PAYMENT HISTORY & REVENUE LEDGER (TODAY / MONTHLY / YEARLY)
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'payments' && (
+          <ParlourPaymentHistory
+            showToast={showToast}
+          />
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 7: PRODUCT ASSIGNMENTS TO STAFF & STUDENTS (WITH STOCK SYNC)
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'assignments' && (
+          <ParlourProductAssignments
+            products={products}
+            setProducts={setProducts}
+            showToast={showToast}
+          />
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 8: STAFF SALARY & PAYROLL CRUD (DISBURSEMENTS & PAYSLIPS)
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'salary' && (
+          <ParlourStaffSalaryManager
+            showToast={showToast}
+          />
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 9: STAFF & ACADEMY STUDENT DAILY ATTENDANCE
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'attendance' && (
+          <ParlourAttendanceManager
+            showToast={showToast}
+          />
         )}
       </main>
 
