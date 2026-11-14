@@ -470,6 +470,11 @@ export const StudentSchema = new Schema(
     enrolledCourses: [{ type: Schema.Types.ObjectId, ref: 'Course' }],
     skills: [{ type: String }],
     planId: { type: Schema.Types.ObjectId, ref: 'StudentPlan', default: null },
+    totalAmount: { type: Number, default: 0 },
+    paidAmount: { type: Number, default: 0 },
+    tuitionFee: { type: Number, default: 0 },
+    paidFee: { type: Number, default: 0 },
+    installments: [{ type: Schema.Types.Mixed }],
     status: {
       type: String,
       enum: [
@@ -2292,14 +2297,18 @@ export const CourseModuleSchema = new Schema(
 export const CourseMaterialSchema = new Schema(
   {
     tenantId: { type: String, required: true, index: true },
-    courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true, index: true },
+    courseId: { type: Schema.Types.ObjectId, ref: 'Course', default: null, index: true },
     moduleId: { type: Schema.Types.ObjectId, ref: 'CourseModule', default: null },
     title: { type: String, required: true, trim: true },
+    category: { type: String, default: 'Syllabus' },
     type: { type: String, enum: ['pdf', 'video', 'notes', 'document', 'kit_guide', 'image'], default: 'pdf' },
     fileUrl: { type: String, default: '' },
+    fileName: { type: String, default: '' },
+    fileSize: { type: String, default: '' },
     description: { type: String, default: '' },
+    uploadedBy: { type: String, default: 'Master Admin' },
     isDownloadable: { type: Boolean, default: true },
-    visibility: { type: String, enum: ['enrolled', 'all', 'restricted'], default: 'enrolled' },
+    visibility: { type: String, enum: ['enrolled', 'all', 'restricted'], default: 'all' },
   },
   { timestamps: true }
 );

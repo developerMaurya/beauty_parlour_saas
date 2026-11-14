@@ -5,6 +5,7 @@
  * @module backend/src/modules/admin/students/student.controller
  */
 
+import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { getTenantModel } from '../../../database/tenant/tenantModels.js';
 import { sendSuccess, sendError, sendListResponse } from '../../../utils/response.utils.js';
@@ -57,7 +58,11 @@ export const createStudent = async (req, res) => {
       });
     }
 
-    const studentCustomId = `STU-${Date.now().toString().slice(-5)}`;
+    const studentCustomId = req.body.studentId?.trim() || `STU-${Date.now().toString().slice(-5)}`;
+
+    const contactData = typeof emergencyContact === 'string'
+      ? { phone: emergencyContact.trim(), name: '', relation: '' }
+      : emergencyContact || {};
 
     const student = await Student.create({
       tenantId: req.tenantId,
@@ -67,9 +72,10 @@ export const createStudent = async (req, res) => {
       name: name.trim(),
       phone: phone.trim(),
       email: email ? email.trim().toLowerCase() : '',
+      photo: req.body.photo || '',
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       address: address || {},
-      emergencyContact: emergencyContact || {},
+      emergencyContact: contactData,
       course: course || '',
       planId: planId || null,
       joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
@@ -153,9 +159,27 @@ export const updateStudent = async (req, res) => {
     const data = { ...req.body };
     if (data.branch) data.branchId = data.branch;
     if (data.plan) data.planId = data.plan;
+
+    // Sanitize planId & branchId to prevent Mongoose CastError on custom string ids
+    if (data.planId && !mongoose.Types.ObjectId.isValid(data.planId)) {
+      delete data.planId;
+    }
+    if (data.branchId && !mongoose.Types.ObjectId.isValid(data.branchId)) {
+      delete data.branchId;
+    }
+
     if (data.dob) data.dateOfBirth = new Date(data.dob);
+    if (typeof data.emergencyContact === 'string') {
+      data.emergencyContact = { phone: data.emergencyContact.trim(), name: '', relation: '' };
+    }
 
     Object.assign(student, data);
+
+    if (data.installments !== undefined) {
+      student.installments = data.installments;
+      student.markModified('installments');
+    }
+
     await student.save();
 
     // If name, phone, or email updated, sync TenantUser
@@ -177,13 +201,10 @@ export const updateStudent = async (req, res) => {
 export const deleteStudent = async (req, res) => {
   try {
     const Student = getTenantModel(req, 'Student');
-    const student = await Student.findOne({ _id: req.params.studentId, tenantId: req.tenantId });
+    const student = await Student.findOneAndDelete({ _id: req.params.studentId, tenantId: req.tenantId });
     if (!student) return sendError(res, 'Student not found', [], 404);
 
-    student.status = 'dropped';
-    await student.save();
-
-    return sendSuccess(res, 'Student enrollment marked as dropped');
+    return sendSuccess(res, 'Student profile permanently deleted from database');
   } catch (error) {
     return sendError(res, error.message, [], 500);
   }
@@ -209,11 +230,11 @@ export const deactivateStudent = async (req, res) => {
     const Student = getTenantModel(req, 'Student');
     const student = await Student.findOneAndUpdate(
       { _id: req.params.studentId, tenantId: req.tenantId },
-      { status: 'dropped' },
+      { status: 'inactive' },
       { returnDocument: 'after' }
     );
     if (!student) return sendError(res, 'Student not found', [], 404);
-    return sendSuccess(res, 'Student deactivated', student);
+    return sendSuccess(res, 'Student marked as inactive', student);
   } catch (error) {
     return sendError(res, error.message, [], 500);
   }
@@ -423,20 +444,39 @@ export const updateStudentPlanStatus = async (req, res) => {
 export const createEnrollment = async (req, res) => {
   try {
     const studentId = req.params.studentId || req.body.studentId;
-    const { planId, branchId, startDate, totalFee, paidAmount } = req.body;
+    const { planId, branchId, startDate, totalFee, totalAmount, paidAmount } = req.body;
 
-    if (!studentId || !planId || !branchId) {
-      return sendError(res, 'Student, Plan, and Branch are required', [], 400);
+    if (!studentId || !planId) {
+      return sendError(res, 'Student and Plan are required', [], 400);
     }
 
     const Enrollment = getTenantModel(req, 'Enrollment');
     const StudentPlan = getTenantModel(req, 'StudentPlan');
     const Student = getTenantModel(req, 'Student');
 
-    const plan = await StudentPlan.findOne({ _id: planId, tenantId: req.tenantId });
-    if (!plan) return sendError(res, 'Plan not found', [], 404);
+    const student = await Student.findOne({ _id: studentId, tenantId: req.tenantId });
+    if (!student) return sendError(res, 'Student not found', [], 404);
 
-    const fee = totalFee !== undefined ? Number(totalFee) : plan.price - (plan.discount || 0);
+    const resolvedBranchId = branchId || student.branchId;
+
+    let plan = null;
+    if (mongoose.Types.ObjectId.isValid(planId)) {
+      plan = await StudentPlan.findOne({ _id: planId, tenantId: req.tenantId });
+    }
+    if (!plan) {
+      plan = await StudentPlan.findOne({ name: planId, tenantId: req.tenantId });
+    }
+    if (!plan) {
+      plan = await StudentPlan.create({
+        tenantId: req.tenantId,
+        name: typeof planId === 'string' ? planId : 'Academy Training Plan',
+        price: totalFee ? Number(totalFee) : (totalAmount ? Number(totalAmount) : 24999),
+        durationMonths: 3,
+        status: 'active',
+      });
+    }
+
+    const fee = totalFee !== undefined ? Number(totalFee) : (totalAmount !== undefined ? Number(totalAmount) : ((plan.price || 0) - (plan.discount || 0)));
     const paid = Number(paidAmount) || 0;
     const balance = Math.max(0, fee - paid);
 
@@ -447,8 +487,8 @@ export const createEnrollment = async (req, res) => {
     const enrollment = await Enrollment.create({
       tenantId: req.tenantId,
       studentId,
-      planId,
-      branchId,
+      planId: plan._id,
+      branchId: resolvedBranchId,
       enrollmentNumber: `ENR-${Date.now().toString().slice(-6)}`,
       startDate: start,
       expectedEndDate: expectedEnd,
@@ -459,8 +499,12 @@ export const createEnrollment = async (req, res) => {
       status: 'active',
     });
 
-    // Update student's active plan
-    await Student.findByIdAndUpdate(studentId, { planId, status: 'active' });
+    // Update student's active plan, course name, and activate status
+    await Student.findByIdAndUpdate(studentId, {
+      planId: plan._id,
+      course: plan.name,
+      status: 'active',
+    });
 
     return sendSuccess(res, 'Student enrollment created successfully', enrollment, 201);
   } catch (error) {
@@ -756,6 +800,89 @@ export const deleteStudentCertificate = async (req, res) => {
   }
 };
 
+// ==========================================
+// 6. COURSE MATERIALS & PDF UPLOADER
+// ==========================================
+
+export const getCourseMaterials = async (req, res) => {
+  try {
+    const CourseMaterial = getTenantModel(req, 'CourseMaterial');
+    const filter = buildTenantFilter(req);
+    if (req.query.search) {
+      filter.$or = [
+        { title: { $regex: req.query.search, $options: 'i' } },
+        { category: { $regex: req.query.search, $options: 'i' } },
+        { fileName: { $regex: req.query.search, $options: 'i' } },
+      ];
+    }
+    if (req.query.category && req.query.category !== 'ALL') {
+      filter.category = req.query.category;
+    }
+    if (req.query.type && req.query.type !== 'ALL') {
+      filter.type = req.query.type;
+    }
+
+    const items = await CourseMaterial.find(filter).sort({ createdAt: -1 });
+    return sendSuccess(res, 'Course materials fetched', items);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const createCourseMaterial = async (req, res) => {
+  try {
+    const { title, category, type, fileUrl, fileName, fileSize, description } = req.body;
+    if (!title) {
+      return sendError(res, 'Material title is required', [], 400);
+    }
+
+    const CourseMaterial = getTenantModel(req, 'CourseMaterial');
+    const doc = await CourseMaterial.create({
+      tenantId: req.tenantId,
+      title: title.trim(),
+      category: category || 'Syllabus',
+      type: type || (fileName?.toLowerCase().endsWith('.pdf') ? 'pdf' : 'document'),
+      fileUrl: fileUrl || '',
+      fileName: fileName || 'Course_Document.pdf',
+      fileSize: fileSize || '1.5 MB',
+      description: description || '',
+      uploadedBy: req.user?.name || 'Master Admin',
+      isDownloadable: true,
+      visibility: 'all',
+    });
+
+    return sendSuccess(res, 'Course material uploaded successfully', doc, 201);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const updateCourseMaterial = async (req, res) => {
+  try {
+    const CourseMaterial = getTenantModel(req, 'CourseMaterial');
+    const doc = await CourseMaterial.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.tenantId },
+      { $set: req.body },
+      { new: true }
+    );
+    if (!doc) return sendError(res, 'Course material not found', [], 404);
+    return sendSuccess(res, 'Course material updated', doc);
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
+export const deleteCourseMaterial = async (req, res) => {
+  try {
+    const CourseMaterial = getTenantModel(req, 'CourseMaterial');
+    const doc = await CourseMaterial.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
+    if (!doc) return sendError(res, 'Course material not found', [], 404);
+    return sendSuccess(res, 'Course material deleted');
+  } catch (error) {
+    return sendError(res, error.message, [], 500);
+  }
+};
+
 export default {
   createStudent,
   getStudents,
@@ -788,4 +915,8 @@ export default {
   getStudentCertificateById,
   updateStudentCertificate,
   deleteStudentCertificate,
+  getCourseMaterials,
+  createCourseMaterial,
+  updateCourseMaterial,
+  deleteCourseMaterial,
 };

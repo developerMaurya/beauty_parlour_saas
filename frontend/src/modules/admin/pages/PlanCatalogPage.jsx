@@ -46,18 +46,18 @@ import { useToast } from '../../../context/ToastContext.jsx';
 import { useTenantAdmin } from '../../../context/TenantAdminContext.jsx';
 import { packageFetcher } from '../../../services/api/admin/adminApi.js';
 
-// Self-contained duration formatter helper (Hours)
-export const formatDurationHours = (val) => {
+// Self-contained duration & validity formatter helper (Months)
+export const formatDurationMonths = (val) => {
   if (val === undefined || val === null || val === '') {
-    return 'Flexible / On Demand';
+    return 'Flexible / Ongoing';
   }
   const num = Number(val);
-  if (isNaN(num) || num <= 0) return 'Flexible / On Demand';
-  // If admin entered > 12, assume it was minutes and convert to hours
-  const hours = num >= 15 ? num / 60 : num;
-  const formatted = hours % 1 === 0 ? hours.toFixed(0) : hours.toFixed(1);
-  return `${formatted} ${Number(formatted) === 1 ? 'Hour' : 'Hours'}`;
+  if (isNaN(num) || num <= 0) return 'Flexible / Ongoing';
+  return `${num} ${num === 1 ? 'Month' : 'Months'}`;
 };
+
+// Backward-compat export for any legacy references
+export const formatDurationHours = formatDurationMonths;
 
 // Plan Tiers & metadata
 export const PLAN_TIERS = [
@@ -75,7 +75,7 @@ const INITIAL_PARLOUR_PLANS = [
     tier: 'Silver', // 'Basic' | 'Silver' | 'Advanced' | 'Premium'
     price: 18999,
     discountPrice: 15999,
-    durationHours: 3.5,
+    durationMonths: 3, // Validity: 3 Months
     features: [
       'Bridal HD Airbrush Makeup with 3D Lashes',
       'Precision Hair Cut & Velvet Blowout Styling',
@@ -85,7 +85,7 @@ const INITIAL_PARLOUR_PLANS = [
     ],
     homeServiceAllowed: true,
     status: 'active',
-    description: 'Comprehensive 3.5-hour bridal transformation bundle covering airbrush bridal makeup, designer hair styling, and deep skin hydra prep.',
+    description: 'Comprehensive 3-month bridal transformation bundle covering airbrush bridal makeup, designer hair styling, and deep skin hydra prep.',
     createdAt: '2026-11-01',
   },
 ];
@@ -159,7 +159,7 @@ export const PlanCatalogPage = () => {
     tier: 'Silver',
     price: '',
     discountPrice: '',
-    durationHours: '',
+    durationMonths: '', // Validity in Months (kitne month tak plan chalega)
     featuresText: '', // Multi-line text for features
     description: '',
     homeServiceAllowed: true,
@@ -185,7 +185,7 @@ export const PlanCatalogPage = () => {
             tier: item.tier || 'Silver',
             price: item.price || 15000,
             discountPrice: item.discountPrice || item.finalPrice || '',
-            durationHours: item.durationHours || (item.duration ? item.duration / 60 : 3),
+            durationMonths: item.durationMonths || item.validityMonths || (item.durationHours ? Math.ceil(item.durationHours / 30) : 3),
             features: Array.isArray(item.features)
               ? item.features
               : Array.isArray(item.services)
@@ -250,7 +250,7 @@ export const PlanCatalogPage = () => {
       tier: 'Silver',
       price: '',
       discountPrice: '',
-      durationHours: '',
+      durationMonths: '',
       featuresText: '',
       description: '',
       homeServiceAllowed: true,
@@ -267,7 +267,7 @@ export const PlanCatalogPage = () => {
       tier: plan.tier || 'Silver',
       price: plan.price !== undefined && plan.price !== null ? plan.price : '',
       discountPrice: plan.discountPrice !== undefined && plan.discountPrice !== null ? plan.discountPrice : '',
-      durationHours: plan.durationHours !== undefined && plan.durationHours !== null ? plan.durationHours : '',
+      durationMonths: plan.durationMonths !== undefined && plan.durationMonths !== null ? plan.durationMonths : (plan.durationHours || ''),
       featuresText: Array.isArray(plan.features) ? plan.features.join('\n') : '',
       description: plan.description || '',
       homeServiceAllowed: plan.homeServiceAllowed !== undefined ? plan.homeServiceAllowed : true,
@@ -307,7 +307,7 @@ export const PlanCatalogPage = () => {
       tier: formData.tier,
       price: Number(formData.price),
       discountPrice: formData.discountPrice !== '' ? Number(formData.discountPrice) : null,
-      durationHours: formData.durationHours !== '' ? Number(formData.durationHours) : null,
+      durationMonths: formData.durationMonths !== '' ? Number(formData.durationMonths) : null,
       features: parsedFeatures.length > 0 ? parsedFeatures : ['Complete Golden Beauty Parlour Service Care'],
       description: formData.description.trim(),
       homeServiceAllowed: !!formData.homeServiceAllowed,
@@ -854,10 +854,10 @@ export const PlanCatalogPage = () => {
                     )}
                   </div>
 
-                  {/* Duration in Hours */}
+                  {/* Duration / Validity in Months */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: themeStyles.textMuted, fontWeight: '600' }}>
                     <Clock size={13} color="#0284c7" />
-                    <span>{formatDurationHours(plan.durationHours)}</span>
+                    <span>Validity: {formatDurationMonths(plan.durationMonths)}</span>
                   </div>
                 </div>
 
@@ -1094,9 +1094,9 @@ export const PlanCatalogPage = () => {
                       </span>
                     </td>
 
-                    {/* Duration */}
+                    {/* Validity in Months */}
                     <td style={{ padding: '14px 16px', fontSize: '12px', color: themeStyles.textSecondary, whiteSpace: 'nowrap' }}>
-                      {formatDurationHours(plan.durationHours)}
+                      {formatDurationMonths(plan.durationMonths)}
                     </td>
 
                     {/* Price */}
@@ -1485,15 +1485,15 @@ export const PlanCatalogPage = () => {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                    Duration (Hours) <span style={{ fontSize: '11px', color: themeStyles.textMuted }}>(Opt)</span>
+                    Validity (Months) <span style={{ fontSize: '11px', color: '#0284c7' }}>(Kitne Month chalega)</span>
                   </label>
                   <input
                     type="number"
-                    step="0.5"
-                    min="0"
-                    placeholder="3.5"
-                    value={formData.durationHours}
-                    onChange={(e) => setFormData({ ...formData, durationHours: e.target.value })}
+                    min="1"
+                    max="60"
+                    placeholder="e.g. 1, 3, 6, 12 Months"
+                    value={formData.durationMonths}
+                    onChange={(e) => setFormData({ ...formData, durationMonths: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
@@ -1505,6 +1505,28 @@ export const PlanCatalogPage = () => {
                       outline: 'none',
                     }}
                   />
+                  {/* Quick Preset Buttons */}
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                    {[1, 3, 6, 12].map((m) => (
+                      <button
+                        type="button"
+                        key={m}
+                        onClick={() => setFormData({ ...formData, durationMonths: m })}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          border: `1px solid ${Number(formData.durationMonths) === m ? '#0284c7' : themeStyles.border}`,
+                          background: Number(formData.durationMonths) === m ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.25)') : 'transparent',
+                          color: Number(formData.durationMonths) === m ? '#0369a1' : themeStyles.textMuted,
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {m}M
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1766,10 +1788,10 @@ export const PlanCatalogPage = () => {
 
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '11.5px', fontWeight: '700', color: themeStyles.textMuted, textTransform: 'uppercase' }}>
-                    Duration & Dispatch
+                    Validity & Dispatch
                   </div>
                   <div style={{ fontSize: '13px', fontWeight: '700', color: themeStyles.textPrimary, marginTop: '4px' }}>
-                    🕒 {formatDurationHours(selectedPlanForView.durationHours)}
+                    🗓️ Validity: {formatDurationMonths(selectedPlanForView.durationMonths)}
                   </div>
                   <div style={{ fontSize: '11px', color: selectedPlanForView.homeServiceAllowed ? '#15803d' : themeStyles.textMuted, marginTop: '2px', fontWeight: '600' }}>
                     {selectedPlanForView.homeServiceAllowed ? '🚗 Home Service Available' : '🏢 In-Salon Only'}

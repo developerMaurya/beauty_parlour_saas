@@ -274,6 +274,7 @@ export const TenantAdminLayout = () => {
         { label: 'Parlour Services', path: '/admin/parlour-services', icon: Scissors, badge: 'Services' },
         { label: 'Parlour Plans & Packages', path: '/admin/parlour-plans', icon: Layers, badge: 'Plans' },
         { label: 'Parlour Offers & Coupons', path: '/admin/parlour-offers', icon: Tag, badge: 'Offers' },
+        { label: 'Parlour Academy Students', path: '/admin/parlour-students', icon: GraduationCap, badge: 'Academy' },
         { label: 'Parlour Users', path: '/admin/users?business=PARLOUR', icon: Users, badge: 'Users' },
       ],
     },

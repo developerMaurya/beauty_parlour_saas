@@ -44,6 +44,7 @@ import {
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useTenantAdmin } from '../../../context/TenantAdminContext.jsx';
 import { serviceFetcher, serviceCategoryFetcher } from '../../../services/api/admin/adminApi.js';
+import { uploadImageToCloudflare } from '../../../services/uploadService.js';
 
 // Pre-seeded Master Parlour Services (Golden Beauty Parlour - Only 1 Single Master Service)
 const INITIAL_PARLOUR_SERVICES = [
@@ -165,6 +166,7 @@ export const ServiceCatalogPage = () => {
   const initialFormState = {
     name: '',
     category: 'Makeup & Bridal',
+    image: '',
     price: '',
     discountPrice: '',
     durationHours: '',
@@ -176,6 +178,7 @@ export const ServiceCatalogPage = () => {
     description: '',
   };
   const [serviceForm, setServiceForm] = useState(initialFormState);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Load Services from Backend DB with LocalStorage bridge
   const loadData = async () => {
@@ -253,6 +256,7 @@ export const ServiceCatalogPage = () => {
     setServiceForm({
       name: service.name || '',
       category: service.category || 'Makeup & Bridal',
+      image: service.image || service.photo || '',
       price: service.price || '',
       discountPrice: service.discountPrice || '',
       durationHours: parsedHours || '',
@@ -290,6 +294,7 @@ export const ServiceCatalogPage = () => {
       name: serviceForm.name.trim(),
       category: serviceForm.category,
       categoryName: serviceForm.category,
+      image: serviceForm.image || '',
       price: Number(serviceForm.price),
       discountPrice: serviceForm.discountPrice ? Number(serviceForm.discountPrice) : 0,
       durationHours: durHours,
@@ -1219,22 +1224,38 @@ export const ServiceCatalogPage = () => {
                     {/* Top Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div
-                          style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '12px',
-                            background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2))',
-                            border: '1px solid rgba(236, 72, 153, 0.3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '20px',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {srv.iconEmoji || '💄'}
-                        </div>
+                        {srv.image ? (
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '12px',
+                              overflow: 'hidden',
+                              border: '1.5px solid #ec4899',
+                              flexShrink: 0,
+                              background: '#ffffff',
+                            }}
+                          >
+                            <img src={srv.image} alt={srv.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '12px',
+                              background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2))',
+                              border: '1px solid rgba(236, 72, 153, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '20px',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {srv.iconEmoji || '💄'}
+                          </div>
+                        )}
                         <div>
                           <span
                             style={{
@@ -1763,6 +1784,148 @@ export const ServiceCatalogPage = () => {
                 </div>
               </div>
 
+              {/* Service Image / Photo Banner (Cloudflare Upload) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                  Service Photo / Image Banner (Cloudflare Upload - Optional)
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    background: '#f8fafc',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px dashed #cbd5e1',
+                  }}
+                >
+                  {serviceForm.image ? (
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        border: '2px solid #ec4899',
+                        boxShadow: '0 2px 6px rgba(236, 72, 153, 0.25)',
+                        flexShrink: 0,
+                        background: '#ffffff',
+                      }}
+                    >
+                      <img
+                        src={serviceForm.image}
+                        alt="Service Banner"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '8px',
+                        background: 'rgba(236, 72, 153, 0.1)',
+                        border: '1px dashed rgba(236, 72, 153, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ec4899',
+                        fontSize: '24px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isUploadingImage ? '⏳' : '🖼️'}
+                    </div>
+                  )}
+
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="service-image-file-input"
+                      style={{ display: 'none' }}
+                      disabled={isUploadingImage}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIsUploadingImage(true);
+                          try {
+                            const cfUrl = await uploadImageToCloudflare(file, {
+                              folder: 'services',
+                              entityType: 'service',
+                            });
+                            setServiceForm((prev) => ({ ...prev, image: cfUrl }));
+                            toast.success('Service photo uploaded to Cloudflare successfully!');
+                          } catch (err) {
+                            console.error('Service image upload error:', err);
+                            toast.error('Failed to upload image. You can also paste an image URL below.');
+                          } finally {
+                            setIsUploadingImage(false);
+                            e.target.value = '';
+                          }
+                        }
+                      }}
+                    />
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        disabled={isUploadingImage}
+                        onClick={() => document.getElementById('service-image-file-input')?.click()}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          fontSize: '11.5px',
+                          fontWeight: '700',
+                          background: isUploadingImage ? 'rgba(236, 72, 153, 0.25)' : 'rgba(236, 72, 153, 0.12)',
+                          color: '#ec4899',
+                          border: '1px solid rgba(236, 72, 153, 0.35)',
+                          cursor: isUploadingImage ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {isUploadingImage ? '⏳ Uploading to Cloudflare...' : '📁 Choose Service Image'}
+                      </button>
+                      {serviceForm.image && (
+                        <button
+                          type="button"
+                          onClick={() => setServiceForm((prev) => ({ ...prev, image: '' }))}
+                          style={{
+                            padding: '5px 9px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            background: '#fee2e2',
+                            color: '#ef4444',
+                            border: '1px solid #fca5a5',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={serviceForm.image}
+                      onChange={(e) => setServiceForm({ ...serviceForm, image: e.target.value })}
+                      placeholder="Uploads to Cloudflare live URL (or paste image URL https://...)"
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '11.5px',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Price, Discount Price, Duration */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
@@ -2027,6 +2190,25 @@ export const ServiceCatalogPage = () => {
               border: '1px solid #e2e8f0',
             }}
           >
+            {viewingService.image && (
+              <div
+                style={{
+                  width: '100%',
+                  height: '150px',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  marginBottom: '16px',
+                  border: '1px solid #fbcfe8',
+                  boxShadow: '0 4px 12px rgba(236, 72, 153, 0.15)',
+                }}
+              >
+                <img
+                  src={viewingService.image}
+                  alt={viewingService.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div

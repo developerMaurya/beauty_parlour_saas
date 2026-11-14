@@ -197,6 +197,15 @@ export const enrollmentFetcher = {
   getForStudent: (studentId) => adminAxiosClient.get(`/admin/students/${studentId}/enrollments`),
 };
 
+// 13b. Course Material & PDF Fetcher (DB Based)
+export const courseMaterialFetcher = {
+  list: (params) => adminAxiosClient.get('/admin/course-materials', { params: buildParams(params) }),
+  get: (materialId) => adminAxiosClient.get(`/admin/course-materials/${materialId}`),
+  create: (data) => adminAxiosClient.post('/admin/course-materials', data),
+  update: (materialId, data) => adminAxiosClient.patch(`/admin/course-materials/${materialId}`, data),
+  delete: (materialId) => adminAxiosClient.delete(`/admin/course-materials/${materialId}`),
+};
+
 // 14. Customer Fetcher
 export const customerFetcher = {
   list: (params) => adminAxiosClient.get('/admin/customers', { params: buildParams(params) }),

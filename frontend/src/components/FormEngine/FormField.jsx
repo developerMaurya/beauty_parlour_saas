@@ -5,7 +5,8 @@
  * @module frontend/src/components/FormEngine/FormField
  */
 
-import React from 'react';
+import React, { useState } from 'react';
+import { uploadImageToCloudflare } from '../../services/uploadService.js';
 
 export const FormField = ({
   label,
@@ -25,6 +26,9 @@ export const FormField = ({
   min,
   max,
 }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
   const handleChange = (e) => {
     if (type === 'checkbox' || type === 'switch') {
       onChange({ target: { name, value: e.target.checked } });
@@ -35,14 +39,26 @@ export const FormField = ({
     }
   };
 
-  // Safe formatting for date inputs to ensure HTML5 <input type="date"> works properly
+  // Safe formatting for date inputs to ensure HTML5 <input type="date"> works properly (YYYY-MM-DD for native, DD/MM/YYYY for Indian/UK display)
   let displayValue = value ?? '';
+  let formattedDDMMYYYY = '';
   if (type === 'date' && displayValue) {
     try {
-      if (typeof displayValue === 'string' && displayValue.includes('T')) {
+      if (typeof displayValue === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(displayValue.trim())) {
+        const [day, month, year] = displayValue.trim().split('/');
+        displayValue = `${year}-${month}-${day}`;
+        formattedDDMMYYYY = `${day}/${month}/${year}`;
+      } else if (typeof displayValue === 'string' && displayValue.includes('T')) {
         displayValue = displayValue.split('T')[0];
+        const [y, m, d] = displayValue.split('-');
+        formattedDDMMYYYY = `${d}/${m}/${y}`;
+      } else if (typeof displayValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(displayValue.trim())) {
+        const [y, m, d] = displayValue.trim().split('-');
+        formattedDDMMYYYY = `${d}/${m}/${y}`;
       } else if (displayValue instanceof Date) {
         displayValue = displayValue.toISOString().split('T')[0];
+        const [y, m, d] = displayValue.split('-');
+        formattedDDMMYYYY = `${d}/${m}/${y}`;
       }
     } catch (e) {}
   }
@@ -98,6 +114,141 @@ export const FormField = ({
             );
           })}
         </select>
+      ) : type === 'image' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {value ? (
+              <div
+                style={{
+                  position: 'relative',
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: '2px solid #ec4899',
+                  boxShadow: '0 2px 8px rgba(236, 72, 153, 0.3)',
+                  flexShrink: 0,
+                  background: '#f8fafc',
+                }}
+              >
+                <img
+                  src={value}
+                  alt="Avatar Preview"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  background: 'rgba(236, 72, 153, 0.1)',
+                  border: '2px dashed rgba(236, 72, 153, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ec4899',
+                  fontSize: '22px',
+                  flexShrink: 0,
+                }}
+              >
+                {isUploading ? '⏳' : '📷'}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
+              <input
+                type="file"
+                accept="image/*"
+                id={`file-input-${name}`}
+                style={{ display: 'none' }}
+                disabled={disabled || isUploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setIsUploading(true);
+                    setUploadError('');
+                    try {
+                      const publicUrl = await uploadImageToCloudflare(file, {
+                        folder: 'avatars',
+                        entityType: name,
+                      });
+                      onChange({ target: { name, value: publicUrl } });
+                    } catch (err) {
+                      console.error('Image upload failed:', err);
+                      setUploadError(err.message || 'Image upload failed. Please check network or paste link.');
+                    } finally {
+                      setIsUploading(false);
+                      e.target.value = '';
+                    }
+                  }
+                }}
+              />
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  disabled={disabled || isUploading}
+                  onClick={() => document.getElementById(`file-input-${name}`)?.click()}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    fontSize: '11.5px',
+                    padding: '5px 12px',
+                    background: isUploading ? 'rgba(236, 72, 153, 0.25)' : 'rgba(236, 72, 153, 0.12)',
+                    borderColor: 'rgba(236, 72, 153, 0.35)',
+                    color: '#ec4899',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: isUploading ? 'wait' : 'pointer',
+                  }}
+                >
+                  {isUploading ? '⏳ Uploading to Cloudflare...' : '📁 Choose Image File'}
+                </button>
+                {value && (
+                  <button
+                    type="button"
+                    disabled={disabled || isUploading}
+                    onClick={() => {
+                      onChange({ target: { name, value: '' } });
+                      setUploadError('');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '11px', padding: '5px 9px', color: '#ef4444' }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <span style={{ fontSize: '11px', color: isUploading ? '#ec4899' : 'var(--text-muted)' }}>
+                {isUploading
+                  ? '⚡ Uploading directly to Cloudflare Images API... please wait'
+                  : 'Uploads directly to Cloudflare live URL (No Base64). Or paste link below:'}
+              </span>
+              {uploadError && (
+                <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>
+                  ⚠️ {uploadError}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <input
+            type="text"
+            id={name}
+            name={name}
+            value={value ?? ''}
+            onChange={handleChange}
+            placeholder={placeholder || 'Or paste image URL (https://...)'}
+            disabled={disabled || isUploading}
+            className="form-input"
+            style={{ fontSize: '12px', height: '34px' }}
+          />
+        </div>
       ) : type === 'switch' || type === 'checkbox' ? (
         <label
           style={{
@@ -154,13 +305,24 @@ export const FormField = ({
           name={name}
           value={displayValue}
           onChange={handleChange}
-          placeholder={placeholder}
+          placeholder={placeholder || (type === 'date' ? 'DD/MM/YYYY' : '')}
           disabled={disabled}
           step={step}
           min={min}
           max={max}
           className="form-input"
         />
+      )}
+
+      {type === 'date' && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', marginTop: '2px', padding: '0 2px' }}>
+          <span style={{ color: 'var(--text-muted)' }}>Format: <strong>DD/MM/YYYY</strong></span>
+          {formattedDDMMYYYY && (
+            <span style={{ color: '#ec4899', fontWeight: 700, background: 'rgba(236, 72, 153, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+              📅 Selected: {formattedDDMMYYYY}
+            </span>
+          )}
+        </div>
       )}
 
       {error && <span style={{ fontSize: '0.775rem', color: 'var(--rose-400, #f43f5e)' }}>{error}</span>}

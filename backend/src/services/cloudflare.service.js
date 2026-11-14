@@ -82,6 +82,62 @@ export async function uploadImageToCloudflare({
 }
 
 /**
+ * Get image details from Cloudflare Images API.
+ * @param {Object} options
+ * @param {string} options.imageId - Cloudflare image ID
+ * @param {string} [options.customToken]
+ * @param {string} [options.customUrl]
+ */
+export async function getImageDetailsFromCloudflare({
+  imageId,
+  customToken = null,
+  customUrl = null,
+}) {
+  if (!imageId) throw new Error('Image ID is required');
+
+  const token = (customToken && customToken.trim()) || env.CLOUDFLARE_API_TOKEN;
+  let apiUrl = (customUrl && customUrl.trim()) || env.CLOUDFLARE_API_URL;
+
+  if (!token || !apiUrl) {
+    throw new Error('Cloudflare credentials missing.');
+  }
+
+  const baseGetUrl = apiUrl.replace(/\/+$/, '');
+  const getEndpoint = `${baseGetUrl}/${imageId}`;
+
+  try {
+    const response = await fetch(getEndpoint, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      const errorMsg = data.errors?.map((e) => e.message).join(', ') || `Cloudflare status ${response.status}`;
+      throw new Error(`Failed to retrieve image: ${errorMsg}`);
+    }
+
+    const result = data.result;
+    const variants = result.variants || [];
+    const liveUrl = variants.length > 0 ? variants[0] : `https://imagedelivery.net/${result.id}/public`;
+
+    return {
+      success: true,
+      id: result.id,
+      url: liveUrl,
+      filename: result.filename,
+      uploaded: result.uploaded,
+      variants,
+    };
+  } catch (err) {
+    console.error('[Cloudflare Service] Get Image error:', err.message);
+    throw err;
+  }
+}
+
+/**
  * Delete an image from Cloudflare Images API.
  * @param {Object} options
  * @param {string} options.imageId - Cloudflare image ID
@@ -127,5 +183,6 @@ export async function deleteImageFromCloudflare({
 
 export default {
   uploadImageToCloudflare,
+  getImageDetailsFromCloudflare,
   deleteImageFromCloudflare,
 };

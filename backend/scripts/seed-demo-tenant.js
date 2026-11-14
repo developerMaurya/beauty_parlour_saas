@@ -207,6 +207,41 @@ export const seedDemoTenant = async () => {
     console.log('[SEED] Student profile created:', studentProfile.name);
   }
 
+  // 6b. Seed Initial DB Course Materials
+  const CourseMaterialModel = getTenantModel(fakeReq, 'CourseMaterial');
+  const existingMaterialCount = await CourseMaterialModel.countDocuments({ tenantId });
+  if (existingMaterialCount === 0) {
+    await CourseMaterialModel.create([
+      {
+        tenantId,
+        title: 'Master Bridal HD Airbrush & Hair Artistry Complete Syllabus PDF',
+        category: 'Syllabus',
+        type: 'pdf',
+        fileName: 'Bridal_HD_Airbrush_Course_Syllabus_2026.pdf',
+        fileSize: '2.4 MB',
+        fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        description: 'Official 2026 Golden Beauty Parlour Academy curriculum syllabus covering skin prep, airbrush techniques, and bridal hairstyling modules.',
+        uploadedBy: 'Master Admin',
+        isDownloadable: true,
+        visibility: 'all',
+      },
+      {
+        tenantId,
+        title: 'Skin Anatomy & Derma Facial Treatment Guide Chart',
+        category: 'Study Notes',
+        type: 'image',
+        fileName: 'Skin_Anatomy_Facial_Treatment_Chart.jpg',
+        fileSize: '1.2 MB',
+        fileUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80',
+        description: 'Visual reference chart for skin layers, cleansing strokes, and massage points for students.',
+        uploadedBy: 'Master Admin',
+        isDownloadable: true,
+        visibility: 'all',
+      },
+    ]);
+    console.log('[SEED] Initial Course materials seeded in DB');
+  }
+
   // 7. Seed Customer Profile
   let customerProfile = await CustomerModel.findOne({ tenantId, phone: '9876543210' });
   if (!customerProfile) {

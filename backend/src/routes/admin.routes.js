@@ -262,6 +262,12 @@ router.get('/students/:studentId/certificates/:certificateId', stuCtrl.getStuden
 router.patch('/students/:studentId/certificates/:certificateId', requirePermission('student.update'), stuCtrl.updateStudentCertificate);
 router.delete('/students/:studentId/certificates/:certificateId', requirePermission('student.update'), stuCtrl.deleteStudentCertificate);
 
+// Course Materials & PDF Uploader (DB Based)
+router.get('/course-materials', requirePermission('student.view'), stuCtrl.getCourseMaterials);
+router.post('/course-materials', requirePermission('student.create'), stuCtrl.createCourseMaterial);
+router.patch('/course-materials/:id', requirePermission('student.update'), stuCtrl.updateCourseMaterial);
+router.delete('/course-materials/:id', requirePermission('student.delete'), stuCtrl.deleteCourseMaterial);
+
 // ==========================================
 // 10. CUSTOMER CRM
 // ==========================================

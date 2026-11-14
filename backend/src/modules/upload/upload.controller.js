@@ -4,7 +4,7 @@
  * @module backend/src/modules/upload/upload.controller
  */
 
-import { uploadImageToCloudflare, deleteImageFromCloudflare } from '../../services/cloudflare.service.js';
+import { uploadImageToCloudflare, getImageDetailsFromCloudflare, deleteImageFromCloudflare } from '../../services/cloudflare.service.js';
 import { Tenant } from '../superadmin/tenants/models/tenant.model.js';
 
 export const uploadController = {
@@ -30,11 +30,15 @@ export const uploadController = {
 
       let tenant = req.tenant;
       if (!tenant) {
-        const tenantId = req.headers['x-tenant-id'] || req.headers['x-tenant-slug'] || req.body.tenantId;
-        if (tenantId) {
-          tenant = await Tenant.findOne({
-            $or: [{ _id: tenantId.match(/^[0-9a-fA-F]{24}$/) ? tenantId : null }, { slug: tenantId }],
-          });
+        try {
+          const tenantId = req.headers['x-tenant-id'] || req.headers['x-tenant-slug'] || req.body?.tenantId;
+          if (tenantId) {
+            tenant = await Tenant.findOne({
+              $or: [{ _id: tenantId.match(/^[0-9a-fA-F]{24}$/) ? tenantId : null }, { slug: tenantId }],
+            });
+          }
+        } catch (tErr) {
+          // Gracefully continue with platform default Cloudflare credentials
         }
       }
 
@@ -61,7 +65,13 @@ export const uploadController = {
       return res.status(200).json({
         success: true,
         message: 'Image uploaded successfully to Cloudflare Images',
-        data: uploadResult,
+        id: uploadResult.id,
+        url: uploadResult.url,
+        data: {
+          id: uploadResult.id,
+          url: uploadResult.url,
+          ...uploadResult,
+        },
       });
     } catch (error) {
       console.error('[UploadController] uploadSingleImage error:', error);
@@ -69,6 +79,39 @@ export const uploadController = {
         success: false,
         code: 'IMAGE_UPLOAD_FAILED',
         message: error.message || 'Failed to upload image to cloud storage.',
+      });
+    }
+  },
+
+  /**
+   * Get image details / live URL by Cloudflare image ID
+   * GET /api/v1/upload/image/:id or GET /api/v1/uploadimage/:id
+   */
+  async getImage(req, res) {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          code: 'ID_MISSING',
+          message: 'Image ID is required',
+        });
+      }
+
+      const details = await getImageDetailsFromCloudflare({ imageId: id });
+      return res.status(200).json({
+        success: true,
+        message: 'Image details fetched successfully',
+        id: details.id,
+        url: details.url,
+        data: details,
+      });
+    } catch (error) {
+      console.error('[UploadController] getImage error:', error);
+      return res.status(500).json({
+        success: false,
+        code: 'IMAGE_FETCH_FAILED',
+        message: error.message || 'Failed to retrieve image details from Cloudflare.',
       });
     }
   },
@@ -93,11 +136,15 @@ export const uploadController = {
 
       let tenant = req.tenant;
       if (!tenant) {
-        const tenantId = req.headers['x-tenant-id'] || req.headers['x-tenant-slug'] || req.body.tenantId;
-        if (tenantId) {
-          tenant = await Tenant.findOne({
-            $or: [{ _id: tenantId.match(/^[0-9a-fA-F]{24}$/) ? tenantId : null }, { slug: tenantId }],
-          });
+        try {
+          const tenantId = req.headers['x-tenant-id'] || req.headers['x-tenant-slug'] || req.body?.tenantId;
+          if (tenantId) {
+            tenant = await Tenant.findOne({
+              $or: [{ _id: tenantId.match(/^[0-9a-fA-F]{24}$/) ? tenantId : null }, { slug: tenantId }],
+            });
+          }
+        } catch (tErr) {
+          // Gracefully continue with platform default Cloudflare credentials
         }
       }
 

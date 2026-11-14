@@ -33,13 +33,21 @@ const singleUploadMiddleware = (req, res, next) => {
   });
 };
 
-// Single image upload to Cloudflare
+// Single image upload to Cloudflare (supports /uploadimage, /upload/image, /upload)
+router.post('/', singleUploadMiddleware, uploadController.uploadSingleImage);
+router.post('/uploadimage', singleUploadMiddleware, uploadController.uploadSingleImage);
 router.post('/image', singleUploadMiddleware, uploadController.uploadSingleImage);
+
+// Get image details / live URL by ID (GET /uploadimage/:id, /upload/:id, /upload/image/:id)
+router.get('/:id', uploadController.getImage);
+router.get('/image/:id', uploadController.getImage);
+router.get('/uploadimage/:id', uploadController.getImage);
 
 // Multiple images upload to Cloudflare (max 10)
 router.post('/images', imageUpload.array('files', 10), uploadController.uploadMultipleImages);
 
 // Delete an image from Cloudflare
 router.delete('/image/:id', uploadController.deleteImage);
+router.delete('/:id', uploadController.deleteImage);
 
 export default router;

@@ -37,8 +37,9 @@ router.use('/rent', rentRoutes);
 // ── Common utility and health check routes ──
 router.use('/common', commonRoutes);
 
-// ── Cloudflare Images Upload routes ──
+// ── Cloudflare Images Upload routes (/upload, /uploadimage) ──
 router.use('/upload', uploadRoutes);
+router.use('/uploadimage', uploadRoutes);
 
 // ── SuperAdmin portal routes ──
 router.use('/superadmin', superadminRoutes);

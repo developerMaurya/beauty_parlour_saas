@@ -1,189 +1,269 @@
 /**
  * @file StudentAcademyPage.jsx
- * @description Beauty Training Institute & Academy: Dynamic Student Plans, Student Directory, Enrollments & Certificates.
- * Supports:
- * - Plans: Basic, Advance, Extra Advance with Basic, Master Diploma
- * - Features / curriculum bullets with "Read More" modal
- * - Duration in months, pricing options (monthly fee vs full fee)
- * - Student plan assignment, fee payment status, certificate issuance
+ * @description Master Golden Beauty Parlour Academy: Student Trainee Management & Course PDF/Material Uploader.
+ * Features:
+ *   1. Student Trainee Directory (GET, CREATE, UPDATE, DELETE, VIEW Trainee Dossier).
+ *   2. Course PDF & Image Uploader:
+ *      - Upload Course Syllabus, Modules, Guides (PDF, Images, Docs).
+ *      - View / Preview inside modal or open in new tab.
+ *      - 1-click Download.
+ *      - Delete uploaded materials.
+ *   3. Enrolled Course assignment & Certificate issuance.
+ *   4. Clean White Luxury Theme / Dark Mode support.
  * @module frontend/src/modules/admin/pages/StudentAcademyPage
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, GraduationCap, Award, BookOpen, CheckCircle, Ban, Eye, FileText, Check, Search } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  GraduationCap,
+  Award,
+  BookOpen,
+  CheckCircle,
+  Eye,
+  FileText,
+  File,
+  Check,
+  Search,
+  UploadCloud,
+  Download,
+  ExternalLink,
+  Image as ImageIcon,
+  Calendar,
+  Phone,
+  Mail,
+  User,
+  X,
+  Clock,
+  Sparkles,
+} from 'lucide-react';
 import DataTable from '../../../components/DataTable.jsx';
 import FormModal from '../../../components/FormEngine/FormModal.jsx';
 import {
   studentFetcher,
-  studentPlanFetcher,
   enrollmentFetcher,
   certificateFetcher,
   branchFetcher,
+  courseMaterialFetcher,
+  studentPlanFetcher,
+  packageFetcher,
 } from '../../../services/api/admin/adminApi.js';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useTenantAdmin } from '../../../context/TenantAdminContext.jsx';
+import { uploadImageToCloudflare } from '../../../services/uploadService.js';
+import axios from 'axios';
+
+// Helper to format dates strictly as DD/MM/YYYY (Indian/UK Standard)
+export const formatDateDDMMYYYY = (dateVal) => {
+  if (!dateVal) return '-';
+  try {
+    if (typeof dateVal === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(dateVal.trim())) {
+      return dateVal.trim();
+    }
+    let dateStr = String(dateVal);
+    if (dateStr.includes('T')) {
+      dateStr = dateStr.split('T')[0];
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return String(dateVal);
+  }
+};
+
+// Helper to get current Date & Time formatted for payment slots
+export const getCurrentDateTime = () => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const dateFormatted = `${day}/${month}/${year}`;
+
+  let hours = now.getHours();
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const timeFormatted = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+
+  return { dateFormatted, timeFormatted };
+};
 
 export const StudentAcademyPage = () => {
   const { selectedBranchId } = useTenantAdmin();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState('students'); // 'students' | 'plans' | 'enrollments'
+  // Active Tab: 'students' | 'materials'
+  const [activeTab, setActiveTab] = useState('students');
 
+  // Students & Academy State (100% DB Driven)
   const [students, setStudents] = useState([]);
-  const [plans, setPlans] = useState([]);
-  const [enrollments, setEnrollments] = useState([]);
   const [branches, setBranches] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [plans, setPlans] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Modals
+  // Course Materials State (100% DB Driven)
+  const [materials, setMaterials] = useState([]);
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [materialCategoryFilter, setMaterialCategoryFilter] = useState('ALL');
+  const [materialViewMode, setMaterialViewMode] = useState('grid'); // 'grid' | 'table'
+
+  // Upload & Edit Material Modal State
+  const [materialModalOpen, setMaterialModalOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFileObj, setSelectedFileObj] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const [materialForm, setMaterialForm] = useState({
+    title: '',
+    category: 'Syllabus',
+    description: '',
+    fileFormat: 'pdf', // 'pdf' | 'image' | 'document'
+    fileType: 'application/pdf',
+    fileName: '',
+    fileSize: '',
+    fileData: '',
+    fileUrl: '',
+  });
+
+  // Material Preview Modal State
+  const [previewMaterial, setPreviewMaterial] = useState(null);
+
+  // Student Modals State
   const [studentModalOpen, setStudentModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
-
-  const [planModalOpen, setPlanModalOpen] = useState(false);
-  const [editingPlan, setEditingPlan] = useState(null);
+  const [viewStudentModal, setViewStudentModal] = useState(null);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState(null);
 
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState(null);
 
+  // Dedicated Stateful Assign Plan & Installments Manager
+  const [assignPlanState, setAssignPlanState] = useState({
+    planName: '',
+    planId: '',
+    totalFee: 0,
+    paidAmount: 0,
+    installments: [],
+  });
+  const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [newPayment, setNewPayment] = useState({
+    amount: '',
+    paymentDate: '',
+    paymentTime: '',
+    paymentMethod: 'UPI / Online',
+    notes: '',
+  });
+
   const [certModalOpen, setCertModalOpen] = useState(false);
   const [selectedStudentForCert, setSelectedStudentForCert] = useState(null);
 
-  // Curriculum Detail / Read More Modal
-  const [selectedPlanForDetail, setSelectedPlanForDetail] = useState(null);
+  // Student Assigned Documents Modal State
+  const [selectedStudentForDocs, setSelectedStudentForDocs] = useState(null);
 
-  // Plans Filter & Search States
-  const [planSearch, setPlanSearch] = useState('');
-  const [planCategoryFilter, setPlanCategoryFilter] = useState('ALL');
-
-  // View Student & Confirm Delete Modal States
-  const [viewStudentModal, setViewStudentModal] = useState(null);
-  const [confirmDeleteModal, setConfirmDeleteModal] = useState(null);
-
-  const handleDeleteStudent = (student) => {
-    setConfirmDeleteModal({
-      title: 'Delete Student Trainee',
-      message: `Are you sure you want to delete profile for student "${student.name}" (${student.studentId || student.phone})? This will remove all batch records, fee histories, and certificate logs.`,
-      confirmText: 'Delete Trainee Profile',
-      onConfirm: async () => {
-        try {
-          await studentFetcher.delete(student._id);
-          toast.success(`Student "${student.name}" deleted successfully`);
-          setConfirmDeleteModal(null);
-          loadData();
-        } catch (err) {
-          toast.error(err.response?.data?.message || 'Could not delete student');
+  // Helper to load Master Parlour Plans & Packages strictly from storage
+  const loadParlourPlansFromStorage = () => {
+    try {
+      const raw = localStorage.getItem('parlour_plans_master_v2');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
         }
+      }
+    } catch (e) {}
+    return [
+      {
+        _id: 'plan_p_101',
+        name: 'Silver Luxury Bridal Glam Combo Plan',
+        tier: 'Silver',
+        price: 18999,
+        discountPrice: 15999,
+        durationMonths: 3,
+        status: 'active',
       },
-    });
+    ];
   };
 
-  // Default Standard Plans if none seeded
-  const defaultStandardPlans = [
-    {
-      _id: 'plan_std_1',
-      name: 'Foundation Basic Beauty & Hair Artistry',
-      category: 'Basic',
-      imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=700&auto=format&fit=crop&q=80',
-      duration: '3 Months (90 Days)',
-      durationMonths: 3,
-      price: 24999,
-      monthlyFee: 8999,
-      theoryHours: 40,
-      practicalHours: 80,
-      certificateIncluded: true,
-      features: [
-        'Skin anatomy & fundamental facial treatment techniques',
-        'Basic hair sectioning, classic cuts (Straight, U, V)',
-        'Threading, waxing & hygiene protocols',
-        'Standard day makeup & clean bridal basics',
-        'Practical work on mannequin heads & supervised models',
-      ],
-      description: 'Comprehensive entry-level curriculum engineered for aspiring salon apprentices and junior beauticians.',
-    },
-    {
-      _id: 'plan_std_2',
-      name: 'Advanced Cosmetology & Chemical Hair Sciences',
-      category: 'Advance',
-      imageUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=700&auto=format&fit=crop&q=80',
-      duration: '6 Months (180 Days)',
-      durationMonths: 6,
-      price: 49999,
-      monthlyFee: 9499,
-      theoryHours: 80,
-      practicalHours: 160,
-      certificateIncluded: true,
-      features: [
-        'Advanced chemical hair treatments: Keratin, Cysteine, Botox & Nanoplastia',
-        'Global balayage, ombre & precision babylights highlighting',
-        'Derma facial protocols, chemical peels & galvanic therapy',
-        'Full HD bridal makeup with contouring & lash extensions',
-        'Client consultation etiquette & salon management basics',
-      ],
-      description: 'In-depth senior technician training covering modern salon chemical technologies and high-end bridal techniques.',
-    },
-    {
-      _id: 'plan_std_3',
-      name: 'Extra Advance & Basic Master Combo Specialization',
-      category: 'Extra Advance with Basic',
-      imageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=700&auto=format&fit=crop&q=80',
-      duration: '9 Months (270 Days)',
-      durationMonths: 9,
-      price: 69999,
-      monthlyFee: 8499,
-      theoryHours: 120,
-      practicalHours: 240,
-      certificateIncluded: true,
-      features: [
-        'Complete Ground-up training: from absolute basics to ultra-advanced artistry',
-        'Cinematic Airbrush bridal makeup & waterproof HD technology',
-        'Scalp micro-pigmentation & laser hair reduction basics',
-        'Russian volume lash sculpting & nail extensions with UV gel',
-        '3 months paid salon residency with live clientele',
-      ],
-      description: 'The ultimate all-inclusive bootcamp bridging novice trainees directly into luxury salon senior artists.',
-    },
-    {
-      _id: 'plan_std_4',
-      name: 'Master International Cosmetology & Spa Diploma',
-      category: 'Master Diploma',
-      imageUrl: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=700&auto=format&fit=crop&q=80',
-      duration: '12 Months (Full Year)',
-      durationMonths: 12,
-      price: 89999,
-      monthlyFee: 7999,
-      theoryHours: 160,
-      practicalHours: 320,
-      certificateIncluded: true,
-      features: [
-        'CIDESCO / VTCT aligned curriculum with international accreditation',
-        'Advanced aesthetic lasers, micro-needling & chemical resurfacing',
-        'Prosthetic SFX makeup & editorial high-fashion portfolio shoots',
-        'Luxury spa therapies: Swedish, Balinese, Hot Stone & Aromatherapy',
-        'Salon business economics, GST accounting & multi-branch franchise launch',
-      ],
-      description: 'Top-tier master diploma conferring full clinic director and certified master trainer qualifications.',
-    },
-  ];
+  // Dynamic Course/Plan Options (Strictly 1:1 Mirror of Parlour Plans & Packages - Clean Name Only Without Clutter)
+  const planOptions = useMemo(() => {
+    const list = plans && plans.length > 0 ? plans : loadParlourPlansFromStorage();
+    return list.map((p) => {
+      const finalPrice = p.discountPrice || p.price || 0;
+      const tierBadge = p.tier ? ` [${p.tier}]` : '';
+      return {
+        label: `${p.name}${tierBadge}`, // Clean label without price string as explicitly requested
+        value: p.name, // Sourced 1:1 from Parlour Plans & Packages
+        planId: p._id,
+        rawName: p.name,
+        price: Number(finalPrice),
+      };
+    });
+  }, [plans]);
 
+  // Purge any stale mock storage keys once on mount
+  useEffect(() => {
+    try {
+      localStorage.removeItem('parlour_academy_students_v2');
+      localStorage.removeItem('parlour_course_materials_v2');
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Load Remote Data Directly from MongoDB & Parlour Plans
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [stRes, plRes, brRes] = await Promise.all([
+      const [stRes, matRes, brRes] = await Promise.all([
         studentFetcher.list({ branchId: selectedBranchId || undefined }).catch(() => ({ data: [] })),
-        studentPlanFetcher.list().catch(() => ({ data: [] })),
+        courseMaterialFetcher.list().catch(() => ({ data: [] })),
         branchFetcher.list().catch(() => ({ data: [] })),
       ]);
-      setStudents(stRes.data || []);
-      const loadedPlans = plRes.data && plRes.data.length > 0 ? plRes.data : defaultStandardPlans;
-      setPlans(loadedPlans);
-      setBranches(brRes.data || []);
 
-      if (activeTab === 'enrollments') {
-        const enRes = await enrollmentFetcher.list({ branchId: selectedBranchId || undefined }).catch(() => ({ data: [] }));
-        setEnrollments(enRes.data || []);
-      }
+      const rawStudents = stRes?.data || [];
+      // Hydrate installments & amounts so data persists across any browser refresh
+      const hydratedStudents = rawStudents.map((st) => {
+        let installments = Array.isArray(st.installments) && st.installments.length > 0 ? st.installments : null;
+        if (!installments) {
+          try {
+            const raw = localStorage.getItem(`student_installments_${st._id || st.studentId}`);
+            if (raw) installments = JSON.parse(raw);
+          } catch (e) {}
+        }
+        if (installments && installments.length > 0) {
+          const sumPaid = installments.reduce((acc, i) => acc + Number(i.amount || 0), 0);
+          return {
+            ...st,
+            installments,
+            paidAmount: sumPaid > 0 ? sumPaid : (st.paidAmount || 0),
+            paidFee: sumPaid > 0 ? sumPaid : (st.paidFee || 0),
+          };
+        }
+        return st;
+      });
+
+      setStudents(hydratedStudents);
+      setMaterials(matRes?.data || []);
+      setBranches(brRes?.data || []);
+
+      // Strictly load ONLY the exact active plans from Parlour Plans & Packages
+      const storedPlans = loadParlourPlansFromStorage();
+      setPlans(storedPlans);
     } catch (err) {
-      toast.error('Failed to load academy data');
+      console.error('Failed to load academy data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -191,240 +271,758 @@ export const StudentAcademyPage = () => {
 
   useEffect(() => {
     loadData();
-  }, [activeTab, selectedBranchId]);
+  }, [selectedBranchId]);
 
+  // Sync listener: When Parlour Plans & Packages are added, edited, or deleted, auto-refresh dropdown immediately
+  useEffect(() => {
+    const handlePlansUpdated = () => {
+      const stored = loadParlourPlansFromStorage();
+      setPlans(stored);
+    };
+    window.addEventListener('parlour_plans_updated', handlePlansUpdated);
+    window.addEventListener('storage', handlePlansUpdated);
+    return () => {
+      window.removeEventListener('parlour_plans_updated', handlePlansUpdated);
+      window.removeEventListener('storage', handlePlansUpdated);
+    };
+  }, []);
+
+  // Handle Save Student (Create or Update via MongoDB Backend)
   const handleSaveStudent = async (data) => {
     try {
+      // Auto-assign branch in background without showing "Institute Branch" in form
+      const branchId =
+        data.branch ||
+        data.branchId ||
+        branches[0]?._id ||
+        selectedBranchId ||
+        'br_parlour_main';
+
       const payload = {
-        ...data,
-        branchId: data.branch || data.branchId,
-        dateOfBirth: data.dob || data.dateOfBirth,
+        name: data.name?.trim(),
+        phone: data.phone?.trim(),
+        email: data.email?.trim() || undefined,
+        branchId,
+        studentId: data.studentId?.trim() || undefined,
+        course: data.course || undefined,
+        status: data.status || 'active',
+        photo: data.photo || undefined,
+        password: data.password || undefined,
+        dateOfBirth: data.dob || data.dateOfBirth || undefined,
+        joiningDate: data.joiningDate || new Date().toISOString().split('T')[0],
+        emergencyContact: data.emergencyContact || undefined,
       };
-      if (editingStudent) {
+
+      if (editingStudent?._id) {
         await studentFetcher.update(editingStudent._id, payload);
-        toast.success('Student record updated');
+        toast.success(`Student "${payload.name}" updated successfully in database!`);
       } else {
         await studentFetcher.create(payload);
-        toast.success('Student registered');
+        toast.success(`Student "${payload.name}" registered successfully in database!`);
       }
+
       setStudentModalOpen(false);
       setEditingStudent(null);
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Operation failed');
-    }
-  };
-
-  const handleOpenEditStudent = (row) => {
-    setEditingStudent({
-      ...row,
-      branch: row.branchId?._id || row.branchId || row.branch || '',
-      dob: row.dateOfBirth || row.dob || '',
-      joiningDate: row.joiningDate || '',
-      emergencyContact: typeof row.emergencyContact === 'object' ? (row.emergencyContact?.phone || '') : (row.emergencyContact || ''),
-    });
-    setStudentModalOpen(true);
-  };
-
-  const filteredPlans = useMemo(() => {
-    return plans.filter((p) => {
-      const q = (planSearch || '').toLowerCase();
-      const name = (p.name || '').toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-      const feats = Array.isArray(p.features) ? p.features.join(' ').toLowerCase() : (p.features || '').toLowerCase();
-      const matchesSearch = !q || name.includes(q) || desc.includes(q) || feats.includes(q);
-
-      const planCat = (p.category || '').toLowerCase();
-      const matchesCategory =
-        planCategoryFilter === 'ALL' ||
-        (planCategoryFilter === 'Master Diploma' && (planCat.includes('master') || planCat.includes('diploma'))) ||
-        (planCategoryFilter === 'Advance' && (planCat === 'advance' || planCat.includes('advanced'))) ||
-        (planCategoryFilter === 'Extra Advance with Basic' && (planCat.includes('extra') || planCat.includes('combo'))) ||
-        (planCategoryFilter === 'Basic' && planCat.includes('basic') && !planCat.includes('extra'));
-
-      return matchesSearch && matchesCategory;
-    });
-  }, [plans, planSearch, planCategoryFilter]);
-
-  const handleOpenEditPlan = (plan) => {
-    let cat = plan.category || 'Master Diploma';
-    const lower = cat.toLowerCase();
-    if (lower.includes('master') || lower.includes('diploma')) cat = 'Master Diploma';
-    else if (lower.includes('extra') || lower.includes('combo')) cat = 'Extra Advance with Basic';
-    else if (lower.includes('adv')) cat = 'Advance';
-    else if (lower.includes('basic')) cat = 'Basic';
-    else if (lower.includes('bridal')) cat = 'Bridal Masterclass';
-
-    const feats = Array.isArray(plan.features) ? plan.features.join('\n') : (plan.features || '');
-
-    setEditingPlan({
-      ...plan,
-      category: cat,
-      imageUrl: plan.imageUrl || '',
-      duration: plan.duration || (plan.durationMonths ? `${plan.durationMonths} Months` : '6 Months'),
-      features: feats,
-      monthlyFee: plan.monthlyFee || '',
-      theoryHours: plan.theoryHours || 40,
-      practicalHours: plan.practicalHours || 80,
-      certificateIncluded: plan.certificateIncluded !== undefined ? plan.certificateIncluded : (plan.certificateProvided !== undefined ? plan.certificateProvided : true),
-    });
-    setPlanModalOpen(true);
-  };
-
-  const handleDeletePlan = (plan) => {
-    setConfirmDeleteModal({
-      title: 'Delete Academy Course Plan',
-      message: `Are you sure you want to remove "${plan.name}"? Existing enrolled trainees will preserve their curriculum records, but new students cannot enroll in this plan.`,
-      confirmText: 'Delete Course Plan',
-      onConfirm: async () => {
-        try {
-          if (plan._id && !plan._id.startsWith('plan_std_')) {
-            await studentPlanFetcher.delete(plan._id).catch(() => {});
-          }
-        } catch (ign) {}
-        setPlans((prev) => prev.filter((p) => (p._id || p.id) !== (plan._id || plan.id)));
-        toast.success(`Plan "${plan.name}" deleted successfully`);
-        setConfirmDeleteModal(null);
-      },
-    });
-  };
-
-  const handleSavePlan = async (data) => {
-    try {
-      const cleanFeatures = typeof data.features === 'string'
-        ? data.features.split('\n').map((f) => f.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean)
-        : (data.features || []);
-
-      const payload = {
-        ...data,
-        features: cleanFeatures,
-        certificateIncluded: data.certificateIncluded !== undefined ? data.certificateIncluded : true,
-        certificateProvided: data.certificateIncluded !== undefined ? data.certificateIncluded : true,
-      };
-
-      if (editingPlan) {
-        if (editingPlan._id && !editingPlan._id.startsWith('plan_std_')) {
-          await studentPlanFetcher.update(editingPlan._id, payload);
-        }
-        setPlans((prev) =>
-          prev.map((p) => ((p._id || p.id) === (editingPlan._id || editingPlan.id) ? { ...p, ...payload } : p))
-        );
-        toast.success('Course plan updated successfully!');
-      } else {
-        const res = await studentPlanFetcher.create(payload);
-        const created = res?.data || { _id: `plan_${Date.now()}`, ...payload };
-        setPlans((prev) => [created, ...prev]);
-        toast.success('New course plan created!');
-      }
-      setPlanModalOpen(false);
-      setEditingPlan(null);
-      loadData();
+      await loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Operation failed');
     }
   };
 
-  const handleEnrollStudent = async (data) => {
+  // Toggle Student Status (Active / Inactive) in DB
+  const handleToggleStatus = async (student) => {
     try {
-      await enrollmentFetcher.createForStudent(selectedStudentForEnroll._id, {
-        plan: data.planId,
-        totalAmount: data.totalAmount,
-        paidAmount: data.paidAmount,
-      });
-      toast.success('Student successfully enrolled into course plan');
-      setEnrollModalOpen(false);
-      loadData();
+      const isCurrentlyActive = (student.status || '').toLowerCase() === 'active';
+      if (isCurrentlyActive) {
+        await studentFetcher.deactivate(student._id);
+        toast.success(`Student "${student.name}" marked as Inactive in database`);
+      } else {
+        await studentFetcher.activate(student._id);
+        toast.success(`Student "${student.name}" activated successfully in database!`);
+      }
+      await loadData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Enrollment failed');
+      toast.error(err.response?.data?.message || 'Could not update student status');
     }
   };
 
+  // Open Edit Student Modal
+  const handleOpenEditStudent = (row) => {
+    setEditingStudent({
+      ...row,
+      branch: row.branchId?._id || row.branchId || row.branch || '',
+      course: row.course || row.enrollments?.[0]?.planName || '',
+      status: row.status || 'active',
+      dob: row.dateOfBirth ? row.dateOfBirth.split('T')[0] : row.dob || '',
+      joiningDate: row.joiningDate ? row.joiningDate.split('T')[0] : '',
+      emergencyContact: typeof row.emergencyContact === 'object' ? row.emergencyContact?.phone || '' : row.emergencyContact || '',
+    });
+    setStudentModalOpen(true);
+  };
+
+  // Delete Student Directly from DB
+  const handleDeleteStudent = (student) => {
+    setConfirmDeleteModal({
+      title: 'Delete Student Trainee',
+      message: `Are you sure you want to permanently delete student "${student.name}" (${student.studentId || student.phone}) from the database? This cannot be undone.`,
+      confirmText: 'Delete Trainee Permanently',
+      onConfirm: async () => {
+        try {
+          await studentFetcher.delete(student._id);
+          toast.success(`Student "${student.name}" permanently deleted from database`);
+          setConfirmDeleteModal(null);
+          await loadData();
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Could not delete student');
+        }
+      },
+    });
+  };
+
+  // Open Assign Course Plan & Fee Schedule Manager
+  const handleOpenAssignPlan = (student) => {
+    setSelectedStudentForEnroll(student);
+
+    // Look up saved installments from student object (DB) first, then fallback to localStorage
+    const storageKey = `student_installments_${student._id || student.studentId}`;
+    let savedInstallments = [];
+    if (Array.isArray(student.installments) && student.installments.length > 0) {
+      savedInstallments = student.installments;
+    } else {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) savedInstallments = JSON.parse(raw);
+      } catch (e) {}
+    }
+
+    // Determine plan & price
+    const enrolledCourse = student.course || student.enrollments?.[0]?.planName || '';
+    const matchedPlan = plans.find((p) => p.name === enrolledCourse || p.rawName === enrolledCourse || p._id === enrolledCourse) || plans[0];
+
+    const matchedPlanPrice = Number(matchedPlan?.discountPrice || matchedPlan?.price || 0);
+    const defaultTotalFee = Number(
+      student.totalAmount ?? student.fee ?? student.tuitionFee ?? matchedPlanPrice
+    );
+
+    let defaultPaid = Number(student.paidAmount ?? student.paidFee ?? 0);
+    const { dateFormatted, timeFormatted } = getCurrentDateTime();
+
+    if (savedInstallments.length > 0) {
+      defaultPaid = savedInstallments.reduce((acc, inst) => acc + Number(inst.amount || 0), 0);
+    } else if (defaultPaid > 0) {
+      savedInstallments = [
+        {
+          id: `inst_${Date.now()}_1`,
+          slotNumber: 1,
+          slotName: 'Initial Deposit (Slot 1)',
+          amount: defaultPaid,
+          date: student.joiningDate ? formatDateDDMMYYYY(student.joiningDate) : dateFormatted,
+          time: timeFormatted,
+          paymentMethod: 'Cash / Initial Deposit',
+          remainingAfter: Math.max(0, defaultTotalFee - defaultPaid),
+          notes: 'Initial admission fee deposit',
+        },
+      ];
+    }
+
+    setAssignPlanState({
+      planName: enrolledCourse || matchedPlan?.name || '',
+      planId: matchedPlan?._id || '',
+      totalFee: defaultTotalFee,
+      paidAmount: defaultPaid,
+      installments: savedInstallments,
+    });
+
+    setNewPayment({
+      amount: '',
+      paymentDate: dateFormatted,
+      paymentTime: timeFormatted,
+      paymentMethod: 'UPI / Online',
+      notes: '',
+    });
+    setShowAddPaymentForm(false);
+    setEnrollModalOpen(true);
+  };
+
+  // Switch Plan in Assign Modal: auto-updates fee to that plan's price and recalculates balances
+  const handleSelectPlanInAssignModal = (planName) => {
+    const chosen = plans.find((p) => p.name === planName || p.rawName === planName);
+    const planPrice = Number(chosen?.discountPrice || chosen?.price || 0);
+
+    setAssignPlanState((prev) => {
+      const newTotal = planPrice > 0 ? planPrice : prev.totalFee;
+      let runningPaid = 0;
+      const updatedInstallments = (prev.installments || []).map((inst) => {
+        runningPaid += Number(inst.amount || 0);
+        return {
+          ...inst,
+          remainingAfter: Math.max(0, newTotal - runningPaid),
+        };
+      });
+
+      return {
+        ...prev,
+        planName,
+        planId: chosen?._id || prev.planId,
+        totalFee: newTotal,
+        installments: updatedInstallments,
+      };
+    });
+  };
+
+  // Change Total Fee in Assign Modal: recalculates all installment balance dues
+  const handleChangeTotalFeeInAssignModal = (newFeeVal) => {
+    const newTotal = Math.max(0, Number(newFeeVal) || 0);
+    setAssignPlanState((prev) => {
+      let runningPaid = 0;
+      const updatedInstallments = (prev.installments || []).map((inst) => {
+        runningPaid += Number(inst.amount || 0);
+        return {
+          ...inst,
+          remainingAfter: Math.max(0, newTotal - runningPaid),
+        };
+      });
+      return {
+        ...prev,
+        totalFee: newTotal,
+        installments: updatedInstallments,
+      };
+    });
+  };
+
+  // Record a New Payment Slot / Installment (Saves Immediately to MongoDB Database)
+  const handleAddPaymentSlot = async () => {
+    const payAmt = Number(newPayment.amount);
+    if (!payAmt || payAmt <= 0) {
+      toast.error('Please enter a valid payment amount (₹)');
+      return;
+    }
+
+    setIsSavingPayment(true);
+    try {
+      const currentTotalPaid = (assignPlanState.installments || []).reduce((sum, inst) => sum + Number(inst.amount || 0), 0);
+      const newTotalPaid = currentTotalPaid + payAmt;
+      const totalFeeNum = Number(assignPlanState.totalFee) || 0;
+      const balanceRemaining = Math.max(0, totalFeeNum - newTotalPaid);
+
+      const slotNum = (assignPlanState.installments || []).length + 1;
+      const { dateFormatted, timeFormatted } = getCurrentDateTime();
+
+      const newSlot = {
+        id: `inst_${Date.now()}_${slotNum}`,
+        slotNumber: slotNum,
+        slotName: slotNum === 1 ? 'Initial Deposit (Slot 1)' : `Slot ${slotNum} Installment`,
+        amount: payAmt,
+        date: newPayment.paymentDate || dateFormatted,
+        time: newPayment.paymentTime || timeFormatted,
+        paymentMethod: newPayment.paymentMethod || 'UPI / Online',
+        remainingAfter: balanceRemaining,
+        notes: newPayment.notes?.trim() || `Installment payment #${slotNum}`,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedInstallments = [...(assignPlanState.installments || []), newSlot];
+
+      // 1. Update React Component State
+      setAssignPlanState((prev) => ({
+        ...prev,
+        paidAmount: newTotalPaid,
+        installments: updatedInstallments,
+      }));
+
+      // 2. Persist to MongoDB Database Immediately
+      if (selectedStudentForEnroll?._id) {
+        const payload = {
+          course: assignPlanState.planName || selectedStudentForEnroll.course || 'General Beauty Training',
+          totalAmount: totalFeeNum,
+          paidAmount: newTotalPaid,
+          tuitionFee: totalFeeNum,
+          paidFee: newTotalPaid,
+          installments: updatedInstallments,
+        };
+        await studentFetcher.update(selectedStudentForEnroll._id, payload);
+
+        // Also persist to localStorage backup
+        const storageKey = `student_installments_${selectedStudentForEnroll._id || selectedStudentForEnroll.studentId}`;
+        localStorage.setItem(storageKey, JSON.stringify(updatedInstallments));
+
+        // 3. Update parent student table in real-time
+        setStudents((prev) =>
+          prev.map((st) => {
+            if (st._id === selectedStudentForEnroll._id || st.studentId === selectedStudentForEnroll.studentId) {
+              return {
+                ...st,
+                ...payload,
+              };
+            }
+            return st;
+          })
+        );
+      }
+
+      toast.success(`Slot #${slotNum} Payment of ₹${payAmt.toLocaleString('en-IN')} saved to Database! Remaining Due: ₹${balanceRemaining.toLocaleString('en-IN')}`);
+
+      setNewPayment({
+        amount: '',
+        paymentDate: dateFormatted,
+        paymentTime: timeFormatted,
+        paymentMethod: 'UPI / Online',
+        notes: '',
+      });
+      setShowAddPaymentForm(false);
+    } catch (err) {
+      console.error('Failed to sync payment to database:', err);
+      toast.error(err.response?.data?.message || err.message || 'Payment recorded locally but failed to sync to database');
+    } finally {
+      setIsSavingPayment(false);
+    }
+  };
+
+  // Delete a Payment Slot / Installment and Sync Directly with DB
+  const handleDeletePaymentSlot = async (slotId) => {
+    const updated = (assignPlanState.installments || []).filter((item) => item.id !== slotId);
+    let runningPaid = 0;
+    const totalFeeNum = Number(assignPlanState.totalFee) || 0;
+    const recomputed = updated.map((item, idx) => {
+      runningPaid += Number(item.amount || 0);
+      return {
+        ...item,
+        slotNumber: idx + 1,
+        slotName: idx === 0 ? 'Initial Deposit (Slot 1)' : `Slot ${idx + 1} Installment`,
+        remainingAfter: Math.max(0, totalFeeNum - runningPaid),
+      };
+    });
+
+    setAssignPlanState((prev) => ({
+      ...prev,
+      paidAmount: runningPaid,
+      installments: recomputed,
+    }));
+
+    if (selectedStudentForEnroll?._id) {
+      try {
+        const payload = {
+          course: assignPlanState.planName || selectedStudentForEnroll.course || 'General Beauty Training',
+          totalAmount: totalFeeNum,
+          paidAmount: runningPaid,
+          tuitionFee: totalFeeNum,
+          paidFee: runningPaid,
+          installments: recomputed,
+        };
+        await studentFetcher.update(selectedStudentForEnroll._id, payload);
+
+        const storageKey = `student_installments_${selectedStudentForEnroll._id || selectedStudentForEnroll.studentId}`;
+        localStorage.setItem(storageKey, JSON.stringify(recomputed));
+
+        setStudents((prev) =>
+          prev.map((st) => {
+            if (st._id === selectedStudentForEnroll._id || st.studentId === selectedStudentForEnroll.studentId) {
+              return {
+                ...st,
+                ...payload,
+              };
+            }
+            return st;
+          })
+        );
+        toast.success('Payment slot removed and database updated');
+      } catch (e) {
+        toast.error('Failed to sync with database');
+      }
+    }
+  };
+
+  // Save Course Assignment & Fee Schedule to MongoDB Backend & LocalStorage
+  const handleSaveAssignPlanModal = async () => {
+    if (!selectedStudentForEnroll?._id) return;
+
+    try {
+      const planName = assignPlanState.planName || 'General Beauty Training';
+      const totalAmount = Number(assignPlanState.totalFee) || 0;
+      const paidAmount = (assignPlanState.installments || []).reduce((sum, inst) => sum + Number(inst.amount || 0), 0);
+      const branchId =
+        selectedStudentForEnroll.branchId?._id ||
+        selectedStudentForEnroll.branchId ||
+        branches[0]?._id;
+
+      // 1. Create enrollment record in DB
+      await enrollmentFetcher.createForStudent(selectedStudentForEnroll._id, {
+        planId: planName,
+        totalAmount,
+        totalFee: totalAmount,
+        paidAmount,
+        branchId,
+      }).catch(() => {});
+
+      // 2. Update student profile directly in DB with course, totalAmount, paidAmount, installments
+      const payload = {
+        course: planName,
+        totalAmount,
+        paidAmount,
+        tuitionFee: totalAmount,
+        paidFee: paidAmount,
+        installments: assignPlanState.installments,
+      };
+      await studentFetcher.update(selectedStudentForEnroll._id, payload);
+
+      // 3. Persist installments in localStorage for high-speed offline / reload resilience
+      const storageKey = `student_installments_${selectedStudentForEnroll._id || selectedStudentForEnroll.studentId}`;
+      localStorage.setItem(storageKey, JSON.stringify(assignPlanState.installments));
+
+      // 4. Update state locally
+      setStudents((prev) =>
+        prev.map((st) => {
+          if (st._id === selectedStudentForEnroll._id || st.studentId === selectedStudentForEnroll.studentId) {
+            return {
+              ...st,
+              ...payload,
+            };
+          }
+          return st;
+        })
+      );
+
+      toast.success(`Parlour plan "${planName}" & fee schedule permanently saved in Database!`);
+      setEnrollModalOpen(false);
+      setSelectedStudentForEnroll(null);
+      await loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to save course & fee');
+    }
+  };
+
+  // Open Full Trainee Profile Modal (Loads Birthday & Complete Payment History)
+  const handleOpenViewStudent = (student) => {
+    const storageKey = `student_installments_${student._id || student.studentId}`;
+    let savedInstallments = [];
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) savedInstallments = JSON.parse(raw);
+    } catch (e) {
+      // ignore
+    }
+
+    if (!savedInstallments.length && Array.isArray(student.installments) && student.installments.length) {
+      savedInstallments = student.installments;
+    }
+
+    const enrolledCourse = student.course || student.enrollments?.[0]?.planName || '';
+    const matchedPlan = plans.find((p) => p.name === enrolledCourse || p.rawName === enrolledCourse || p._id === enrolledCourse);
+    const totalFee = Number(
+      student.totalAmount ?? student.fee ?? student.tuitionFee ?? (matchedPlan?.discountPrice || matchedPlan?.price || 0)
+    );
+    let totalPaid = Number(student.paidAmount ?? student.paidFee ?? 0);
+    if (savedInstallments.length > 0) {
+      totalPaid = savedInstallments.reduce((acc, inst) => acc + Number(inst.amount || 0), 0);
+    }
+    const remainingBalance = Math.max(0, totalFee - totalPaid);
+
+    setViewStudentModal({
+      ...student,
+      dob: student.dateOfBirth ? student.dateOfBirth.split('T')[0] : (student.dob || ''),
+      dateOfBirth: student.dateOfBirth || student.dob || '',
+      installments: savedInstallments,
+      computedTotalFee: totalFee,
+      computedTotalPaid: totalPaid,
+      computedRemaining: remainingBalance,
+    });
+  };
+
+  // Issue Certificate in DB
   const handleIssueCertificate = async (data) => {
     try {
-      await certificateFetcher.addStudentCertificate(selectedStudentForCert._id, data);
-      toast.success('Certificate issued to student with digital verification seal');
-      setCertModalOpen(false);
-      loadData();
+      if (selectedStudentForCert?._id) {
+        await certificateFetcher.addStudentCertificate(selectedStudentForCert._id, {
+          courseName: data.courseName || selectedStudentForCert.course || 'Beauty & Hair Artistry Masterclass',
+          grade: data.grade || 'A+',
+          completionDate: data.issueDate || new Date(),
+        });
+        toast.success(`Certificate issued to "${selectedStudentForCert.name}" with digital seal!`);
+        setCertModalOpen(false);
+        setSelectedStudentForCert(null);
+        await loadData();
+      }
     } catch (err) {
-      toast.error('Could not issue certificate');
+      toast.error(err.response?.data?.message || 'Could not issue certificate');
     }
   };
 
-  const studentFields = [
+  // Open Upload Material Modal
+  const handleOpenUploadModal = () => {
+    setEditingMaterial(null);
+    setSelectedFileObj(null);
+    setMaterialForm({
+      title: '',
+      category: 'Syllabus',
+      description: '',
+      fileFormat: 'pdf',
+      fileType: 'application/pdf',
+      fileName: '',
+      fileSize: '',
+      fileData: '',
+      fileUrl: '',
+    });
+    setMaterialModalOpen(true);
+  };
+
+  // Open Edit Material Modal
+  const handleOpenEditMaterial = (mat) => {
+    setEditingMaterial(mat);
+    setSelectedFileObj(null);
+    const isPdf = mat.fileType?.includes('pdf') || mat.fileName?.toLowerCase().endsWith('.pdf');
+    const isImg = mat.fileType?.startsWith('image/');
+    setMaterialForm({
+      title: mat.title || '',
+      category: mat.category || 'Syllabus',
+      description: mat.description || '',
+      fileFormat: isPdf ? 'pdf' : isImg ? 'image' : 'document',
+      fileType: mat.fileType || (isPdf ? 'application/pdf' : isImg ? 'image/jpeg' : 'document'),
+      fileName: mat.fileName || '',
+      fileSize: mat.fileSize || '',
+      fileData: '',
+      fileUrl: mat.fileUrl || '',
+    });
+    setMaterialModalOpen(true);
+  };
+
+  // Handle Material File Selection (Direct Cloudflare Upload for Images & PDF Handling)
+  const handleMaterialFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFileObj(file);
+    const sizeStr = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+
+    setMaterialForm((prev) => ({
+      ...prev,
+      fileName: file.name,
+      fileSize: sizeStr,
+      fileFormat: isPdf ? 'pdf' : isImage ? 'image' : 'document',
+      fileType: isPdf ? 'application/pdf' : isImage ? file.type || 'image/jpeg' : 'document',
+      title: prev.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+    }));
+
+    if (isImage) {
+      setIsUploading(true);
+      try {
+        const cfUrl = await uploadImageToCloudflare(file, { folder: 'course-materials', entityType: 'course' });
+        setMaterialForm((prev) => ({
+          ...prev,
+          fileUrl: cfUrl,
+          fileData: cfUrl,
+        }));
+        toast.success('Course image uploaded to Cloudflare successfully!');
+      } catch (err) {
+        console.error('Cloudflare image upload failed:', err);
+        toast.error('Image upload failed. You can also paste an image URL directly.');
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setMaterialForm((prev) => ({
+          ...prev,
+          fileData: reader.result,
+          fileUrl: prev.fileUrl || '',
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle Submit Upload / Edit Material (Saves Directly to MongoDB)
+  const handleSaveMaterial = async (e) => {
+    e.preventDefault();
+
+    if (!materialForm.title.trim()) {
+      toast.error('Please enter course material title');
+      return;
+    }
+
+    if (!editingMaterial && !materialForm.fileUrl && !materialForm.fileData && !selectedFileObj) {
+      toast.error('Please select a PDF or Image file to upload');
+      return;
+    }
+
+    setIsUploading(true);
+    let finalUrl = materialForm.fileData || materialForm.fileUrl;
+
+    // Attempt multipart platform upload if server is active
+    if (selectedFileObj) {
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFileObj);
+        formData.append('folder', 'course_materials');
+        const res = await axios.post('/api/v1/platform/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        if (res.data?.data?.url) {
+          finalUrl = res.data.data.url;
+        }
+      } catch (err) {
+        // Fallback to Base64 data URL
+      }
+    }
+
+    try {
+      const isPdf = materialForm.fileFormat === 'pdf' || materialForm.fileType?.includes('pdf') || materialForm.fileName?.toLowerCase().endsWith('.pdf');
+      const isImg = materialForm.fileFormat === 'image' || materialForm.fileType?.startsWith('image/');
+
+      const payload = {
+        title: materialForm.title.trim(),
+        category: materialForm.category || 'Syllabus',
+        type: isPdf ? 'pdf' : isImg ? 'image' : 'document',
+        fileUrl: finalUrl,
+        fileName: materialForm.fileName || (isPdf ? 'Course_Syllabus.pdf' : isImg ? 'Guide_Chart.jpg' : 'Document.pdf'),
+        fileSize: materialForm.fileSize || '1.5 MB',
+        description: materialForm.description ? materialForm.description.trim() : '',
+      };
+
+      if (editingMaterial?._id) {
+        await courseMaterialFetcher.update(editingMaterial._id, payload);
+        toast.success(`Course material "${payload.title}" updated successfully in database!`);
+      } else {
+        await courseMaterialFetcher.create(payload);
+        toast.success(`Course material "${payload.title}" saved to database!`);
+      }
+
+      setMaterialModalOpen(false);
+      setEditingMaterial(null);
+      await loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save material to database');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Delete Material from DB
+  const handleDeleteMaterial = (material) => {
+    setConfirmDeleteModal({
+      title: 'Delete Course Material',
+      message: `Are you sure you want to delete "${material.title}"? This file will be permanently removed from the database.`,
+      confirmText: 'Delete Material',
+      onConfirm: async () => {
+        try {
+          await courseMaterialFetcher.delete(material._id);
+          toast.success(`Material "${material.title}" deleted from database`);
+          setConfirmDeleteModal(null);
+          await loadData();
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Failed to delete material');
+        }
+      },
+    });
+  };
+
+  // Download Material File
+  const handleDownloadMaterial = (mat) => {
+    try {
+      const a = document.createElement('a');
+      a.href = mat.fileUrl;
+      a.download = mat.fileName || `${mat.title.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success(`Downloading ${mat.fileName || mat.title}...`);
+    } catch {
+      window.open(mat.fileUrl, '_blank');
+    }
+  };
+
+  // Filtered Course Materials
+  const filteredMaterials = useMemo(() => {
+    return materials.filter((m) => {
+      const q = materialSearch.toLowerCase().trim();
+      const titleMatch = (m.title || '').toLowerCase().includes(q);
+      const descMatch = (m.description || '').toLowerCase().includes(q);
+      const catMatch = (m.category || '').toLowerCase().includes(q);
+      const fileMatch = (m.fileName || '').toLowerCase().includes(q);
+      if (q && !titleMatch && !descMatch && !catMatch && !fileMatch) return false;
+
+      if (materialCategoryFilter === 'PDF') {
+        if (!m.fileType?.includes('pdf') && !m.fileName?.toLowerCase().endsWith('.pdf')) return false;
+      } else if (materialCategoryFilter === 'IMAGE') {
+        if (!m.fileType?.startsWith('image/')) return false;
+      } else if (materialCategoryFilter !== 'ALL') {
+        if (m.category !== materialCategoryFilter) return false;
+      }
+
+      return true;
+    });
+  }, [materials, materialSearch, materialCategoryFilter]);
+
+  // Student Form Fields (Dynamic with Image Picker & Parlour Plans, No Institute Branch)
+  const studentFields = useMemo(() => [
     { name: 'name', label: 'Student Full Name', required: true, placeholder: 'e.g. Neha Verma' },
     { name: 'phone', label: 'Phone Number', required: true, placeholder: '+91 9876543210' },
     { name: 'email', label: 'Email Address', type: 'email', placeholder: 'neha@example.com' },
-    { name: 'photo', label: 'Student Photo / Avatar URL (Optional)', placeholder: 'https://images.unsplash.com/... or paste image URL' },
+    { name: 'photo', label: 'Student Photo / Avatar', type: 'image', placeholder: 'Choose image file or enter URL' },
     { name: 'password', label: 'Student Academy Portal Password (For /student/login)', type: 'password', placeholder: 'e.g. Student@123' },
     { name: 'studentId', label: 'Student Roll / ID', placeholder: 'STU-101' },
     {
-      name: 'branch',
-      label: 'Institute Branch',
+      name: 'course',
+      label: 'Enrolled Course / Training Plan (From Parlour Plans & Packages)',
       type: 'select',
-      options: branches.map((b) => ({ label: b.name, value: b._id })),
+      options: planOptions.map((p) => ({ label: p.label, value: p.value })),
     },
-    { name: 'emergencyContact', label: 'Emergency Contact Phone', placeholder: '+91 9811122233' },
-    { name: 'dob', label: 'Date of Birth (DOB for Birthday Alerts)', type: 'date' },
-    { name: 'joiningDate', label: 'Enrollment / Joining Date', type: 'date' },
-  ];
-
-  const planFields = [
-    { name: 'name', label: 'Course Plan Name', required: true, placeholder: 'e.g. Master International Cosmetology & Spa Diploma' },
     {
-      name: 'category',
-      label: 'Course Tier Level',
+      name: 'status',
+      label: 'Enrollment Status',
       type: 'select',
-      required: true,
       options: [
-        { label: 'Master Professional Diploma', value: 'Master Diploma' },
-        { label: 'Advance Level Specialization', value: 'Advance' },
-        { label: 'Extra Advance & Basic Combo', value: 'Extra Advance with Basic' },
-        { label: 'Basic Foundation Certificate', value: 'Basic' },
-        { label: 'Bridal & Hair Artistry Masterclass', value: 'Bridal Masterclass' },
+        { label: '🟢 Active', value: 'active' },
+        { label: '⚪ Inactive', value: 'inactive' },
+        { label: '🎓 Graduated / Completed', value: 'graduated' },
+        { label: '❌ Dropped', value: 'dropped' },
       ],
     },
-    { name: 'imageUrl', label: 'Course Cover Image URL (Optional - Banner displayed on card)', placeholder: 'https://images.unsplash.com/... or paste image URL', span: 2 },
-    { name: 'duration', label: 'Course Duration (e.g. 6 Months, 90 Days)', required: true, placeholder: '6 Months' },
-    { name: 'price', label: 'Full Course Tuition Fee (₹)', type: 'currency', required: true },
-    { name: 'monthlyFee', label: 'Monthly Installment Option (₹ / month)', type: 'currency', placeholder: 'Optional monthly fee' },
-    { name: 'theoryHours', label: 'Theory Training Hours', type: 'number', placeholder: '40' },
-    { name: 'practicalHours', label: 'Practical Hands-On Hours', type: 'number', placeholder: '80' },
+    { name: 'emergencyContact', label: 'Emergency Contact Phone', placeholder: '+91 9811122233' },
     {
-      name: 'features',
-      label: 'Curriculum Highlights & Key Benefits (one per line - shown on card!)',
-      type: 'textarea',
-      span: 2,
-      placeholder: '• International cosmetic brands provided\n• Live model practical exam\n• 100% job placement assistance\n• Govt & CIDESCO aligned syllabus certification',
+      name: 'dob',
+      label: 'Date of Birth (DOB for Birthday Alerts) [DD/MM/YYYY]',
+      type: 'date',
+      placeholder: 'DD/MM/YYYY',
+      helpText: 'Select date or enter in DD/MM/YYYY format',
     },
-    { name: 'description', label: 'Course Scope & Syllabus Summary', type: 'textarea', span: 2 },
-    { name: 'certificateIncluded', label: 'Official Certification Included', type: 'switch', defaultValue: true },
-  ];
+    {
+      name: 'joiningDate',
+      label: 'Enrollment / Joining Date [DD/MM/YYYY]',
+      type: 'date',
+      placeholder: 'DD/MM/YYYY',
+      helpText: 'Enrollment date in DD/MM/YYYY format',
+    },
+  ], [planOptions]);
 
-  const enrollFields = [
+  const enrollFields = useMemo(() => [
     {
       name: 'planId',
-      label: 'Select Course Plan',
+      label: 'Select Parlour Plan & Package',
       type: 'select',
       required: true,
-      options: plans.map((p) => ({ label: `${p.name} - ₹${(p.price || 0).toLocaleString()}`, value: p._id })),
+      options: planOptions,
     },
     { name: 'totalAmount', label: 'Agreed Tuition Fee (₹)', type: 'currency', required: true },
     { name: 'paidAmount', label: 'Initial Fee Payment / Deposit (₹)', type: 'currency', required: true },
-  ];
+  ], [planOptions]);
 
   const certFields = [
     { name: 'certificateNumber', label: 'Certificate Serial Number', required: true, placeholder: 'CERT-ACAD-2026-001' },
-    { name: 'courseName', label: 'Course Title', required: true, placeholder: 'e.g. Advanced Hair Styling & Color' },
+    { name: 'courseName', label: 'Graduated Course Title', required: true, placeholder: 'e.g. Bridal HD Airbrush Makeup Masterclass' },
     { name: 'grade', label: 'Graduation Grade', placeholder: 'A+ / Distinction' },
     { name: 'issueDate', label: 'Issue Date', type: 'date', required: true },
   ];
 
+  // Student Columns (Horizontal Responsive Clean Layout with Scrollbar)
   const studentColumns = [
     {
-      header: 'Student',
+      header: 'Student Trainee',
       accessor: 'name',
       render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '190px', whiteSpace: 'nowrap' }}>
           {row.photo ? (
             <img
               src={row.photo}
@@ -436,6 +1034,7 @@ export const StudentAcademyPage = () => {
                 objectFit: 'cover',
                 border: '2px solid rgba(236, 72, 153, 0.4)',
                 flexShrink: 0,
+                background: '#f8fafc',
               }}
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -461,8 +1060,8 @@ export const StudentAcademyPage = () => {
             </div>
           )}
           <div>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{row.name}</div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
               {row.phone} {row.studentId ? `· Roll: ${row.studentId}` : ''}
             </div>
           </div>
@@ -470,101 +1069,294 @@ export const StudentAcademyPage = () => {
       ),
     },
     {
-      header: 'Institute Branch',
-      render: (row) => row.branch?.name || 'Main Institute Sanctuary',
-    },
-    {
-      header: 'Enrollments',
-      render: (row) => (
-        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-          {row.enrollments?.length || 1} Enrolled Plan(s)
-        </span>
-      ),
+      header: 'Enrolled Course & Dates',
+      render: (row) => {
+        const total = Number(row.totalAmount || row.tuitionFee || row.fee || 0);
+        const paid = Number(row.paidAmount || row.paidFee || 0);
+        const hasFee = total > 0;
+        const isFullyPaid = hasFee && paid >= total;
+        const remaining = Math.max(0, total - paid);
+
+        return (
+          <div style={{ minWidth: '210px' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {row.course || row.planId?.name || row.enrollments?.[0]?.planName || 'General Beauty Training'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', marginTop: '3px' }}>
+              <span style={{ color: '#ec4899', fontWeight: 700 }}>
+                📅 Enrolled: {formatDateDDMMYYYY(row.joiningDate || row.createdAt)}
+              </span>
+            </div>
+            {(row.dob || row.dateOfBirth) && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                🎂 DOB: {formatDateDDMMYYYY(row.dob || row.dateOfBirth)}
+              </div>
+            )}
+            {hasFee && (
+              <div style={{ marginTop: '4px' }}>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    background: isFullyPaid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                    color: isFullyPaid ? '#10b981' : '#f59e0b',
+                    border: `1px solid ${isFullyPaid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                  }}
+                >
+                  {isFullyPaid
+                    ? `🟢 Fee Cleared (₹${total.toLocaleString('en-IN')})`
+                    : `🟡 Paid ₹${paid.toLocaleString('en-IN')} · Due ₹${remaining.toLocaleString('en-IN')}`}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Status',
-      render: (row) => (
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            background:
-              row.status === 'active' || !row.status
-                ? 'rgba(16, 185, 129, 0.15)'
-                : 'rgba(239, 68, 68, 0.15)',
-            color: row.status === 'active' || !row.status ? '#10b981' : '#ef4444',
-          }}
-        >
-          {row.status || 'ACTIVE'}
-        </span>
-      ),
+      render: (row) => {
+        const s = (row.status || 'active').toLowerCase();
+        const isActive = s === 'active';
+        const isInactive = s === 'inactive';
+        const isGraduated = s === 'graduated' || s === 'completed';
+
+        return (
+          <div style={{ minWidth: '105px', whiteSpace: 'nowrap' }}>
+            <span
+              style={{
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: isActive
+                  ? 'rgba(16, 185, 129, 0.15)'
+                  : isInactive
+                  ? 'rgba(148, 163, 184, 0.15)'
+                  : isGraduated
+                  ? 'rgba(168, 85, 247, 0.15)'
+                  : 'rgba(239, 68, 68, 0.15)',
+                color: isActive
+                  ? '#10b981'
+                  : isInactive
+                  ? '#94a3b8'
+                  : isGraduated
+                  ? '#a855f7'
+                  : '#ef4444',
+                border: `1px solid ${
+                  isActive
+                    ? 'rgba(16, 185, 129, 0.3)'
+                    : isInactive
+                    ? 'rgba(148, 163, 184, 0.3)'
+                    : isGraduated
+                    ? 'rgba(168, 85, 247, 0.3)'
+                    : 'rgba(239, 68, 68, 0.3)'
+                }`,
+              }}
+            >
+              <span>{isActive ? '🟢' : isInactive ? '⚪' : isGraduated ? '🎓' : '❌'}</span>
+              <span>{isActive ? 'ACTIVE' : isInactive ? 'INACTIVE' : s.toUpperCase()}</span>
+            </span>
+          </div>
+        );
+      },
     },
     {
       header: 'Actions',
-      render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <button
-            onClick={() => setViewStudentModal(row)}
-            className="btn btn-secondary btn-sm"
-            title="View Trainee Profile"
-            style={{ color: '#38bdf8' }}
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => {
-              setSelectedStudentForEnroll(row);
-              setEnrollModalOpen(true);
+      render: (row) => {
+        const isActive = (row.status || '').toLowerCase() === 'active';
+
+        return (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'nowrap',
+              whiteSpace: 'nowrap',
+              minWidth: '430px',
             }}
-            className="btn btn-secondary btn-sm"
-            title="Enroll in Plan"
           >
-            <BookOpen className="w-3.5 h-3.5" /> Assign Plan
-          </button>
-          <button
-            onClick={() => {
-              setSelectedStudentForCert(row);
-              setCertModalOpen(true);
-            }}
-            className="btn btn-secondary btn-sm"
-            title="Issue Certificate"
-          >
-            <Award className="w-3.5 h-3.5" /> Issue Cert
-          </button>
-          <button
-            onClick={() => handleOpenEditStudent(row)}
-            className="btn btn-secondary btn-sm"
-            title="Edit"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => handleDeleteStudent(row)}
-            className="btn btn-secondary btn-sm"
-            style={{ color: '#ef4444' }}
-            title="Delete Trainee"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      ),
+            {/* View Profile */}
+            <button
+              onClick={() => handleOpenViewStudent(row)}
+              className="btn btn-secondary btn-sm"
+              title="View Trainee Profile & Payment Ledger"
+              style={{
+                color: '#38bdf8',
+                borderColor: 'rgba(56, 189, 248, 0.3)',
+                background: 'rgba(56, 189, 248, 0.08)',
+                padding: '4px 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>View</span>
+            </button>
+
+            {/* Edit */}
+            <button
+              onClick={() => handleOpenEditStudent(row)}
+              className="btn btn-secondary btn-sm"
+              title="Edit Profile"
+              style={{
+                color: '#f59e0b',
+                borderColor: 'rgba(245, 158, 11, 0.3)',
+                background: 'rgba(245, 158, 11, 0.08)',
+                padding: '4px 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>Edit</span>
+            </button>
+
+            {/* Status Toggle (Active / Inactive) */}
+            <button
+              onClick={() => handleToggleStatus(row)}
+              className="btn btn-secondary btn-sm"
+              title={isActive ? 'Mark Inactive' : 'Activate Student'}
+              style={{
+                color: isActive ? '#94a3b8' : '#10b981',
+                borderColor: isActive ? 'rgba(148, 163, 184, 0.3)' : 'rgba(16, 185, 129, 0.4)',
+                background: isActive ? 'rgba(148, 163, 184, 0.08)' : 'rgba(16, 185, 129, 0.1)',
+                padding: '4px 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontSize: '9px' }}>{isActive ? '⚪' : '🟢'}</span>
+              <span>{isActive ? 'Deactivate' : 'Activate'}</span>
+            </button>
+
+            {/* Assign Plan */}
+            <button
+              onClick={() => handleOpenAssignPlan(row)}
+              className="btn btn-secondary btn-sm"
+              title="Assign Course Plan & Manage Fee Installments"
+              style={{
+                color: '#ec4899',
+                borderColor: 'rgba(236, 72, 153, 0.35)',
+                background: 'rgba(236, 72, 153, 0.08)',
+                padding: '4px 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Assign Plan</span>
+            </button>
+
+            {/* Course Documents */}
+            <button
+              onClick={() => setSelectedStudentForDocs(row)}
+              className="btn btn-secondary btn-sm"
+              title="Course Documents & Syllabus PDFs"
+              style={{
+                color: '#818cf8',
+                borderColor: 'rgba(129, 140, 248, 0.3)',
+                background: 'rgba(129, 140, 248, 0.08)',
+                padding: '4px 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Docs</span>
+            </button>
+
+            {/* Issue Certificate */}
+            <button
+              onClick={() => {
+                setSelectedStudentForCert(row);
+                setCertModalOpen(true);
+              }}
+              className="btn btn-secondary btn-sm"
+              title="Issue Certificate"
+              style={{
+                color: '#a855f7',
+                borderColor: 'rgba(168, 85, 247, 0.3)',
+                background: 'rgba(168, 85, 247, 0.08)',
+                padding: '4px 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>Cert</span>
+            </button>
+
+            {/* Delete Student */}
+            <button
+              onClick={() => handleDeleteStudent(row)}
+              className="btn btn-secondary btn-sm"
+              style={{
+                color: '#ef4444',
+                borderColor: 'rgba(239, 68, 68, 0.3)',
+                background: 'rgba(239, 68, 68, 0.08)',
+                padding: '4px 8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+              title="Permanently Delete Trainee from Database"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Top Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
-            Beauty Academy & Trainee Management
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-            Unified training curriculum (Basic, Advance, Extra Advance with Basic, Master Diploma), enrollments & certificates
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '24px' }}>🎓</span>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+              Golden Beauty Academy
+            </h1>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+            Manage trainee admissions, course syllabi, PDF notes, certificates, and learning resources.
           </p>
         </div>
+
         <div style={{ display: 'flex', gap: '8px' }}>
           {activeTab === 'students' ? (
             <button
@@ -573,20 +1365,17 @@ export const StudentAcademyPage = () => {
                 setStudentModalOpen(true);
               }}
               className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#ec4899', borderColor: '#ec4899' }}
             >
               <Plus className="w-4 h-4" /> Register Student
             </button>
           ) : (
             <button
-              onClick={() => {
-                setEditingPlan(null);
-                setPlanModalOpen(true);
-              }}
+              onClick={handleOpenUploadModal}
               className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)', borderColor: 'transparent' }}
             >
-              <Plus className="w-4 h-4" /> Create Training Plan
+              <UploadCloud className="w-4 h-4" /> + Upload Course PDF / Material
             </button>
           )}
         </div>
@@ -602,27 +1391,36 @@ export const StudentAcademyPage = () => {
           <GraduationCap className="w-4 h-4" /> Trainee Directory ({students.length})
         </button>
         <button
-          onClick={() => setActiveTab('plans')}
-          className={`btn ${activeTab === 'plans' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          onClick={() => setActiveTab('materials')}
+          className={`btn ${activeTab === 'materials' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
           style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
         >
-          <BookOpen className="w-4 h-4" /> Training Plans & Curriculum ({plans.length})
+          <FileText className="w-4 h-4" /> Course Materials & PDF Uploader ({materials.length})
         </button>
       </div>
 
-      {/* TAB 1: Students Directory */}
+      {/* TAB 1: Students Directory with Responsive Smooth Scrollbar */}
       {activeTab === 'students' && (
-        <DataTable
-          columns={studentColumns}
-          data={students}
-          isLoading={isLoading}
-        />
+        <div
+          className="student-table-scroll-wrapper custom-scrollbar"
+          style={{
+            width: '100%',
+            overflowX: 'auto',
+            borderRadius: '14px',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-surface)',
+            padding: '4px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          }}
+        >
+          <DataTable columns={studentColumns} data={students} isLoading={isLoading} />
+        </div>
       )}
 
-      {/* TAB 2: Training Plans & Curriculum Cards */}
-      {activeTab === 'plans' && (
+      {/* TAB 2: COURSE MATERIALS & PDF UPLOADER */}
+      {activeTab === 'materials' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Toolbar: Search and Filter Pills */}
+          {/* Toolbar: Search & Filter Pills */}
           <div
             style={{
               display: 'flex',
@@ -650,9 +1448,9 @@ export const StudentAcademyPage = () => {
               />
               <input
                 type="text"
-                value={planSearch}
-                onChange={(e) => setPlanSearch(e.target.value)}
-                placeholder="Search course plans, curriculum keywords..."
+                value={materialSearch}
+                onChange={(e) => setMaterialSearch(e.target.value)}
+                placeholder="Search by title, syllabus, notes, or file name..."
                 className="form-control"
                 style={{
                   paddingLeft: '36px',
@@ -670,18 +1468,18 @@ export const StudentAcademyPage = () => {
             {/* Filter Pills */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               {[
-                { label: `All Plans (${plans.length})`, value: 'ALL' },
-                { label: 'Master Diploma', value: 'Master Diploma' },
-                { label: 'Advance Level', value: 'Advance' },
-                { label: 'Extra Advance & Basic', value: 'Extra Advance with Basic' },
-                { label: 'Basic Foundation', value: 'Basic' },
+                { label: `All Files (${materials.length})`, value: 'ALL' },
+                { label: 'PDF Documents Only', value: 'PDF' },
+                { label: 'Images Only', value: 'IMAGE' },
+                { label: 'Syllabus', value: 'Syllabus' },
+                { label: 'Study Notes', value: 'Study Notes' },
               ].map((pill) => {
-                const isActive = planCategoryFilter === pill.value;
+                const isActive = materialCategoryFilter === pill.value;
                 return (
                   <button
                     key={pill.value}
                     type="button"
-                    onClick={() => setPlanCategoryFilter(pill.value)}
+                    onClick={() => setMaterialCategoryFilter(pill.value)}
                     style={{
                       padding: '6px 14px',
                       borderRadius: '20px',
@@ -700,357 +1498,402 @@ export const StudentAcademyPage = () => {
                 );
               })}
             </div>
+            {/* View Mode Toggle: Grid Cards vs Column Table View */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255, 255, 255, 0.04)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <button
+                type="button"
+                onClick={() => setMaterialViewMode('grid')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  background: materialViewMode === 'grid' ? 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)' : 'transparent',
+                  color: materialViewMode === 'grid' ? '#fff' : '#94a3b8',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <span>⊞</span> Grid Cards
+              </button>
+              <button
+                type="button"
+                onClick={() => setMaterialViewMode('table')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  background: materialViewMode === 'table' ? 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)' : 'transparent',
+                  color: materialViewMode === 'table' ? '#fff' : '#94a3b8',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <span>☰</span> Column Table View
+              </button>
+            </div>
           </div>
 
-          {/* Cards Grid */}
-          {filteredPlans.length === 0 ? (
+          {/* Materials View: Empty State */}
+          {filteredMaterials.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
-                padding: '48px 20px',
+                padding: '50px 20px',
                 background: 'var(--bg-surface)',
                 borderRadius: '16px',
                 border: '1px solid var(--border-color)',
                 color: 'var(--text-muted)',
               }}
             >
-              <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-40 text-pink-500" />
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
-                No training course plans found
+              <FileText className="w-12 h-12 mx-auto mb-2 opacity-40 text-pink-500" />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>
+                No course materials found
               </h3>
-              <p style={{ fontSize: '0.82rem', margin: 0 }}>
-                Try adjusting your search query or select another category filter.
+              <p style={{ fontSize: '0.85rem', margin: '0 0 16px 0' }}>
+                Upload course syllabi, lecture notes, training PDFs, or reference charts for your students.
               </p>
+              <button onClick={handleOpenUploadModal} className="btn btn-primary btn-sm">
+                <UploadCloud className="w-4 h-4 mr-1 inline" /> Upload First Material
+              </button>
+            </div>
+          ) : materialViewMode === 'table' ? (
+            /* VIEW 1: COLUMN-WISE TABLE VIEW */
+            <div style={{ overflowX: 'auto', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: '0 4px 18px rgba(0,0,0,0.1)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255, 255, 255, 0.02)' }}>
+                    <th style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>#</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>Material / Course Document</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>Category</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>Format</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>Size</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>Uploaded Date</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMaterials.map((mat, idx) => {
+                    const isPdf = mat.fileType?.includes('pdf') || mat.fileName?.toLowerCase().endsWith('.pdf');
+                    const isImg = mat.fileType?.startsWith('image/');
+                    return (
+                      <tr key={mat._id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}>
+                        <td style={{ padding: '12px 14px', color: 'var(--text-muted)', fontWeight: 600 }}>{idx + 1}</td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '34px', height: '34px', borderRadius: '8px',
+                              background: isPdf ? 'rgba(239, 68, 68, 0.15)' : isImg ? 'rgba(56, 189, 248, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                              color: isPdf ? '#ef4444' : isImg ? '#38bdf8' : '#a855f7',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                            }}>
+                              {isPdf ? <FileText size={17} /> : isImg ? <ImageIcon size={17} /> : <File size={17} />}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{mat.title}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{mat.fileName}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
+                            {mat.category || 'Syllabus'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{
+                            fontSize: '10.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px',
+                            background: isPdf ? 'rgba(239, 68, 68, 0.12)' : isImg ? 'rgba(56, 189, 248, 0.12)' : 'rgba(168, 85, 247, 0.12)',
+                            color: isPdf ? '#ef4444' : isImg ? '#38bdf8' : '#a855f7'
+                          }}>
+                            {isPdf ? 'PDF FILE' : isImg ? 'IMAGE GUIDE' : 'COURSE FILE'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-primary)', fontSize: '12px' }}>
+                          {mat.fileSize || '1.5 MB'}
+                        </td>
+                        <td style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: '11.5px' }}>
+                          {mat.createdAt ? mat.createdAt.split('T')[0] : (mat.uploadedAt || 'Recently')}
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewMaterial(mat)}
+                              className="btn btn-secondary btn-sm"
+                              title="View Document"
+                              style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px' }}
+                            >
+                              <Eye size={12} color="#ec4899" />
+                              <span>View</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditMaterial(mat)}
+                              className="btn btn-secondary btn-sm"
+                              title="Edit Material"
+                              style={{ padding: '4px 8px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px' }}
+                            >
+                              <Edit2 size={12} />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadMaterial(mat)}
+                              className="btn btn-secondary btn-sm"
+                              title="Download File"
+                              style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px' }}
+                            >
+                              <Download size={12} color="#10b981" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMaterial(mat)}
+                              className="btn btn-secondary btn-sm"
+                              title="Delete Material"
+                              style={{ padding: '4px 8px', color: '#ef4444' }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: '22px' }}>
-              {filteredPlans.map((plan, idx) => {
-                const featuresList = Array.isArray(plan.features)
-                  ? plan.features
-                  : (typeof plan.features === 'string' ? plan.features.split('\n').filter(Boolean) : []);
-
-                const coverImage =
-                  plan.imageUrl ||
-                  (plan.category === 'Master Diploma'
-                    ? 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80'
-                    : plan.category === 'Extra Advance with Basic'
-                    ? 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80'
-                    : plan.category === 'Advance'
-                    ? 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80'
-                    : 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80');
+            /* VIEW 2: GRID CARDS VIEW */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              {filteredMaterials.map((mat) => {
+                const isPdf = mat.fileType?.includes('pdf') || mat.fileName?.toLowerCase().endsWith('.pdf');
+                const isImg = mat.fileType?.startsWith('image/');
 
                 return (
                   <div
-                    key={plan._id || idx}
-                    className="card"
+                    key={mat._id}
                     style={{
-                      borderRadius: '18px',
+                      borderRadius: '16px',
                       background: 'var(--bg-surface)',
                       border: '1px solid var(--border-color)',
+                      padding: '20px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      boxShadow: '0 6px 24px -2px rgba(0,0,0,0.25)',
-                      overflow: 'hidden',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      boxShadow: '0 4px 18px rgba(0,0,0,0.15)',
+                      transition: 'transform 0.15s ease, border-color 0.15s ease',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.borderColor = '#ec4899';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
                     }}
                   >
                     <div>
-                      {/* Banner Cover Image */}
-                      <div
-                        style={{
-                          height: '155px',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          background: '#1e1e2d',
-                        }}
-                      >
-                        <img
-                          src={coverImage}
-                          alt={plan.name}
+                      {/* Top Header Badge & File Type */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                        <span
                           style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            filter: 'brightness(0.85)',
-                          }}
-                          onError={(e) => {
-                            e.currentTarget.src =
-                              'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80';
-                          }}
-                        />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background:
-                              'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(15,23,42,0.85) 100%)',
-                          }}
-                        />
-
-                        {/* Top Category Badge */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '12px',
-                            left: '12px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '3px 10px',
+                            borderRadius: '6px',
+                            background: isPdf ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                            color: isPdf ? '#ef4444' : '#38bdf8',
+                            border: `1px solid ${isPdf ? 'rgba(239, 68, 68, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
                             display: 'flex',
-                            gap: '6px',
                             alignItems: 'center',
+                            gap: '5px',
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              padding: '4px 10px',
-                              borderRadius: '8px',
-                              textTransform: 'uppercase',
-                              background:
-                                plan.category === 'Master Diploma'
-                                  ? 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)'
-                                  : 'rgba(15, 23, 42, 0.85)',
-                              color: '#fff',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                              backdropFilter: 'blur(4px)',
-                              border: '1px solid rgba(255,255,255,0.2)',
-                            }}
-                          >
-                            {plan.category || 'Academy Course'}
-                          </span>
-                        </div>
+                          {isPdf ? <FileText size={13} /> : isImg ? <ImageIcon size={13} /> : <File size={13} />}
+                          <span>{isPdf ? 'PDF DOCUMENT' : isImg ? 'IMAGE GUIDE' : 'COURSE FILE'}</span>
+                        </span>
 
-                        {/* Top Action Buttons (Edit / Delete) */}
-                        <div
+                        <span
                           style={{
-                            position: 'absolute',
-                            top: '10px',
-                            right: '10px',
-                            display: 'flex',
-                            gap: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            color: 'var(--text-muted)',
                           }}
                         >
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditPlan(plan)}
-                            title="Edit Course Plan"
-                            style={{
-                              width: '30px',
-                              height: '30px',
-                              borderRadius: '8px',
-                              background: 'rgba(15, 23, 42, 0.75)',
-                              border: '1px solid rgba(255,255,255,0.2)',
-                              color: '#38bdf8',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backdropFilter: 'blur(4px)',
-                            }}
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePlan(plan)}
-                            title="Delete Course Plan"
-                            style={{
-                              width: '30px',
-                              height: '30px',
-                              borderRadius: '8px',
-                              background: 'rgba(15, 23, 42, 0.75)',
-                              border: '1px solid rgba(255,255,255,0.2)',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backdropFilter: 'blur(4px)',
-                            }}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Bottom Tag on Banner */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            bottom: '10px',
-                            left: '12px',
-                            right: '12px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              color: '#cbd5e1',
-                              background: 'rgba(0,0,0,0.6)',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              backdropFilter: 'blur(4px)',
-                            }}
-                          >
-                            ⏳ {plan.duration}
-                          </span>
-                          {plan.certificateIncluded !== false && (
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: '#10b981',
-                                background: 'rgba(16, 185, 129, 0.2)',
-                                border: '1px solid rgba(16, 185, 129, 0.4)',
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                backdropFilter: 'blur(4px)',
-                              }}
-                            >
-                              🎓 Cert Included
-                            </span>
-                          )}
-                        </div>
+                          {mat.category || 'Syllabus'}
+                        </span>
                       </div>
 
-                      {/* Card Content Body */}
-                      <div style={{ padding: '18px 20px 14px 20px' }}>
-                        <h3
-                          style={{
-                            margin: '0 0 6px 0',
-                            fontSize: '1.15rem',
-                            fontWeight: 800,
-                            color: 'var(--text-primary)',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {plan.name}
-                        </h3>
-
-                        <div
-                          style={{
-                            fontSize: '12px',
-                            color: 'var(--text-muted)',
-                            marginBottom: '14px',
-                            display: 'flex',
-                            gap: '12px',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <span>📚 {plan.theoryHours || 40}h Theory</span>
-                          <span>💅 {plan.practicalHours || 80}h Practicum</span>
-                        </div>
-
-                        {/* Price Block */}
-                        <div
-                          style={{
-                            padding: '10px 14px',
-                            borderRadius: '10px',
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid var(--border-color)',
-                            marginBottom: '16px',
-                            display: 'flex',
-                            alignItems: 'baseline',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Full Tuition Fee</div>
-                            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981' }}>
-                              ₹{(plan.price || 0).toLocaleString()}
-                            </div>
-                          </div>
-                          {plan.monthlyFee && (
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Installment Option</div>
-                              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ec4899' }}>
-                                ₹{plan.monthlyFee.toLocaleString()}/mo
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Dynamic Features Preview */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                          {(featuresList.length > 0
-                            ? featuresList.slice(0, 4)
-                            : [
-                                'Hands-on practical training on live salon models',
-                                'International beauty brand kits provided',
-                                'Govt & CIDESCO aligned syllabus certification',
-                              ]
-                          ).map((feat, i) => (
+                      {/* File Visual Icon / Image Thumbnail */}
+                      <div
+                        style={{
+                          height: '110px',
+                          borderRadius: '12px',
+                          background: isImg ? '#0f172a' : isPdf ? 'rgba(239, 68, 68, 0.06)' : 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid var(--border-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          marginBottom: '14px',
+                          position: 'relative',
+                        }}
+                      >
+                        {isImg ? (
+                          <img
+                            src={mat.fileUrl}
+                            alt={mat.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                             <div
-                              key={i}
                               style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '10px',
+                                background: '#fee2e2',
+                                color: '#dc2626',
                                 display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: '8px',
-                                fontSize: '12px',
-                                color: 'var(--text-secondary)',
-                                lineHeight: '1.4',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 4px 10px rgba(220, 38, 38, 0.2)',
                               }}
                             >
-                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                              <span>{feat}</span>
+                              <FileText size={26} strokeWidth={2.2} />
                             </div>
-                          ))}
-                          {featuresList.length > 4 && (
-                            <div style={{ fontSize: '11px', color: '#818cf8', fontWeight: 600, paddingLeft: '20px' }}>
-                              + {featuresList.length - 4} more curriculum highlights
-                            </div>
-                          )}
-                        </div>
+                            <span style={{ fontSize: '11px', fontWeight: 800, color: '#dc2626' }}>PDF FILE</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <h3
+                        style={{
+                          fontSize: '15px',
+                          fontWeight: 800,
+                          color: 'var(--text-primary)',
+                          margin: '0 0 8px 0',
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        {mat.title}
+                      </h3>
+
+                      {/* Description */}
+                      {mat.description && (
+                        <p
+                          style={{
+                            fontSize: '12.5px',
+                            color: 'var(--text-muted)',
+                            lineHeight: 1.5,
+                            margin: '0 0 12px 0',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {mat.description}
+                        </p>
+                      )}
+
+                      {/* File Metadata Row */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          fontSize: '11.5px',
+                          color: 'var(--text-muted)',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          marginBottom: '16px',
+                          border: '1px dashed var(--border-color)',
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>📁 {mat.fileName || 'document.pdf'}</span>
+                        <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{mat.fileSize}</span>
                       </div>
                     </div>
 
                     {/* Card Actions Footer */}
                     <div
                       style={{
-                        padding: '12px 20px',
-                        borderTop: '1px solid var(--border-color)',
                         display: 'flex',
-                        gap: '8px',
-                        background: 'rgba(0,0,0,0.1)',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingTop: '12px',
+                        borderTop: '1px solid var(--border-color)',
                       }}
                     >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMaterial(mat)}
+                          title="Preview Document / Image"
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 700 }}
+                        >
+                          <Eye size={13} color="#ec4899" />
+                          <span>View</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditMaterial(mat)}
+                          title="Edit Course Material"
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 700, color: '#f59e0b' }}
+                        >
+                          <Edit2 size={13} />
+                          <span>Edit</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadMaterial(mat)}
+                          title="Download File"
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 700 }}
+                        >
+                          <Download size={13} color="#10b981" />
+                          <span>Download</span>
+                        </button>
+                      </div>
+
                       <button
                         type="button"
-                        onClick={() => setSelectedPlanForDetail(plan)}
-                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleDeleteMaterial(mat)}
+                        title="Delete Material"
                         style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          color: '#ef4444',
+                          cursor: 'pointer',
                         }}
                       >
-                        <Eye className="w-3.5 h-3.5" /> Read Full Curriculum
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedStudentForEnroll({ name: 'Select Trainee below...' });
-                          setEnrollModalOpen(true);
-                        }}
-                        className="btn btn-primary btn-sm"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          padding: '6px 12px',
-                        }}
-                      >
-                        <GraduationCap className="w-3.5 h-3.5" /> Enroll
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
@@ -1061,115 +1904,421 @@ export const StudentAcademyPage = () => {
         </div>
       )}
 
-      {/* READ MORE / CURRICULUM DETAIL MODAL */}
-      {selectedPlanForDetail && (
+      {/* UPLOAD / EDIT COURSE PDF & MATERIAL MODAL */}
+      {materialModalOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(5px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
+            zIndex: 1100,
+            padding: '16px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setMaterialModalOpen(false);
+              setEditingMaterial(null);
+            }
           }}
         >
           <div
             style={{
-              background: 'var(--bg-surface)',
-              borderRadius: '20px',
-              border: '1px solid var(--border-color)',
-              padding: '28px',
-              maxWidth: '650px',
               width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
+              maxWidth: '600px',
+              background: '#1e293b',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              padding: '24px',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase' }}>
-                  {selectedPlanForDetail.category || 'ACADEMY PLAN'}
-                </span>
-                <h2 style={{ margin: '4px 0 0 0', fontSize: '1.4rem', fontWeight: 900 }}>
-                  {selectedPlanForDetail.name}
-                </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                  }}
+                >
+                  <UploadCloud size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+                    {editingMaterial ? 'Edit Course Material' : 'Upload Course Material'}
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '2px 0 0 0' }}>
+                    {editingMaterial
+                      ? 'Update title, category, description, or replace document in database'
+                      : 'Upload syllabus PDF, study notes, or training guide images to database'}
+                  </p>
+                </div>
               </div>
               <button
-                onClick={() => setSelectedPlanForDetail(null)}
-                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
+                type="button"
+                onClick={() => {
+                  setMaterialModalOpen(false);
+                  setEditingMaterial(null);
+                }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.2rem' }}
               >
                 ✕
               </button>
             </div>
 
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '20px' }}>
-              {selectedPlanForDetail.description || 'Full comprehensive immersion curriculum preparing trainees for professional salon careers.'}
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-              <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Duration</div>
-                <div style={{ fontWeight: 800, fontSize: '14px', marginTop: '2px' }}>{selectedPlanForDetail.duration}</div>
-              </div>
-              <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Tuition Fee</div>
-                <div style={{ fontWeight: 800, fontSize: '14px', color: '#10b981', marginTop: '2px' }}>
-                  ₹{(selectedPlanForDetail.price || 0).toLocaleString()}
+            <form onSubmit={handleSaveMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Option Choice: What do you want to upload? (PDF, Image, Document) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '8px' }}>
+                  Choose What You Are Uploading:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[
+                    { id: 'pdf', icon: '📄', label: 'PDF Document', desc: 'Syllabus, HD Makeup PDF' },
+                    { id: 'image', icon: '🖼️', label: 'Image Guide', desc: 'Step-by-step, Charts' },
+                    { id: 'document', icon: '📁', label: 'Course File', desc: 'Notes, General Docs' },
+                  ].map((opt) => {
+                    const isSel = materialForm.fileFormat === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setMaterialForm({ ...materialForm, fileFormat: opt.id })}
+                        style={{
+                          padding: '10px 8px',
+                          borderRadius: '10px',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          border: `1.5px solid ${isSel ? '#ec4899' : 'rgba(255,255,255,0.1)'}`,
+                          background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'rgba(255,255,255,0.03)',
+                          color: isSel ? '#fff' : 'var(--text-muted)',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <div style={{ fontSize: '18px', marginBottom: '2px' }}>{opt.icon}</div>
+                        <div style={{ fontWeight: 800, fontSize: '12px', color: isSel ? '#ec4899' : '#f8fafc' }}>{opt.label}</div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>{opt.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Certification</div>
-                <div style={{ fontWeight: 800, fontSize: '14px', color: '#ec4899', marginTop: '2px' }}>Official Diploma</div>
-              </div>
-            </div>
 
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 800 }}>Complete Modules & Curriculum Syllabus</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
-              {(Array.isArray(selectedPlanForDetail.features)
-                ? selectedPlanForDetail.features
-                : (typeof selectedPlanForDetail.features === 'string' ? selectedPlanForDetail.features.split('\n').filter(Boolean) : [
-                    'Comprehensive cosmetology theory & sanitization protocols',
-                    'Hair anatomy, cutting, sectioning & chemical bonding',
-                    'Bridal makeup, skin prep, contouring & airbrush methods',
-                    'Nail art sculpting, UV lamp polymerization & extensions',
-                    'Client management POS billing & salon customer service',
-                  ])
-              ).map((feature, i) => (
-                <div
-                  key={i}
+              {/* Material Title */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                  Material / Course Title <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Bridal HD Airbrush Makeup Course Syllabus PDF"
+                  value={materialForm.title}
+                  onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
+                  className="form-control"
                   style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    padding: '8px 12px',
+                    width: '100%',
+                    padding: '9px 12px',
                     borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    borderColor: 'var(--border-color)',
+                    color: '#f8fafc',
+                    fontSize: '13px',
+                  }}
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                  Material Category
+                </label>
+                <select
+                  value={materialForm.category}
+                  onChange={(e) => setMaterialForm({ ...materialForm, category: e.target.value })}
+                  className="form-control"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    borderColor: 'var(--border-color)',
+                    color: '#f8fafc',
                     fontSize: '13px',
                   }}
                 >
-                  <span style={{ color: '#10b981', fontWeight: 800 }}>✓</span>
-                  <span>{feature}</span>
+                  <option value="Syllabus">📑 Course Syllabus PDF (e.g. HD Makeup PDF)</option>
+                  <option value="Study Notes">📝 Academy Study Notes & Theory</option>
+                  <option value="Practical Guide">💅 Practical Hands-On Step Guide</option>
+                  <option value="Reference Chart">🖼️ Reference Anatomy & Shade Chart</option>
+                  <option value="Worksheet">🎯 Training Worksheet & Exam Prep</option>
+                </select>
+              </div>
+
+              {/* Description (Optional) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                  Description / Topic Overview <span style={{ fontSize: '11px', color: '#94a3b8' }}>(Optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Summary of what is covered in this material..."
+                  value={materialForm.description}
+                  onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+                  className="form-control"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    borderColor: 'var(--border-color)',
+                    color: '#f8fafc',
+                    fontSize: '13px',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              {/* FILE PICKER BOX (PDF OR IMAGE BASED ON FORMAT) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                  {materialForm.fileFormat === 'pdf'
+                    ? 'Select PDF File (.pdf)'
+                    : materialForm.fileFormat === 'image'
+                    ? 'Select Image Guide / Chart (.jpg, .png, .webp)'
+                    : 'Select Course Document File'}{' '}
+                  {!editingMaterial && <span style={{ color: '#ef4444' }}>*</span>}
+                </label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept={
+                    materialForm.fileFormat === 'pdf'
+                      ? '.pdf'
+                      : materialForm.fileFormat === 'image'
+                      ? 'image/*'
+                      : '.pdf, image/*, .doc, .docx'
+                  }
+                  onChange={handleMaterialFileChange}
+                  style={{ display: 'none' }}
+                />
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    padding: '24px 16px',
+                    borderRadius: '12px',
+                    border: '2px dashed rgba(236, 72, 153, 0.4)',
+                    background: 'rgba(236, 72, 153, 0.05)',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#ec4899')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.4)')}
+                >
+                  <UploadCloud size={32} color="#ec4899" style={{ margin: '0 auto 8px' }} />
+                  {materialForm.fileName ? (
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#f8fafc' }}>
+                        {materialForm.fileName}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#10b981', marginTop: '2px', fontWeight: 700 }}>
+                        ✓ {editingMaterial ? 'File attached (click to replace)' : `Ready to upload (${materialForm.fileSize})`}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '13px', color: '#f8fafc' }}>
+                        Click to browse or drop {materialForm.fileFormat === 'pdf' ? 'PDF file' : materialForm.fileFormat === 'image' ? 'Image file' : 'File'} here
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>
+                        {materialForm.fileFormat === 'pdf'
+                          ? 'Accepts PDF syllabus and document notes'
+                          : materialForm.fileFormat === 'image'
+                          ? 'Accepts JPG, PNG, WEBP charts and guides'
+                          : 'Supports PDF documents, images, and office files (Max 25 MB)'}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+              </div>
+
+              {/* Permanent Cloudflare Live URL / Link Field */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+                  Document / Image Live URL (Cloudflare Images)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Permanent URL will populate automatically after upload (or paste URL https://...)"
+                  value={materialForm.fileUrl || ''}
+                  onChange={(e) => setMaterialForm({ ...materialForm, fileUrl: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    border: '1px solid var(--border-color)',
+                    color: '#38bdf8',
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Modal Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMaterialModalOpen(false);
+                    setEditingMaterial(null);
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  className="btn btn-primary"
+                  style={{ background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)', borderColor: 'transparent', fontWeight: 700 }}
+                >
+                  {isUploading
+                    ? 'Saving...'
+                    : editingMaterial
+                    ? 'Update Course Material'
+                    : 'Save & Publish to Database'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MATERIAL PREVIEW MODAL */}
+      {previewMaterial && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1200,
+            padding: '16px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPreviewMaterial(null);
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '850px',
+              maxHeight: '92vh',
+              background: '#1e293b',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            {/* Preview Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#ec4899', textTransform: 'uppercase' }}>
+                  {previewMaterial.category || 'COURSE MATERIAL'}
+                </span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0 0 0', color: '#f8fafc' }}>
+                  {previewMaterial.title}
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => window.open(previewMaterial.fileUrl, '_blank')}
+                  title="Open in new window"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <ExternalLink size={13} />
+                  <span>Open Full Window</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadMaterial(previewMaterial)}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <Download size={13} />
+                  <span>Download</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMaterial(null)}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.4rem', marginLeft: '6px' }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                onClick={() => setSelectedPlanForDetail(null)}
-                className="btn btn-primary"
-              >
-                Close Curriculum
-              </button>
+            {/* Preview Body */}
+            <div
+              style={{
+                flex: 1,
+                minHeight: '420px',
+                maxHeight: '65vh',
+                overflow: 'auto',
+                background: '#0f172a',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              {previewMaterial.fileType?.includes('pdf') || previewMaterial.fileName?.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewMaterial.fileUrl}
+                  title={previewMaterial.title}
+                  style={{ width: '100%', height: '550px', border: 'none', borderRadius: '8px' }}
+                />
+              ) : previewMaterial.fileType?.startsWith('image/') ? (
+                <img
+                  src={previewMaterial.fileUrl}
+                  alt={previewMaterial.title}
+                  style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '8px' }}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                  <FileText size={48} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
+                  <p>Document preview ready. Click "Download" or "Open Full Window" to view.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Modals */}
+      {/* Student Form Modal (Register & Edit) */}
       <FormModal
         isOpen={studentModalOpen}
         onClose={() => {
@@ -1182,213 +2331,1027 @@ export const StudentAcademyPage = () => {
         onSubmit={handleSaveStudent}
       />
 
-      <FormModal
-        isOpen={planModalOpen}
-        onClose={() => setPlanModalOpen(false)}
-        title={editingPlan ? 'Edit Course Plan' : 'Create Academy Training Plan'}
-        fields={planFields}
-        defaultValues={editingPlan}
-        onSubmit={handleSavePlan}
-      />
+      {/* ASSIGN COURSE & FEE SCHEDULE MODAL */}
+      {enrollModalOpen && selectedStudentForEnroll && (() => {
+        const totalFeeNum = Math.max(0, Number(assignPlanState.totalFee) || 0);
+        const totalPaidNum = (assignPlanState.installments || []).reduce((sum, inst) => sum + Number(inst.amount || 0), 0);
+        const remainingDueNum = Math.max(0, totalFeeNum - totalPaidNum);
+        const isFullyCleared = totalFeeNum > 0 && remainingDueNum === 0;
+        const isPartiallyPaid = totalPaidNum > 0 && remainingDueNum > 0;
 
-      <FormModal
-        isOpen={enrollModalOpen}
-        onClose={() => setEnrollModalOpen(false)}
-        title={`Enroll Student: ${selectedStudentForEnroll?.name || ''}`}
-        fields={enrollFields}
-        onSubmit={handleEnrollStudent}
-      />
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.8)',
+              backdropFilter: 'blur(6px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1100,
+              padding: '16px',
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setEnrollModalOpen(false);
+                setSelectedStudentForEnroll(null);
+              }
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '740px',
+                maxHeight: '92vh',
+                overflowY: 'auto',
+                background: '#1e293b',
+                borderRadius: '18px',
+                border: '1px solid rgba(236, 72, 153, 0.35)',
+                padding: '24px',
+                boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '18px',
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      boxShadow: '0 4px 15px rgba(236, 72, 153, 0.35)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <BookOpen size={22} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '11px', color: '#ec4899', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Academy Course & Tuition Manager
+                    </span>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0 0 0', color: '#f8fafc' }}>
+                      Assign Course & Fee: {selectedStudentForEnroll.name}
+                    </h3>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                      Roll: <strong style={{ color: '#38bdf8' }}>{selectedStudentForEnroll.studentId || 'N/A'}</strong> · Phone: {selectedStudentForEnroll.phone || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEnrollModalOpen(false);
+                    setSelectedStudentForEnroll(null);
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.4rem' }}
+                >
+                  ✕
+                </button>
+              </div>
 
+              {/* Step 1: Course Selection & Agreed Fee (Clean Dropdown - No Price in Label) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', background: 'rgba(15, 23, 42, 0.6)', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                    Select Parlour Plan & Package <span style={{ color: '#ec4899' }}>*</span>
+                  </label>
+                  <select
+                    value={assignPlanState.planName}
+                    onChange={(e) => handleSelectPlanInAssignModal(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      background: '#0f172a',
+                      border: '1px solid var(--border-color)',
+                      color: '#f8fafc',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="">-- Select Parlour Plan --</option>
+                    {planOptions.map((p) => (
+                      <option key={p.planId || p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                    Sourced 1:1 dynamically from Parlour Plans & Packages
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                    Total Agreed Tuition Fee (₹) <span style={{ color: '#ec4899' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#ec4899', fontWeight: 800 }}>
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={assignPlanState.totalFee}
+                      onChange={(e) => handleChangeTotalFeeInAssignModal(e.target.value)}
+                      placeholder="0.00"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 28px',
+                        borderRadius: '8px',
+                        background: '#0f172a',
+                        border: '1px solid var(--border-color)',
+                        color: '#f8fafc',
+                        fontSize: '14px',
+                        fontWeight: 800,
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                    Auto-filled from plan. Editable for special discounts or custom rates.
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Live Real-Time Fee Calculation Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Total Agreed Fee</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#f8fafc', marginTop: '4px' }}>
+                    ₹{totalFeeNum.toLocaleString('en-IN')}
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                  <div style={{ fontSize: '11px', color: '#34d399', fontWeight: 700, textTransform: 'uppercase' }}>
+                    Total Fee Paid ({assignPlanState.installments?.length || 0} Slots)
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>
+                    ₹{totalPaidNum.toLocaleString('en-IN')}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: isFullyCleared
+                      ? 'rgba(16, 185, 129, 0.12)'
+                      : remainingDueNum > 0
+                      ? 'rgba(239, 68, 68, 0.08)'
+                      : 'rgba(255, 255, 255, 0.03)',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: `1px solid ${isFullyCleared ? 'rgba(16, 185, 129, 0.4)' : remainingDueNum > 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  }}
+                >
+                  <div style={{ fontSize: '11px', color: isFullyCleared ? '#34d399' : remainingDueNum > 0 ? '#f87171' : '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
+                    Remaining Due Balance
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: isFullyCleared ? '#10b981' : remainingDueNum > 0 ? '#ef4444' : '#f8fafc', marginTop: '4px' }}>
+                    ₹{remainingDueNum.toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span style={{ fontSize: '12px', color: '#94a3b8' }}>Tuition Fee Clearance Status:</span>
+                <span
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    background: isFullyCleared
+                      ? 'rgba(16, 185, 129, 0.2)'
+                      : isPartiallyPaid
+                      ? 'rgba(245, 158, 11, 0.2)'
+                      : 'rgba(239, 68, 68, 0.2)',
+                    color: isFullyCleared ? '#10b981' : isPartiallyPaid ? '#f59e0b' : '#ef4444',
+                    border: `1px solid ${isFullyCleared ? 'rgba(16, 185, 129, 0.4)' : isPartiallyPaid ? 'rgba(245, 158, 11, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                  }}
+                >
+                  {isFullyCleared
+                    ? '🟢 100% Cleared (Zero Balance Remaining)'
+                    : isPartiallyPaid
+                    ? `🟡 Partially Paid · ₹${remainingDueNum.toLocaleString('en-IN')} Due`
+                    : '🔴 Unpaid · 0% Paid'}
+                </span>
+              </div>
+
+              {/* Step 3: Zero Balance Celebration & Certificate Shortcut */}
+              {isFullyCleared && (
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.25) 100%)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+                      🎉
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#34d399', fontSize: '13.5px' }}>
+                        100% Tuition Fee Cleared (Zero Balance Remaining)!
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#a7f3d0' }}>
+                        Student {selectedStudentForEnroll.name} has completed full payment. Official graduation certificate can now be issued.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudentForCert({
+                        ...selectedStudentForEnroll,
+                        course: assignPlanState.planName,
+                      });
+                      setCertModalOpen(true);
+                    }}
+                    className="btn btn-primary"
+                    style={{
+                      background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+                      borderColor: 'transparent',
+                      fontWeight: 800,
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      boxShadow: '0 4px 15px rgba(168, 85, 247, 0.4)',
+                    }}
+                  >
+                    <Award size={15} /> 🎓 Issue & Download Certificate
+                  </button>
+                </div>
+              )}
+
+              {/* Step 4: Installment Slots & Payment Ledger */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                        Fee Payment History & Installment Slots ({assignPlanState.installments?.length || 0})
+                      </h4>
+                      <span
+                        style={{
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          color: '#10b981',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          fontSize: '10.5px',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <span>🟢</span> Database Auto-Sync
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      Tracks date, exact time, payment method, amount paid, and remaining balance slot-by-slot.
+                    </span>
+                  </div>
+                  {!showAddPaymentForm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const { dateFormatted, timeFormatted } = getCurrentDateTime();
+                        setNewPayment({
+                          amount: remainingDueNum > 0 ? String(remainingDueNum) : '',
+                          paymentDate: dateFormatted,
+                          paymentTime: timeFormatted,
+                          paymentMethod: 'UPI / Online',
+                          notes: '',
+                        });
+                        setShowAddPaymentForm(true);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)',
+                        borderColor: 'transparent',
+                        fontWeight: 700,
+                        fontSize: '11.5px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Plus size={14} /> + Collect Next Installment / Add Slot
+                    </button>
+                  )}
+                </div>
+
+                {/* Inline Payment Entry Form */}
+                {showAddPaymentForm && (
+                  <div
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      borderRadius: '14px',
+                      border: '1px solid rgba(236, 72, 153, 0.4)',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#ec4899', textTransform: 'uppercase' }}>
+                        Record Payment for Slot #{assignPlanState.installments?.length + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddPaymentForm(false)}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Amount & Quick Fill Buttons */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#f8fafc' }}>
+                          Amount to Pay (₹) <span style={{ color: '#ec4899' }}>*</span>
+                        </label>
+                        {remainingDueNum > 0 && (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setNewPayment({ ...newPayment, amount: String(remainingDueNum) })}
+                              style={{
+                                fontSize: '10.5px',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                color: '#10b981',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Pay Full Due (₹{remainingDueNum.toLocaleString('en-IN')})
+                            </button>
+                            {remainingDueNum > 1000 && (
+                              <button
+                                type="button"
+                                onClick={() => setNewPayment({ ...newPayment, amount: String(Math.round(remainingDueNum / 2)) })}
+                                style={{
+                                  fontSize: '10.5px',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(56, 189, 248, 0.15)',
+                                  color: '#38bdf8',
+                                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                50% Due (₹{Math.round(remainingDueNum / 2).toLocaleString('en-IN')})
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#10b981', fontWeight: 800 }}>
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          min="1"
+                          step="100"
+                          value={newPayment.amount}
+                          onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })}
+                          placeholder="e.g. 5000"
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px 9px 28px',
+                            borderRadius: '8px',
+                            background: '#020617',
+                            border: '1px solid var(--border-color)',
+                            color: '#f8fafc',
+                            fontSize: '14px',
+                            fontWeight: 800,
+                            outline: 'none',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Date, Time & Payment Method */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>
+                          Date (DD/MM/YYYY)
+                        </label>
+                        <input
+                          type="text"
+                          value={newPayment.paymentDate}
+                          onChange={(e) => setNewPayment({ ...newPayment, paymentDate: e.target.value })}
+                          placeholder="DD/MM/YYYY"
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            borderRadius: '6px',
+                            background: '#020617',
+                            border: '1px solid var(--border-color)',
+                            color: '#f8fafc',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>
+                          Exact Time
+                        </label>
+                        <input
+                          type="text"
+                          value={newPayment.paymentTime}
+                          onChange={(e) => setNewPayment({ ...newPayment, paymentTime: e.target.value })}
+                          placeholder="03:45 PM"
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            borderRadius: '6px',
+                            background: '#020617',
+                            border: '1px solid var(--border-color)',
+                            color: '#f8fafc',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>
+                          Payment Method
+                        </label>
+                        <select
+                          value={newPayment.paymentMethod}
+                          onChange={(e) => setNewPayment({ ...newPayment, paymentMethod: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            borderRadius: '6px',
+                            background: '#020617',
+                            border: '1px solid var(--border-color)',
+                            color: '#f8fafc',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <option value="UPI / Online">UPI / GPay / Paytm</option>
+                          <option value="Cash">Cash</option>
+                          <option value="Debit / Credit Card">Debit / Credit Card</option>
+                          <option value="Bank Transfer / NEFT">Bank Transfer / NEFT</option>
+                          <option value="Net Banking">Net Banking</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Receipt Notes */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>
+                        Receipt / Transaction Reference / Notes (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newPayment.notes}
+                        onChange={(e) => setNewPayment({ ...newPayment, notes: e.target.value })}
+                        placeholder="e.g. UPI Ref: 394821 or Cash receipt #101"
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          background: '#020617',
+                          border: '1px solid var(--border-color)',
+                          color: '#f8fafc',
+                          fontSize: '12px',
+                        }}
+                      />
+                    </div>
+
+                    {/* Form Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddPaymentForm(false)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '12px' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAddPaymentSlot}
+                        disabled={isSavingPayment}
+                        className="btn btn-primary btn-sm"
+                        style={{
+                          background: '#10b981',
+                          borderColor: '#10b981',
+                          fontWeight: 800,
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          opacity: isSavingPayment ? 0.7 : 1,
+                          cursor: isSavingPayment ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        <Check size={14} /> {isSavingPayment ? 'Saving to Database...' : 'Record Payment Slot'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Table of Installments */}
+                <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)', background: '#0f172a' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255, 255, 255, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#94a3b8' }}>
+                        <th style={{ padding: '9px 12px', fontWeight: 700 }}>Slot #</th>
+                        <th style={{ padding: '9px 12px', fontWeight: 700 }}>Amount Paid (₹)</th>
+                        <th style={{ padding: '9px 12px', fontWeight: 700 }}>Date & Exact Time</th>
+                        <th style={{ padding: '9px 12px', fontWeight: 700 }}>Method</th>
+                        <th style={{ padding: '9px 12px', fontWeight: 700 }}>Balance Remaining</th>
+                        <th style={{ padding: '9px 12px', fontWeight: 700 }}>Receipt / Notes</th>
+                        <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700 }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(!assignPlanState.installments || assignPlanState.installments.length === 0) ? (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
+                            No fee payments recorded yet. Click <strong>"+ Collect Next Installment / Add Slot"</strong> to record student deposit.
+                          </td>
+                        </tr>
+                      ) : (
+                        assignPlanState.installments.map((inst, idx) => (
+                          <tr key={inst.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                            <td style={{ padding: '9px 12px', fontWeight: 800, color: '#ec4899' }}>
+                              {inst.slotName || `Slot ${idx + 1}`}
+                            </td>
+                            <td style={{ padding: '9px 12px', fontWeight: 800, color: '#10b981' }}>
+                              ₹{Number(inst.amount || 0).toLocaleString('en-IN')}
+                            </td>
+                            <td style={{ padding: '9px 12px', color: '#f8fafc' }}>
+                              <div>{inst.date || '-'}</div>
+                              {inst.time && <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>{inst.time}</div>}
+                            </td>
+                            <td style={{ padding: '9px 12px', color: '#cbd5e1' }}>
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.05)', fontSize: '11px', fontWeight: 600 }}>
+                                {inst.paymentMethod || 'UPI / Online'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '9px 12px', fontWeight: 800, color: (inst.remainingAfter || 0) <= 0 ? '#10b981' : '#f59e0b' }}>
+                              {(inst.remainingAfter || 0) <= 0 ? '₹0 (Cleared)' : `₹${Number(inst.remainingAfter).toLocaleString('en-IN')}`}
+                            </td>
+                            <td style={{ padding: '9px 12px', color: '#94a3b8', fontSize: '11px' }}>
+                              {inst.notes || '-'}
+                            </td>
+                            <td style={{ padding: '9px 12px', textAlign: 'right' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePaymentSlot(inst.id)}
+                                title="Delete payment slot"
+                                style={{
+                                  background: 'rgba(239, 68, 68, 0.1)',
+                                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                                  color: '#ef4444',
+                                  padding: '4px 6px',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEnrollModalOpen(false);
+                    setSelectedStudentForEnroll(null);
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAssignPlanModal}
+                  className="btn btn-primary"
+                  style={{
+                    background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)',
+                    borderColor: 'transparent',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '9px 20px',
+                    boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)',
+                  }}
+                >
+                  <Check size={16} /> Save Course Assignment & Fee Schedule
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Certificate Modal */}
       <FormModal
         isOpen={certModalOpen}
         onClose={() => setCertModalOpen(false)}
         title={`Issue Official Certificate: ${selectedStudentForCert?.name || ''}`}
         fields={certFields}
+        initialData={{
+          certificateNumber: `CERT-${Date.now().toString().slice(-6)}`,
+          courseName: selectedStudentForCert?.course || 'General Beauty Training',
+          grade: 'A+',
+          issueDate: new Date().toISOString().split('T')[0],
+        }}
         onSubmit={handleIssueCertificate}
       />
 
-      {/* View Student Trainee Modal */}
-      {viewStudentModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(5px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-          }}
-        >
+      {/* View Student Trainee Modal (Complete Profile & Payment History) */}
+      {viewStudentModal && (() => {
+        const totalFee = Number(viewStudentModal.computedTotalFee ?? viewStudentModal.totalAmount ?? viewStudentModal.tuitionFee ?? 0);
+        const totalPaid = Number(viewStudentModal.computedTotalPaid ?? viewStudentModal.paidAmount ?? viewStudentModal.paidFee ?? 0);
+        const remainingDue = Number(viewStudentModal.computedRemaining ?? Math.max(0, totalFee - totalPaid));
+        const isPaid = totalFee > 0 && remainingDue === 0;
+        const installments = viewStudentModal.installments || [];
+
+        return (
           <div
             style={{
-              width: '100%',
-              maxWidth: '560px',
-              background: '#1e293b',
-              border: '1px solid var(--border-color)',
-              borderRadius: '16px',
-              padding: '1.75rem',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.8)',
+              backdropFilter: 'blur(6px)',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '1.25rem',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '1rem',
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setViewStudentModal(null);
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                {viewStudentModal.photo ? (
-                  <img
-                    src={viewStudentModal.photo}
-                    alt={viewStudentModal.name}
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '680px',
+                maxHeight: '92vh',
+                overflowY: 'auto',
+                background: '#1e293b',
+                border: '1px solid var(--border-color)',
+                borderRadius: '18px',
+                padding: '24px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+              }}
+            >
+              {/* Profile Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  {viewStudentModal.photo ? (
+                    <img
+                      src={viewStudentModal.photo}
+                      alt={viewStudentModal.name}
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid #ec4899',
+                        boxShadow: '0 4px 12px rgba(236,72,153,0.3)',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '1.35rem',
+                        boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {(viewStudentModal.name || 'S').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800, textTransform: 'uppercase' }}>
+                      Academy Trainee Profile
+                    </span>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '2px 0 0 0', color: '#f8fafc' }}>
+                      {viewStudentModal.name}
+                    </h3>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                      Roll ID: <strong style={{ color: '#38bdf8' }}>{viewStudentModal.studentId || 'N/A'}</strong>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewStudentModal(null)}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.35rem' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Trainee Profile Details Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '12px',
+                  background: 'rgba(15,23,42,0.6)',
+                  padding: '16px',
+                  borderRadius: '14px',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>STATUS</div>
+                  <span
                     style={{
-                      width: '54px',
-                      height: '54px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: '2px solid #ec4899',
-                      boxShadow: '0 4px 12px rgba(236,72,153,0.3)',
-                    }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: '54px',
-                      height: '54px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      display: 'inline-block',
+                      marginTop: '3px',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.72rem',
                       fontWeight: 800,
-                      fontSize: '1.25rem',
-                      boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
-                      flexShrink: 0,
+                      textTransform: 'uppercase',
+                      background:
+                        viewStudentModal.status === 'active' || !viewStudentModal.status
+                          ? 'rgba(16, 185, 129, 0.15)'
+                          : 'rgba(239, 68, 68, 0.15)',
+                      color: viewStudentModal.status === 'active' || !viewStudentModal.status ? '#10b981' : '#ef4444',
                     }}
                   >
-                    {(viewStudentModal.name || 'S').charAt(0).toUpperCase()}
+                    {viewStudentModal.status || 'ACTIVE'}
+                  </span>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>PHONE NUMBER</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', marginTop: '3px' }}>
+                    {viewStudentModal.phone || 'N/A'}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>EMAIL ADDRESS</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', marginTop: '3px' }}>
+                    {viewStudentModal.email || 'N/A'}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>🎂 DATE OF BIRTH (DD/MM/YYYY)</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ec4899', marginTop: '3px' }}>
+                    {formatDateDDMMYYYY(viewStudentModal.dateOfBirth || viewStudentModal.dob)}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>📅 ENROLLMENT / JOINING DATE</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', marginTop: '3px' }}>
+                    {formatDateDDMMYYYY(viewStudentModal.joiningDate || viewStudentModal.createdAt)}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>EMERGENCY CONTACT</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', marginTop: '3px' }}>
+                    {typeof viewStudentModal.emergencyContact === 'object'
+                      ? viewStudentModal.emergencyContact?.phone || 'N/A'
+                      : viewStudentModal.emergencyContact || 'N/A'}
+                  </div>
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>ENROLLED PARLOUR PLAN</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ec4899', marginTop: '3px' }}>
+                    {viewStudentModal.course || viewStudentModal.enrollments?.[0]?.planName || 'General Beauty Training'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Fee & Payment Ledger Section */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                    Tuition Fee Ledger & Installments
+                  </h4>
+                  <span
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      background: isPaid ? 'rgba(16, 185, 129, 0.2)' : totalPaid > 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: isPaid ? '#10b981' : totalPaid > 0 ? '#f59e0b' : '#ef4444',
+                    }}
+                  >
+                    {isPaid ? '🟢 100% FEES CLEARED' : totalPaid > 0 ? `🟡 DUE: ₹${remainingDue.toLocaleString('en-IN')}` : '🔴 UNPAID'}
+                  </span>
+                </div>
+
+                {/* 3 Metric Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 700 }}>AGREED FEE</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', marginTop: '2px' }}>
+                      ₹{totalFee.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <div style={{ fontSize: '10.5px', color: '#34d399', fontWeight: 700 }}>TOTAL PAID</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+                      ₹{totalPaid.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div style={{ background: isPaid ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}` }}>
+                    <div style={{ fontSize: '10.5px', color: isPaid ? '#34d399' : '#f87171', fontWeight: 700 }}>REMAINING DUE</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: isPaid ? '#10b981' : '#ef4444', marginTop: '2px' }}>
+                      ₹{remainingDue.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Installments Table */}
+                <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)', background: '#0f172a' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '11.5px' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255, 255, 255, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#94a3b8' }}>
+                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Slot #</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Amount</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Date & Time</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Mode</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Balance Remaining</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {installments.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '18px', color: '#94a3b8' }}>
+                            No installment payments recorded yet. Click "Assign Plan" to set up fee schedule.
+                          </td>
+                        </tr>
+                      ) : (
+                        installments.map((inst, i) => (
+                          <tr key={inst.id || i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                            <td style={{ padding: '8px 10px', fontWeight: 800, color: '#ec4899' }}>
+                              {inst.slotName || `Slot ${i + 1}`}
+                            </td>
+                            <td style={{ padding: '8px 10px', fontWeight: 800, color: '#10b981' }}>
+                              ₹{Number(inst.amount || 0).toLocaleString('en-IN')}
+                            </td>
+                            <td style={{ padding: '8px 10px', color: '#f8fafc' }}>
+                              {inst.date || '-'} {inst.time ? `(${inst.time})` : ''}
+                            </td>
+                            <td style={{ padding: '8px 10px', color: '#cbd5e1' }}>
+                              {inst.paymentMethod || 'UPI / Online'}
+                            </td>
+                            <td style={{ padding: '8px 10px', fontWeight: 800, color: (inst.remainingAfter || 0) <= 0 ? '#10b981' : '#f59e0b' }}>
+                              {(inst.remainingAfter || 0) <= 0 ? '₹0' : `₹${Number(inst.remainingAfter).toLocaleString('en-IN')}`}
+                            </td>
+                            <td style={{ padding: '8px 10px', color: '#94a3b8' }}>
+                              {inst.notes || '-'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* If fully paid, show certificate action button */}
+                {isPaid && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                    <span style={{ fontSize: '12px', color: '#34d399', fontWeight: 700 }}>
+                      🎉 Fee Cleared: Eligible for Diploma & Certificate
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const s = viewStudentModal;
+                        setViewStudentModal(null);
+                        setSelectedStudentForCert(s);
+                        setCertModalOpen(true);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+                        borderColor: 'transparent',
+                        fontWeight: 700,
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Award size={13} /> 🎓 Issue Certificate
+                    </button>
                   </div>
                 )}
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800, textTransform: 'uppercase' }}>
-                    Academy Trainee Profile
-                  </span>
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, margin: '2px 0 0 0', color: '#f8fafc' }}>
-                    {viewStudentModal.name}
-                  </h3>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setViewStudentModal(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.25rem' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'rgba(15,23,42,0.6)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>STUDENT ROLL / ID</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#38bdf8', marginTop: '2px' }}>
-                  {viewStudentModal.studentId || 'STU-101'}
-                </div>
               </div>
 
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>ENROLLMENT STATUS</div>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    marginTop: '2px',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    background: viewStudentModal.status === 'active' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: viewStudentModal.status === 'active' ? '#10b981' : '#ef4444',
+              {/* Modal Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const s = viewStudentModal;
+                    setViewStudentModal(null);
+                    setSelectedStudentForDocs(s);
                   }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
-                  {viewStudentModal.status || 'Active'}
-                </span>
+                  <FileText size={13} /> View Documents
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const s = viewStudentModal;
+                    setViewStudentModal(null);
+                    handleOpenEditStudent(s);
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b' }}
+                >
+                  <Edit2 size={13} /> Edit Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewStudentModal(null)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Close
+                </button>
               </div>
-
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>PHONE NUMBER</div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc', marginTop: '2px' }}>
-                  {viewStudentModal.phone || 'N/A'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>EMAIL ADDRESS</div>
-                <div style={{ fontSize: '0.88rem', color: '#cbd5e1', marginTop: '2px' }}>
-                  {viewStudentModal.email || 'N/A'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>ACTIVE COURSE PLAN</div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f472b6', marginTop: '2px' }}>
-                  {viewStudentModal.enrolledPlanName || viewStudentModal.plan?.name || 'Master Bridal & Hair Cosmetology'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>BATCH ASSIGNMENT</div>
-                <div style={{ fontSize: '0.9rem', color: '#cbd5e1', marginTop: '2px' }}>
-                  {viewStudentModal.batchTiming || 'Morning Batch (10:00 AM - 01:00 PM)'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>DATE OF BIRTH</div>
-                <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginTop: '2px' }}>
-                  {viewStudentModal.dob || 'Not set'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>CERTIFICATES EARNED</div>
-                <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, marginTop: '2px' }}>
-                  {viewStudentModal.certificatesCount ? `${viewStudentModal.certificatesCount} Verified Cert(s)` : 'Course in progress'}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button
-                type="button"
-                onClick={() => setViewStudentModal(null)}
-                className="btn btn-secondary"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const s = viewStudentModal;
-                  setViewStudentModal(null);
-                  setEditingStudent(s);
-                  setStudentModalOpen(true);
-                }}
-                className="btn btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                <Edit2 className="w-3.5 h-3.5" /> Edit Trainee Profile
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {/* Delete Student Confirmation Modal */}
+      {/* Confirm Delete Modal */}
       {confirmDeleteModal && (
         <div
           style={{
@@ -1399,7 +3362,7 @@ export const StudentAcademyPage = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1100,
+            zIndex: 1300,
             padding: '1rem',
           }}
         >
@@ -1464,6 +3427,172 @@ export const StudentAcademyPage = () => {
                 style={{ background: '#ef4444', borderColor: '#ef4444' }}
               >
                 {confirmDeleteModal.confirmText || 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Course Documents & Materials Modal */}
+      {selectedStudentForDocs && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '20px',
+          }}
+          onClick={() => setSelectedStudentForDocs(null)}
+        >
+          <div
+            style={{
+              background: '#1e293b',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '680px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '24px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Course Syllabus & Study Documents
+                </span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0 0 0', color: '#f8fafc' }}>
+                  Academy Documents for {selectedStudentForDocs.name}
+                </h3>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                  Enrolled Course: <strong style={{ color: '#ec4899' }}>{selectedStudentForDocs.course || selectedStudentForDocs.planId?.name || 'General Beauty Training'}</strong> · Roll: {selectedStudentForDocs.studentId || 'N/A'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedStudentForDocs(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '8px',
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Action Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                Total Available Materials: <strong style={{ color: '#f8fafc' }}>{materials.length}</strong>
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedStudentForDocs(null);
+                  handleOpenUploadModal();
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <UploadCloud size={13} /> + Upload New PDF/Doc
+              </button>
+            </div>
+
+            {/* Materials List */}
+            {materials.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                <FileText className="w-10 h-10 mx-auto mb-2 opacity-40 text-pink-500" />
+                <p style={{ margin: 0 }}>No course materials uploaded in database yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {materials.map((mat) => {
+                  const isPdf = mat.fileType?.includes('pdf') || mat.fileName?.toLowerCase().endsWith('.pdf');
+                  return (
+                    <div
+                      key={mat._id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid var(--border-color)',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '8px',
+                            background: isPdf ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                            color: isPdf ? '#ef4444' : '#38bdf8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isPdf ? <FileText size={18} /> : <File size={18} />}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f8fafc' }}>
+                            {mat.title}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                            {mat.category || 'Syllabus'} · {mat.fileName} ({mat.fileSize || '1.5 MB'})
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMaterial(mat)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}
+                        >
+                          <Eye size={12} color="#ec4899" /> View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadMaterial(mat)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}
+                        >
+                          <Download size={12} color="#10b981" /> Download
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedStudentForDocs(null)}
+                className="btn btn-secondary btn-sm"
+              >
+                Close
               </button>
             </div>
           </div>
