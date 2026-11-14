@@ -640,4 +640,5 @@ export function useCustomer() {
   return context;
 }
 
-export default CustomerContext;
+export { CustomerContext };
+
