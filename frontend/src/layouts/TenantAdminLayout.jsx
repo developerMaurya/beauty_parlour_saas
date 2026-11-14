@@ -58,6 +58,7 @@ import {
   Video,
   Clock,
   DollarSign,
+  Award,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -271,6 +272,9 @@ export const TenantAdminLayout = () => {
       badgeBg: '#7e22ce',
       items: [
         { label: 'Beauty Parlour Overview', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Customer Inquiries & Requests', path: '/admin/golden-beauty-parlour?tab=requests', icon: MessageSquare, badge: 'Inquiries' },
+        { label: 'Products & Stock Inventory', path: '/admin/golden-beauty-parlour?tab=products', icon: Box, badge: 'Stock' },
+        { label: 'Certificate Generator', path: '/admin/golden-beauty-parlour?tab=certificates', icon: Award, badge: 'Certificate' },
         { label: 'Parlour Services', path: '/admin/parlour-services', icon: Scissors, badge: 'Services' },
         { label: 'Parlour Plans & Packages', path: '/admin/parlour-plans', icon: Layers, badge: 'Plans' },
         { label: 'Parlour Offers & Coupons', path: '/admin/parlour-offers', icon: Tag, badge: 'Offers' },
