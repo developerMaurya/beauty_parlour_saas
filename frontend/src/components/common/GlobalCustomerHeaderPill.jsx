@@ -63,6 +63,7 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
   };
 
   const activeCount = myBookings.filter((b) => b.status !== 'Completed' && b.status !== 'Cancelled').length;
+  const photoUrl = customer?.profilePhoto || customer?.photo || customer?.picture || customer?.avatar;
 
   return (
     <>
@@ -72,12 +73,13 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
             {/* Unified Professional Profile Chip */}
             <button
               type="button"
+              className="customer-header-chip"
               onClick={() => setDropdownOpen((prev) => !prev)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '10px',
-                padding: '5px 12px 5px 6px',
+                gap: '8px',
+                padding: '4px 10px 4px 5px',
                 borderRadius: '999px',
                 background: dropdownOpen
                   ? isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.12)'
@@ -92,15 +94,23 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 backdropFilter: 'blur(12px)',
                 userSelect: 'none',
+                maxWidth: '100%',
               }}
               title="Click to open Customer Menu & Services"
             >
               {/* Avatar with Verified Status Indicator */}
-              <div style={{ position: 'relative' }}>
-                {customer?.profilePhoto ? (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                {photoUrl ? (
                   <img
-                    src={customer.profilePhoto}
+                    src={photoUrl}
                     alt={customer?.name || 'Customer'}
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
                     style={{
                       width: '32px',
                       height: '32px',
@@ -110,26 +120,26 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
                       display: 'block',
                     }}
                   />
-                ) : (
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 900,
-                      fontSize: '13px',
-                      letterSpacing: '0.02em',
-                      boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)',
-                    }}
-                  >
-                    {customer?.name ? customer.name.charAt(0).toUpperCase() : 'C'}
-                  </div>
-                )}
+                ) : null}
+                <div
+                  className="avatar-fallback"
+                  style={{
+                    display: photoUrl ? 'none' : 'flex',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                    color: '#ffffff',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '13px',
+                    letterSpacing: '0.02em',
+                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)',
+                  }}
+                >
+                  {customer?.name ? customer.name.charAt(0).toUpperCase() : 'C'}
+                </div>
                 {/* Active Green Dot */}
                 <span
                   style={{
@@ -146,31 +156,34 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
               </div>
 
               {/* Customer Name & Dynamic Badge */}
-              <div style={{ textAlign: 'left', lineHeight: 1.15 }}>
+              <div className="customer-chip-text" style={{ textAlign: 'left', lineHeight: 1.15 }}>
                 <div
                   style={{
-                    fontSize: '13px',
+                    fontSize: '12.5px',
                     fontWeight: 800,
                     color: isLight ? '#0f172a' : '#f8fafc',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <span>Hi, {customer?.name ? customer.name.split(' ')[0] : 'Customer'}</span>
                 </div>
                 <div
+                  className="customer-chip-subtitle"
                   style={{
-                    fontSize: '10.5px',
+                    fontSize: '10px',
                     color: activeCount > 0 ? '#38bdf8' : isLight ? '#64748b' : '#94a3b8',
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {activeCount > 0 ? (
-                    <span>● {activeCount} Active {activeCount === 1 ? 'Service' : 'Services'}</span>
+                    <span>● {activeCount} Active</span>
                   ) : (
                     <span>Customer Portal</span>
                   )}
@@ -179,12 +192,12 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
 
               {/* Chevron Down Arrow */}
               <ChevronDown
-                size={14}
+                size={13}
                 style={{
                   color: isLight ? '#64748b' : '#94a3b8',
                   transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease',
-                  marginLeft: '2px',
+                  flexShrink: 0,
                 }}
               />
             </button>
@@ -197,6 +210,7 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
                   top: 'calc(100% + 8px)',
                   right: 0,
                   width: '320px',
+                  maxWidth: 'calc(100vw - 24px)',
                   background: isLight ? '#ffffff' : '#0f172a',
                   border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.15)',
                   borderRadius: '20px',
@@ -223,37 +237,45 @@ export default function GlobalCustomerHeaderPill({ theme = 'dark' }) {
                     marginBottom: '10px',
                   }}
                 >
-                  {customer?.profilePhoto ? (
+                  {photoUrl ? (
                     <img
-                      src={customer.profilePhoto}
+                      src={photoUrl}
                       alt={customer?.name || 'Customer'}
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.dropdown-avatar-fallback');
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
                       style={{
                         width: '42px',
                         height: '42px',
                         borderRadius: '50%',
                         objectFit: 'cover',
                         border: '2px solid #38bdf8',
+                        display: 'block',
                       }}
                     />
-                  ) : (
-                    <div
-                      style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 900,
-                        fontSize: '17px',
-                        boxShadow: '0 4px 10px rgba(239, 68, 68, 0.35)',
-                      }}
-                    >
-                      {customer?.name ? customer.name.charAt(0).toUpperCase() : 'C'}
-                    </div>
-                  )}
+                  ) : null}
+                  <div
+                    className="dropdown-avatar-fallback"
+                    style={{
+                      display: photoUrl ? 'none' : 'flex',
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                      color: '#ffffff',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 900,
+                      fontSize: '17px',
+                      boxShadow: '0 4px 10px rgba(239, 68, 68, 0.35)',
+                    }}
+                  >
+                    {customer?.name ? customer.name.charAt(0).toUpperCase() : 'C'}
+                  </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div

@@ -19,7 +19,15 @@ export function CustomerProvider({ children }) {
   const [customer, setCustomer] = useState(() => {
     try {
       const stored = localStorage.getItem('customer_user');
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      const photo = parsed?.profilePhoto || parsed?.photo || parsed?.picture || '';
+      return {
+        ...parsed,
+        profilePhoto: photo,
+        photo: photo,
+        picture: photo,
+      };
     } catch {
       return null;
     }
@@ -325,19 +333,24 @@ export function CustomerProvider({ children }) {
       let userProfile = null;
       let accessToken = 'token_' + Date.now();
       let refreshToken = 'ref_' + Date.now();
+      const effectivePicture = picture || '';
 
       try {
         const res = await authApi.googleLogin({
           email,
           name,
-          picture,
+          picture: effectivePicture,
+          photo: effectivePicture,
           googleId,
           targetBusiness: 'ALL',
           registrationMethod: 'GOOGLE_AUTH',
         });
         if (res?.data?.customer) {
           userProfile = res.data.customer;
-          if (picture) userProfile.profilePhoto = picture;
+          const photo = res.data.customer.profilePhoto || res.data.customer.photo || res.data.customer.picture || effectivePicture;
+          userProfile.profilePhoto = photo;
+          userProfile.photo = photo;
+          userProfile.picture = photo;
           accessToken = res.data.accessToken || accessToken;
           refreshToken = res.data.refreshToken || refreshToken;
         }
@@ -352,14 +365,19 @@ export function CustomerProvider({ children }) {
           name: name || (email ? email.split('@')[0] : 'Google User'),
           email: email || '',
           phone: '',
-          profilePhoto: picture || '',
+          profilePhoto: effectivePicture,
+          photo: effectivePicture,
+          picture: effectivePicture,
           authProvider: 'GOOGLE',
           targetBusiness: 'ALL',
           registrationMethod: 'GOOGLE_AUTH',
           status: 'ACTIVE',
         };
-      } else if (picture && !userProfile.profilePhoto) {
-        userProfile.profilePhoto = picture;
+      } else {
+        const photo = userProfile.profilePhoto || userProfile.photo || userProfile.picture || effectivePicture;
+        userProfile.profilePhoto = photo;
+        userProfile.photo = photo;
+        userProfile.picture = photo;
       }
 
       // Sync into staff_vertical_customers as a GLOBAL Google user visible everywhere

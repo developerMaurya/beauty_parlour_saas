@@ -285,6 +285,10 @@ export const getMe = async (req, res) => {
     delete sanitized.passwordHash;
     sanitized.role = 'CUSTOMER';
     sanitized.userType = 'CUSTOMER';
+    if (sanitized.profilePhoto) {
+      sanitized.photo = sanitized.profilePhoto;
+      sanitized.picture = sanitized.profilePhoto;
+    }
 
     return sendSuccess(res, 'Customer profile retrieved', sanitized);
   } catch (err) {
@@ -453,6 +457,7 @@ export const revokeSession = async (req, res) => {
 export const googleLogin = async (req, res) => {
   try {
     const { email, name, picture, googleId, phone } = req.body;
+    const userPicture = picture || req.body.photo || req.body.profilePhoto || req.body.avatar || '';
 
     if (!email) {
       return sendError(res, 'Google email address is required', [], 400);
@@ -477,7 +482,7 @@ export const googleLogin = async (req, res) => {
         email: email.toLowerCase(),
         phone: defaultPhone,
         googleId: googleId || '',
-        profilePhoto: picture || '',
+        profilePhoto: userPicture || '',
         authProvider: 'GOOGLE',
         registrationMethod: 'GOOGLE_AUTH',
         targetBusiness: 'ALL',
@@ -485,7 +490,7 @@ export const googleLogin = async (req, res) => {
         isVerified: true,
       });
     } else {
-      if (picture) customer.profilePhoto = picture;
+      if (userPicture) customer.profilePhoto = userPicture;
       if (name && (!customer.name || customer.name === 'Customer')) customer.name = name;
       if (googleId) customer.googleId = googleId;
       customer.lastLoginAt = new Date();
@@ -513,7 +518,9 @@ export const googleLogin = async (req, res) => {
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
-        profilePhoto: customer.profilePhoto,
+        profilePhoto: customer.profilePhoto || userPicture || '',
+        photo: customer.profilePhoto || userPicture || '',
+        picture: customer.profilePhoto || userPicture || '',
         status: customer.status,
       },
       accessToken,

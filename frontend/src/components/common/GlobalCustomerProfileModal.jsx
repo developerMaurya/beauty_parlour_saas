@@ -234,10 +234,17 @@ export default function GlobalCustomerProfileModal() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {customer?.profilePhoto ? (
+            {customer?.profilePhoto || customer?.photo || customer?.picture ? (
               <img
-                src={customer.profilePhoto}
-                alt={customer?.name}
+                src={customer?.profilePhoto || customer?.photo || customer?.picture}
+                alt={customer?.name || 'Customer'}
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fb = e.currentTarget.parentElement?.querySelector('.profile-modal-avatar-fallback');
+                  if (fb) fb.style.display = 'flex';
+                }}
                 style={{
                   width: '48px',
                   height: '48px',
@@ -245,27 +252,28 @@ export default function GlobalCustomerProfileModal() {
                   objectFit: 'cover',
                   border: '2px solid #38bdf8',
                   boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)',
+                  display: 'block',
                 }}
               />
-            ) : (
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '20px',
-                  fontWeight: 900,
-                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
-                }}
-              >
+            ) : null}
+            <div
+              className="profile-modal-avatar-fallback"
+              style={{
+                display: customer?.profilePhoto || customer?.photo || customer?.picture ? 'none' : 'flex',
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                color: '#ffffff',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 900,
+                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
+              }}
+            >
                 {customer?.name ? customer.name.charAt(0).toUpperCase() : 'C'}
               </div>
-            )}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#ffffff' }}>

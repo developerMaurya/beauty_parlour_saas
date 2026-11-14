@@ -99,7 +99,12 @@ export const AdminRoutes = (
       <Route path="staff-salary" element={<AdminStaffSalaryPage />} />
       <Route path="payroll" element={<AdminStaffSalaryPage />} />
 
-      <Route path="golden-beauty-parlour" element={<AdminParlourDashboard />} />
+      <Route path="golden-beauty-parlour" element={<AdminParlourDashboard defaultTab="overview" />} />
+      <Route path="parlour-inquiries" element={<AdminParlourDashboard defaultTab="requests" />} />
+      <Route path="parlour-requests" element={<AdminParlourDashboard defaultTab="requests" />} />
+      <Route path="parlour-products" element={<AdminParlourDashboard defaultTab="products" />} />
+      <Route path="parlour-inventory" element={<AdminParlourDashboard defaultTab="products" />} />
+      <Route path="parlour-certificates" element={<AdminParlourDashboard defaultTab="certificates" />} />
       {/* ── Central Administration System Configurations ── */}
       <Route path="system/database" element={<SystemConfigPage />} />
       <Route path="system/communication" element={<SystemConfigPage />} />

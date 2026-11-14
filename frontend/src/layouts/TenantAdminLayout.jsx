@@ -272,9 +272,9 @@ export const TenantAdminLayout = () => {
       badgeBg: '#7e22ce',
       items: [
         { label: 'Beauty Parlour Overview', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard, badge: 'Overview' },
-        { label: 'Customer Inquiries & Requests', path: '/admin/golden-beauty-parlour?tab=requests', icon: MessageSquare, badge: 'Inquiries' },
-        { label: 'Products & Stock Inventory', path: '/admin/golden-beauty-parlour?tab=products', icon: Box, badge: 'Stock' },
-        { label: 'Certificate Generator', path: '/admin/golden-beauty-parlour?tab=certificates', icon: Award, badge: 'Certificate' },
+        { label: 'Customer Inquiries & Requests', path: '/admin/parlour-inquiries', icon: MessageSquare, badge: 'Inquiries' },
+        { label: 'Products & Stock Inventory', path: '/admin/parlour-products', icon: Box, badge: 'Stock' },
+        { label: 'Certificate Generator', path: '/admin/parlour-certificates', icon: Award, badge: 'Certificate' },
         { label: 'Parlour Services', path: '/admin/parlour-services', icon: Scissors, badge: 'Services' },
         { label: 'Parlour Plans & Packages', path: '/admin/parlour-plans', icon: Layers, badge: 'Plans' },
         { label: 'Parlour Offers & Coupons', path: '/admin/parlour-offers', icon: Tag, badge: 'Offers' },
@@ -389,6 +389,7 @@ export const TenantAdminLayout = () => {
 
       {/* ── Left Branded Sidebar (Desktop fixed 260px, Mobile drawer 280px) ── */}
       <aside
+        className={`admin-sidebar-drawer ${mobileMenuOpen ? 'drawer-open' : ''}`}
         style={{
           width: isMobile ? '280px' : '260px',
           background: '#ffffff',
@@ -726,6 +727,7 @@ export const TenantAdminLayout = () => {
 
       {/* ── Main Right Content Area (Responsive on all screen sizes) ── */}
       <div
+        className="admin-main-viewport"
         style={{
           marginLeft: isMobile ? 0 : '260px',
           width: isMobile ? '100%' : 'calc(100% - 260px)',
@@ -739,6 +741,7 @@ export const TenantAdminLayout = () => {
         {/* ── Mobile Top Bar (Sticky, visible ONLY when screen is narrow < 1024px) ── */}
         {isMobile && (
           <header
+            className="admin-mobile-topbar"
             style={{
               height: '56px',
               background: '#ffffff',

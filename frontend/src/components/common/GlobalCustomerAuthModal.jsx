@@ -71,10 +71,13 @@ export default function GlobalCustomerAuthModal() {
       const decoded = jwtDecode(credentialResponse.credential);
       console.log('[Google OAuth] Decoded payload:', decoded);
 
+      const photoUrl = decoded.picture || decoded.avatar || decoded.photo_url || decoded.image || '';
+
       const user = await loginWithGoogle({
         email: decoded.email,
         name: decoded.name || decoded.given_name || decoded.email.split('@')[0],
-        picture: decoded.picture || '',
+        picture: photoUrl,
+        photo: photoUrl,
         googleId: decoded.sub,
         targetBusiness: 'ALL',
         registrationMethod: 'GOOGLE_AUTH',

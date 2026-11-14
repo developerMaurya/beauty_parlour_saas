@@ -179,13 +179,36 @@ export default function CustomerLayout() {
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(0, 0, 0, 0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+              {customer?.profilePhoto || customer?.photo || customer?.picture ? (
+                <img
+                  src={customer?.profilePhoto || customer?.photo || customer?.picture}
+                  alt={customer?.name || 'Customer'}
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fb = e.currentTarget.parentElement?.querySelector('.cust-layout-avatar-fallback');
+                    if (fb) fb.style.display = 'flex';
+                  }}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '1.5px solid #ec4899',
+                    flexShrink: 0,
+                    display: 'block',
+                  }}
+                />
+              ) : null}
               <div
+                className="cust-layout-avatar-fallback"
                 style={{
+                  display: customer?.profilePhoto || customer?.photo || customer?.picture ? 'none' : 'flex',
                   width: '36px',
                   height: '36px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                  display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 700,
