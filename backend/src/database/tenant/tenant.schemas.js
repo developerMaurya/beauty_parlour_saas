@@ -170,8 +170,8 @@ export const TenantUserSchema = new Schema(
     },
     customRoleId: { type: Schema.Types.ObjectId, ref: 'Role', default: null },
     permissions: [{ type: String }],
-    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null },
-    allowedBranches: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
+    branchId: { type: Schema.Types.Mixed, default: null },
+    allowedBranches: [{ type: Schema.Types.Mixed }],
     status: {
       type: String,
       enum: ['active', 'inactive', 'blocked', 'suspended'],
@@ -444,14 +444,14 @@ export const StudentSchema = new Schema(
     studentId: { type: String, required: true, trim: true },
     admissionNumber: { type: String, trim: true, default: '' },
     enrollmentNumber: { type: String, trim: true, default: '' },
-    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
+    branchId: { type: Schema.Types.Mixed, default: null },
     name: { type: String, required: true, trim: true },
     photo: { type: String, default: '' },
     documentUrl: { type: String, default: '' },
     phone: { type: String, required: true, trim: true },
     email: { type: String, lowercase: true, trim: true, default: '' },
     gender: { type: String, enum: ['male', 'female', 'other'], default: 'female' },
-    dateOfBirth: { type: Date, default: null },
+    dateOfBirth: { type: Schema.Types.Mixed, default: null },
     address: {
       street: { type: String, default: '' },
       city: { type: String, default: '' },
@@ -475,6 +475,7 @@ export const StudentSchema = new Schema(
     tuitionFee: { type: Number, default: 0 },
     paidFee: { type: Number, default: 0 },
     installments: [{ type: Schema.Types.Mixed }],
+    assignedDocuments: [{ type: Schema.Types.Mixed }],
     status: {
       type: String,
       enum: [

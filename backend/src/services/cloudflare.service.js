@@ -6,7 +6,43 @@
  * @module backend/src/services/cloudflare.service
  */
 
+import fs from 'fs';
+import path from 'path';
 import { env } from '../config/env.js';
+
+// Local storage directory for media assets when Cloudflare is unreachable / offline
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (e) {
+  // Silent
+}
+
+const REGISTRY_FILE = path.join(UPLOADS_DIR, '.image_registry.json');
+let localImageRegistry = new Map();
+
+function loadRegistry() {
+  try {
+    if (fs.existsSync(REGISTRY_FILE)) {
+      const data = JSON.parse(fs.readFileSync(REGISTRY_FILE, 'utf-8'));
+      localImageRegistry = new Map(Object.entries(data));
+    }
+  } catch (e) {
+    localImageRegistry = new Map();
+  }
+}
+loadRegistry();
+
+function persistRegistry() {
+  try {
+    const obj = Object.fromEntries(localImageRegistry);
+    fs.writeFileSync(REGISTRY_FILE, JSON.stringify(obj, null, 2), 'utf-8');
+  } catch (e) {
+    // Silent
+  }
+}
 
 /**
  * Upload an image buffer to Cloudflare Images API.
@@ -76,8 +112,37 @@ export async function uploadImageToCloudflare({
       provider: customToken ? 'custom_cloudflare' : 'platform_cloudflare',
     };
   } catch (err) {
-    console.error('[Cloudflare Service] Network/API Error:', err.message);
-    throw err;
+    console.warn('[Cloudflare Service] Network/API Error, falling back to local persistent storage:', err.message);
+
+    try {
+      const ext = path.extname(originalname || '') || (mimetype === 'image/jpeg' ? '.jpg' : mimetype === 'image/webp' ? '.webp' : '.png');
+      const safeId = `cf_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const safeFilename = `${safeId}${ext}`;
+      const filePath = path.join(UPLOADS_DIR, safeFilename);
+
+      await fs.promises.writeFile(filePath, buffer);
+
+      const liveUrl = `/uploads/${safeFilename}`;
+      const record = {
+        success: true,
+        id: safeId,
+        url: liveUrl,
+        filename: originalname || safeFilename,
+        mimetype: mimetype || 'image/png',
+        uploaded: new Date().toISOString(),
+        variants: [liveUrl],
+        provider: 'local_storage',
+      };
+
+      localImageRegistry.set(safeId, record);
+      persistRegistry();
+
+      console.log(`[Cloudflare Service] Successfully stored fallback image locally: ${safeId} -> ${liveUrl}`);
+      return record;
+    } catch (fallbackErr) {
+      console.error('[Cloudflare Service] Local storage fallback failed:', fallbackErr);
+      throw new Error(`Image upload failed: ${err.message || fallbackErr.message}`);
+    }
   }
 }
 
@@ -94,6 +159,40 @@ export async function getImageDetailsFromCloudflare({
   customUrl = null,
 }) {
   if (!imageId) throw new Error('Image ID is required');
+
+  // Check local registry first
+  if (localImageRegistry.has(imageId)) {
+    const rec = localImageRegistry.get(imageId);
+    return {
+      success: true,
+      id: rec.id,
+      url: rec.url,
+      filename: rec.filename,
+      uploaded: rec.uploaded,
+      variants: rec.variants || [rec.url],
+      provider: 'local_storage',
+    };
+  }
+
+  // Also check if physical file exists in uploads/ folder
+  try {
+    const files = await fs.promises.readdir(UPLOADS_DIR);
+    const matched = files.find((f) => f.startsWith(imageId) || f.includes(imageId));
+    if (matched) {
+      const liveUrl = `/uploads/${matched}`;
+      return {
+        success: true,
+        id: imageId,
+        url: liveUrl,
+        filename: matched,
+        uploaded: new Date().toISOString(),
+        variants: [liveUrl],
+        provider: 'local_storage',
+      };
+    }
+  } catch (e) {
+    // Ignore
+  }
 
   const token = (customToken && customToken.trim()) || env.CLOUDFLARE_API_TOKEN;
   let apiUrl = (customUrl && customUrl.trim()) || env.CLOUDFLARE_API_URL;

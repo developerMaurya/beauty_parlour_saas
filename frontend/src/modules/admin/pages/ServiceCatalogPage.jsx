@@ -940,8 +940,8 @@ export const ServiceCatalogPage = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div
                               style={{
-                                width: '36px',
-                                height: '36px',
+                                width: '38px',
+                                height: '38px',
                                 borderRadius: '10px',
                                 background: isLight ? '#fdf2f8' : 'rgba(236, 72, 153, 0.15)',
                                 border: '1px solid #fbcfe8',
@@ -950,9 +950,19 @@ export const ServiceCatalogPage = () => {
                                 justifyContent: 'center',
                                 fontSize: '17px',
                                 flexShrink: 0,
+                                overflow: 'hidden',
                               }}
                             >
-                              {srv.iconEmoji || '💄'}
+                              {srv.image ? (
+                                <img
+                                  src={srv.image}
+                                  alt={srv.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                              ) : (
+                                srv.iconEmoji || '💄'
+                              )}
                             </div>
                             <div>
                               <div style={{ fontWeight: '800', color: themeStyles.textPrimary, fontSize: '13px' }}>
@@ -2213,8 +2223,8 @@ export const ServiceCatalogPage = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div
                   style={{
-                    width: '44px',
-                    height: '44px',
+                    width: '48px',
+                    height: '48px',
                     borderRadius: '12px',
                     background: '#fdf2f8',
                     border: '1px solid #fbcfe8',
@@ -2222,9 +2232,20 @@ export const ServiceCatalogPage = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '22px',
+                    overflow: 'hidden',
+                    flexShrink: 0,
                   }}
                 >
-                  {viewingService.iconEmoji || '💄'}
+                  {viewingService.image ? (
+                    <img
+                      src={viewingService.image}
+                      alt={viewingService.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    viewingService.iconEmoji || '💄'
+                  )}
                 </div>
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: '700', color: '#ec4899', textTransform: 'uppercase' }}>

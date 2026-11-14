@@ -41,10 +41,13 @@ import {
   ShieldCheck,
   Car,
   Building,
+  Image as ImageIcon,
+  UploadCloud,
 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useTenantAdmin } from '../../../context/TenantAdminContext.jsx';
 import { packageFetcher } from '../../../services/api/admin/adminApi.js';
+import { uploadImageToCloudflare } from '../../../services/uploadService.js';
 
 // Self-contained duration & validity formatter helper (Months)
 export const formatDurationMonths = (val) => {
@@ -152,11 +155,14 @@ export const PlanCatalogPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedPlanForView, setSelectedPlanForView] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
     name: '',
     tier: 'Silver',
+    image: '',
     price: '',
     discountPrice: '',
     durationMonths: '', // Validity in Months (kitne month tak plan chalega)
@@ -245,9 +251,11 @@ export const PlanCatalogPage = () => {
   // Open Create Modal
   const handleOpenCreateModal = () => {
     setEditingPlan(null);
+    setImageUploadError('');
     setFormData({
       name: '',
       tier: 'Silver',
+      image: '',
       price: '',
       discountPrice: '',
       durationMonths: '',
@@ -262,9 +270,11 @@ export const PlanCatalogPage = () => {
   // Open Edit Modal
   const handleOpenEditModal = (plan) => {
     setEditingPlan(plan);
+    setImageUploadError('');
     setFormData({
       name: plan.name || '',
       tier: plan.tier || 'Silver',
+      image: plan.image || plan.photo || plan.banner || '',
       price: plan.price !== undefined && plan.price !== null ? plan.price : '',
       discountPrice: plan.discountPrice !== undefined && plan.discountPrice !== null ? plan.discountPrice : '',
       durationMonths: plan.durationMonths !== undefined && plan.durationMonths !== null ? plan.durationMonths : (plan.durationHours || ''),
@@ -305,6 +315,7 @@ export const PlanCatalogPage = () => {
     const planPayload = {
       name: formData.name.trim(),
       tier: formData.tier,
+      image: formData.image || undefined,
       price: Number(formData.price),
       discountPrice: formData.discountPrice !== '' ? Number(formData.discountPrice) : null,
       durationMonths: formData.durationMonths !== '' ? Number(formData.durationMonths) : null,
@@ -810,6 +821,30 @@ export const PlanCatalogPage = () => {
                   </div>
                 </div>
 
+                {/* PLAN IMAGE / BANNER */}
+                {plan.image && (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '130px',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      marginBottom: '12px',
+                      border: `1px solid ${themeStyles.border}`,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    <img
+                      src={plan.image}
+                      alt={plan.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
                 {/* PLAN NAME */}
                 <h3
                   style={{
@@ -1069,12 +1104,52 @@ export const PlanCatalogPage = () => {
                   >
                     <td style={{ padding: '14px 16px', fontSize: '12.5px', color: themeStyles.textMuted }}>{rowNum}</td>
 
-                    {/* Plan Name */}
+                    {/* Plan Name with Image Thumbnail */}
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontWeight: '800', fontSize: '13.5px', color: themeStyles.textPrimary }}>
-                        {plan.name}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {plan.image ? (
+                          <img
+                            src={plan.image}
+                            alt={plan.name}
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              objectFit: 'cover',
+                              flexShrink: 0,
+                              border: `1px solid ${themeStyles.border}`,
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              background: isLight ? tierInfo.bg : 'rgba(255, 255, 255, 0.05)',
+                              color: tierInfo.color,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '800',
+                              fontSize: '14px',
+                              flexShrink: 0,
+                              border: `1px solid ${tierInfo.color}33`,
+                            }}
+                          >
+                            {plan.name?.charAt(0) || 'P'}
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: '800', fontSize: '13.5px', color: themeStyles.textPrimary }}>
+                            {plan.name}
+                          </div>
+                          <div style={{ fontSize: '11px', color: themeStyles.textMuted }}>{plan.description?.slice(0, 45) || 'Golden Parlour Plan'}...</div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '11px', color: themeStyles.textMuted }}>{plan.description?.slice(0, 45) || 'Golden Parlour Plan'}...</div>
                     </td>
 
                     {/* Tier Badge */}
@@ -1395,6 +1470,165 @@ export const PlanCatalogPage = () => {
                     outline: 'none',
                   }}
                 />
+              </div>
+
+              {/* Plan Image / Banner (Cloudflare Upload) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
+                  Plan Banner / Image (Cloudflare Upload - Optional)
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    {formData.image ? (
+                      <div
+                        style={{
+                          width: '70px',
+                          height: '70px',
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          border: '2px solid #0284c7',
+                          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+                          flexShrink: 0,
+                          background: '#f8fafc',
+                        }}
+                      >
+                        <img
+                          src={formData.image}
+                          alt="Plan Preview"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150';
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          width: '70px',
+                          height: '70px',
+                          borderRadius: '10px',
+                          background: isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.1)',
+                          border: '2px dashed rgba(2, 132, 199, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#0284c7',
+                          fontSize: '24px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isUploadingImage ? '⏳' : '📷'}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="plan-image-upload-input"
+                        style={{ display: 'none' }}
+                        disabled={isUploadingImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIsUploadingImage(true);
+                            setImageUploadError('');
+                            try {
+                              const cfUrl = await uploadImageToCloudflare(file, {
+                                folder: 'plans',
+                                entityType: 'plan',
+                              });
+                              setFormData((prev) => ({ ...prev, image: cfUrl }));
+                              toast.success('Plan image uploaded to Cloudflare successfully!');
+                            } catch (err) {
+                              console.error('Plan image upload failed:', err);
+                              setImageUploadError(err.message || 'Image upload failed. You can paste image link below.');
+                              toast.error(err.message || 'Failed to upload plan image');
+                            } finally {
+                              setIsUploadingImage(false);
+                              e.target.value = '';
+                            }
+                          }
+                        }}
+                      />
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          disabled={isUploadingImage}
+                          onClick={() => document.getElementById('plan-image-upload-input')?.click()}
+                          style={{
+                            fontSize: '12px',
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            background: isUploadingImage ? 'rgba(2, 132, 199, 0.25)' : 'rgba(2, 132, 199, 0.12)',
+                            border: '1px solid rgba(2, 132, 199, 0.35)',
+                            color: '#0284c7',
+                            fontWeight: '700',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            cursor: isUploadingImage ? 'wait' : 'pointer',
+                          }}
+                        >
+                          <UploadCloud size={14} />
+                          {isUploadingImage ? '⏳ Uploading to Cloudflare...' : '📁 Choose Plan Image'}
+                        </button>
+
+                        {formData.image && (
+                          <button
+                            type="button"
+                            disabled={isUploadingImage}
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, image: '' }));
+                              setImageUploadError('');
+                            }}
+                            style={{
+                              fontSize: '11px',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              color: '#ef4444',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      <span style={{ fontSize: '11px', color: isUploadingImage ? '#0284c7' : themeStyles.textMuted }}>
+                        {isUploadingImage
+                          ? '⚡ Uploading directly to Cloudflare Images API... please wait'
+                          : 'Uploads directly to Cloudflare live URL. Or paste image URL below:'}
+                      </span>
+                      {imageUploadError && (
+                        <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>
+                          ⚠️ {imageUploadError}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="https://imagedelivery.net/... or paste image URL"
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${themeStyles.border}`,
+                      background: themeStyles.inputBg,
+                      color: themeStyles.textPrimary,
+                      fontSize: '12px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Tier Selection */}
@@ -1757,6 +1991,25 @@ export const PlanCatalogPage = () => {
 
             {/* View Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Plan Banner Photo if available */}
+              {selectedPlanForView.image && (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: `1px solid ${themeStyles.border}`,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  }}
+                >
+                  <img
+                    src={selectedPlanForView.image}
+                    alt={selectedPlanForView.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+              )}
               {/* Pricing Box */}
               <div
                 style={{

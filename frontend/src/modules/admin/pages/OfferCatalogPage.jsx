@@ -45,10 +45,13 @@ import {
   Crown,
   ShieldCheck,
   Percent,
+  Image as ImageIcon,
+  UploadCloud,
 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useTenantAdmin } from '../../../context/TenantAdminContext.jsx';
 import { offerFetcher } from '../../../services/api/admin/adminApi.js';
+import { uploadImageToCloudflare } from '../../../services/uploadService.js';
 
 // Pre-seeded Master Parlour Offers (Strictly Only 1 Single Initial Offer)
 const INITIAL_PARLOUR_OFFERS = [
@@ -146,11 +149,14 @@ export const OfferCatalogPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedOfferForView, setSelectedOfferForView] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
     name: '',
     tag: '🔥 NEW OFFER',
+    image: '',
     rate: '', // Optional
     regularRate: '', // Optional
     validFrom: new Date().toISOString().split('T')[0],
@@ -258,11 +264,13 @@ export const OfferCatalogPage = () => {
   // Open Create Form Modal
   const handleOpenCreateModal = () => {
     setEditingOffer(null);
+    setImageUploadError('');
     const todayStr = new Date().toISOString().split('T')[0];
     const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     setFormData({
       name: '',
       tag: '🔥 NEW OFFER',
+      image: '',
       rate: '',
       regularRate: '',
       validFrom: todayStr,
@@ -278,9 +286,11 @@ export const OfferCatalogPage = () => {
   // Open Edit Form Modal
   const handleOpenEditModal = (offer) => {
     setEditingOffer(offer);
+    setImageUploadError('');
     setFormData({
       name: offer.name || '',
       tag: offer.tag || '🔥 NEW OFFER',
+      image: offer.image || offer.photo || offer.banner || '',
       rate: offer.rate !== undefined && offer.rate !== null ? offer.rate : '',
       regularRate: offer.regularRate !== undefined && offer.regularRate !== null ? offer.regularRate : '',
       validFrom: offer.validFrom || new Date().toISOString().split('T')[0],
@@ -327,6 +337,7 @@ export const OfferCatalogPage = () => {
     const offerPayload = {
       name: formData.name.trim(),
       tag: formData.tag.trim() || '🔥 NEW OFFER',
+      image: formData.image || undefined,
       rate: formData.rate !== '' ? Number(formData.rate) : null,
       regularRate: formData.regularRate !== '' ? Number(formData.regularRate) : null,
       validFrom: formData.validFrom,
@@ -851,6 +862,30 @@ export const OfferCatalogPage = () => {
                   </div>
                 </div>
 
+                {/* OFFER PROMO IMAGE BANNER */}
+                {offer.image && (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '130px',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      marginBottom: '12px',
+                      border: `1px solid ${themeStyles.border}`,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    <img
+                      src={offer.image}
+                      alt={offer.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
                 {/* RATE & PRICING DISPLAY (OPTIONAL) */}
                 <div
                   style={{
@@ -1119,12 +1154,52 @@ export const OfferCatalogPage = () => {
                   >
                     <td style={{ padding: '14px 16px', fontSize: '12.5px', color: themeStyles.textMuted }}>{rowNum}</td>
 
-                    {/* Offer Name */}
+                    {/* Offer Name with Image Thumbnail */}
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontWeight: '800', fontSize: '13.5px', color: themeStyles.textPrimary }}>
-                        {offer.name}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {offer.image ? (
+                          <img
+                            src={offer.image}
+                            alt={offer.name}
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              objectFit: 'cover',
+                              flexShrink: 0,
+                              border: `1px solid ${themeStyles.border}`,
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              background: 'rgba(236, 72, 153, 0.1)',
+                              color: '#ec4899',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '800',
+                              fontSize: '14px',
+                              flexShrink: 0,
+                              border: '1px solid rgba(236, 72, 153, 0.25)',
+                            }}
+                          >
+                            <Tag size={16} />
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: '800', fontSize: '13.5px', color: themeStyles.textPrimary }}>
+                            {offer.name}
+                          </div>
+                          <div style={{ fontSize: '11px', color: themeStyles.textMuted }}>{offer.category || 'Special Offer'}</div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '11px', color: themeStyles.textMuted }}>{offer.category || 'Special Offer'}</div>
                     </td>
 
                     {/* Tag / Flag Badge */}
@@ -1452,6 +1527,165 @@ export const OfferCatalogPage = () => {
                     outline: 'none',
                   }}
                 />
+              </div>
+
+              {/* Offer Image / Promo Banner (Cloudflare Upload) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
+                  Offer Banner / Promo Image (Cloudflare Upload - Optional)
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    {formData.image ? (
+                      <div
+                        style={{
+                          width: '70px',
+                          height: '70px',
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          border: '2px solid #ec4899',
+                          boxShadow: '0 2px 8px rgba(236, 72, 153, 0.3)',
+                          flexShrink: 0,
+                          background: '#f8fafc',
+                        }}
+                      >
+                        <img
+                          src={formData.image}
+                          alt="Offer Preview"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=150';
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          width: '70px',
+                          height: '70px',
+                          borderRadius: '10px',
+                          background: isLight ? '#fdf2f8' : 'rgba(236, 72, 153, 0.1)',
+                          border: '2px dashed rgba(236, 72, 153, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ec4899',
+                          fontSize: '24px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isUploadingImage ? '⏳' : '📷'}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="offer-image-upload-input"
+                        style={{ display: 'none' }}
+                        disabled={isUploadingImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIsUploadingImage(true);
+                            setImageUploadError('');
+                            try {
+                              const cfUrl = await uploadImageToCloudflare(file, {
+                                folder: 'offers',
+                                entityType: 'offer',
+                              });
+                              setFormData((prev) => ({ ...prev, image: cfUrl }));
+                              toast.success('Offer promo image uploaded to Cloudflare successfully!');
+                            } catch (err) {
+                              console.error('Offer image upload failed:', err);
+                              setImageUploadError(err.message || 'Image upload failed. You can paste image link below.');
+                              toast.error(err.message || 'Failed to upload offer image');
+                            } finally {
+                              setIsUploadingImage(false);
+                              e.target.value = '';
+                            }
+                          }
+                        }}
+                      />
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          disabled={isUploadingImage}
+                          onClick={() => document.getElementById('offer-image-upload-input')?.click()}
+                          style={{
+                            fontSize: '12px',
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            background: isUploadingImage ? 'rgba(236, 72, 153, 0.25)' : 'rgba(236, 72, 153, 0.12)',
+                            border: '1px solid rgba(236, 72, 153, 0.35)',
+                            color: '#ec4899',
+                            fontWeight: '700',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            cursor: isUploadingImage ? 'wait' : 'pointer',
+                          }}
+                        >
+                          <UploadCloud size={14} />
+                          {isUploadingImage ? '⏳ Uploading to Cloudflare...' : '📁 Choose Offer Image'}
+                        </button>
+
+                        {formData.image && (
+                          <button
+                            type="button"
+                            disabled={isUploadingImage}
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, image: '' }));
+                              setImageUploadError('');
+                            }}
+                            style={{
+                              fontSize: '11px',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              color: '#ef4444',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      <span style={{ fontSize: '11px', color: isUploadingImage ? '#ec4899' : themeStyles.textMuted }}>
+                        {isUploadingImage
+                          ? '⚡ Uploading directly to Cloudflare Images API... please wait'
+                          : 'Uploads directly to Cloudflare live URL. Or paste image URL below:'}
+                      </span>
+                      {imageUploadError && (
+                        <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>
+                          ⚠️ {imageUploadError}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="https://imagedelivery.net/... or paste image URL"
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${themeStyles.border}`,
+                      background: themeStyles.inputBg,
+                      color: themeStyles.textPrimary,
+                      fontSize: '12px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Tag / Flag (Top-Right Badge on Card) */}
@@ -1829,6 +2063,25 @@ export const OfferCatalogPage = () => {
 
             {/* View Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Offer Promo Banner if available */}
+              {selectedOfferForView.image && (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: `1px solid ${themeStyles.border}`,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  }}
+                >
+                  <img
+                    src={selectedOfferForView.image}
+                    alt={selectedOfferForView.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+              )}
               {/* Rate & Pricing Box (If defined) */}
               <div
                 style={{

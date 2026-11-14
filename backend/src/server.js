@@ -18,8 +18,8 @@ export const startServer = async () => {
     await connectCentralDB();
     console.log('[DATABASE] Central MongoDB connected successfully.');
 
-    // 2. Start HTTP Listener
-    server = app.listen(env.PORT, () => {
+    // 2. Start HTTP Listener on 0.0.0.0 to accept connections from localhost and all network interfaces
+    server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`\n======================================================================`);
       console.log(`🌟 KASHI SERVICE MULTI-BUSINESS PLATFORM LIVE ON PORT ${env.PORT}`);
       console.log(`======================================================================`);
@@ -84,6 +84,14 @@ const handleGracefulShutdown = async (signal) => {
 
 process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+  console.error('[SERVER ERROR - UNCAUGHT EXCEPTION]:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[SERVER ERROR - UNHANDLED REJECTION]:', reason);
+});
 
 // Start server if directly executed
 if (process.argv[1] && process.argv[1].endsWith('server.js')) {

@@ -172,6 +172,7 @@ export const StudentAcademyPage = () => {
 
   // Student Assigned Documents Modal State
   const [selectedStudentForDocs, setSelectedStudentForDocs] = useState(null);
+  const [docsActiveTab, setDocsActiveTab] = useState('assigned'); // 'assigned' | 'library'
 
   // Helper to load Master Parlour Plans & Packages strictly from storage
   const loadParlourPlansFromStorage = () => {
@@ -296,7 +297,7 @@ export const StudentAcademyPage = () => {
         data.branchId ||
         branches[0]?._id ||
         selectedBranchId ||
-        'br_parlour_main';
+        undefined;
 
       const payload = {
         name: data.name?.trim(),
@@ -923,13 +924,68 @@ export const StudentAcademyPage = () => {
     try {
       const a = document.createElement('a');
       a.href = mat.fileUrl;
-      a.download = mat.fileName || `${mat.title.replace(/\s+/g, '_')}.pdf`;
+      a.download = mat.fileName || `${(mat.title || 'document').replace(/\s+/g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       toast.success(`Downloading ${mat.fileName || mat.title}...`);
     } catch {
       window.open(mat.fileUrl, '_blank');
+    }
+  };
+
+  // Assign Document/Material to Specific Student
+  const handleAssignDocumentToStudent = async (student, material) => {
+    try {
+      const existingDocs = Array.isArray(student.assignedDocuments) ? [...student.assignedDocuments] : [];
+      const alreadyAssigned = existingDocs.some(
+        (d) => (d._id && d._id === material._id) || (d.fileUrl && d.fileUrl === material.fileUrl)
+      );
+      if (alreadyAssigned) {
+        toast.error(`"${material.title}" is already assigned to ${student.name}`);
+        return;
+      }
+
+      const isPdf = material.fileType?.includes('pdf') || material.fileName?.toLowerCase().endsWith('.pdf') || material.type === 'pdf';
+      const isImg = material.fileType?.startsWith('image/') || material.type === 'image';
+
+      const docEntry = {
+        _id: material._id || `doc_${Date.now()}`,
+        title: material.title,
+        category: material.category || 'Syllabus',
+        type: isPdf ? 'pdf' : isImg ? 'image' : 'document',
+        fileName: material.fileName || (isPdf ? 'Document.pdf' : 'Image.png'),
+        fileSize: material.fileSize || '1.5 MB',
+        fileUrl: material.fileUrl,
+        assignedAt: new Date().toISOString(),
+      };
+
+      const updatedList = [docEntry, ...existingDocs];
+      await studentFetcher.update(student._id, { assignedDocuments: updatedList });
+
+      const updatedStudent = { ...student, assignedDocuments: updatedList };
+      setStudents((prev) => prev.map((s) => (s._id === student._id ? updatedStudent : s)));
+      setSelectedStudentForDocs(updatedStudent);
+      toast.success(`Document "${material.title}" assigned to ${student.name}!`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to assign document');
+    }
+  };
+
+  // Unassign / Remove Document from Student
+  const handleUnassignDocumentFromStudent = async (student, docId) => {
+    try {
+      const existingDocs = Array.isArray(student.assignedDocuments) ? student.assignedDocuments : [];
+      const updatedList = existingDocs.filter((d) => d._id !== docId && d.fileUrl !== docId);
+
+      await studentFetcher.update(student._id, { assignedDocuments: updatedList });
+
+      const updatedStudent = { ...student, assignedDocuments: updatedList };
+      setStudents((prev) => prev.map((s) => (s._id === student._id ? updatedStudent : s)));
+      setSelectedStudentForDocs(updatedStudent);
+      toast.success(`Document removed from ${student.name}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to unassign document');
     }
   };
 
@@ -2045,15 +2101,22 @@ export const StudentAcademyPage = () => {
                 <select
                   value={materialForm.category}
                   onChange={(e) => setMaterialForm({ ...materialForm, category: e.target.value })}
-                  className="form-control"
                   style={{
                     width: '100%',
-                    padding: '9px 12px',
+                    padding: '10px 36px 10px 12px',
                     borderRadius: '8px',
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    borderColor: 'var(--border-color)',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    border: '1px solid rgba(236, 72, 153, 0.35)',
                     color: '#f8fafc',
                     fontSize: '13px',
+                    fontWeight: 600,
+                    outline: 'none',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    cursor: 'pointer',
                   }}
                 >
                   <option value="Syllabus">📑 Course Syllabus PDF (e.g. HD Makeup PDF)</option>
@@ -2208,115 +2271,202 @@ export const StudentAcademyPage = () => {
       )}
 
       {/* MATERIAL PREVIEW MODAL */}
-      {previewMaterial && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(6px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1200,
-            padding: '16px',
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setPreviewMaterial(null);
-          }}
-        >
+      {/* COURSE MATERIAL & STUDENT DOCUMENT PREVIEW MODAL */}
+      {previewMaterial && (() => {
+        const url = previewMaterial.fileUrl || previewMaterial.fileData || '';
+        const name = previewMaterial.fileName || previewMaterial.title || '';
+        const type = (previewMaterial.type || previewMaterial.fileType || previewMaterial.fileFormat || '').toLowerCase();
+
+        const isPdf =
+          type.includes('pdf') ||
+          name.toLowerCase().endsWith('.pdf') ||
+          url.toLowerCase().includes('.pdf');
+
+        const isImage =
+          !isPdf && (
+            type.startsWith('image') ||
+            type === 'image' ||
+            /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(url) ||
+            /\.(png|jpe?g|webp|gif|svg)$/i.test(name) ||
+            url.startsWith('data:image/') ||
+            url.includes('imagedelivery.net') ||
+            url.includes('/uploads/')
+          );
+
+        return (
           <div
             style={{
-              width: '100%',
-              maxWidth: '850px',
-              maxHeight: '92vh',
-              background: '#1e293b',
-              borderRadius: '16px',
-              border: '1px solid var(--border-color)',
-              padding: '20px',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.88)',
+              backdropFilter: 'blur(8px)',
               display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1200,
+              padding: '16px',
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPreviewMaterial(null);
             }}
           >
-            {/* Preview Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#ec4899', textTransform: 'uppercase' }}>
-                  {previewMaterial.category || 'COURSE MATERIAL'}
-                </span>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0 0 0', color: '#f8fafc' }}>
-                  {previewMaterial.title}
-                </h3>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => window.open(previewMaterial.fileUrl, '_blank')}
-                  title="Open in new window"
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  <ExternalLink size={13} />
-                  <span>Open Full Window</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDownloadMaterial(previewMaterial)}
-                  className="btn btn-primary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  <Download size={13} />
-                  <span>Download</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMaterial(null)}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.4rem', marginLeft: '6px' }}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Preview Body */}
             <div
               style={{
-                flex: 1,
-                minHeight: '420px',
-                maxHeight: '65vh',
-                overflow: 'auto',
-                background: '#0f172a',
-                borderRadius: '10px',
+                width: '100%',
+                maxWidth: isPdf ? '980px' : '820px',
+                maxHeight: '94vh',
+                background: '#1e293b',
+                borderRadius: '18px',
+                border: '1px solid rgba(236, 72, 153, 0.35)',
+                padding: '22px',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9)',
               }}
             >
-              {previewMaterial.fileType?.includes('pdf') || previewMaterial.fileName?.toLowerCase().endsWith('.pdf') ? (
-                <iframe
-                  src={previewMaterial.fileUrl}
-                  title={previewMaterial.title}
-                  style={{ width: '100%', height: '550px', border: 'none', borderRadius: '8px' }}
-                />
-              ) : previewMaterial.fileType?.startsWith('image/') ? (
-                <img
-                  src={previewMaterial.fileUrl}
-                  alt={previewMaterial.title}
-                  style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '8px' }}
-                />
-              ) : (
-                <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                  <FileText size={48} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
-                  <p>Document preview ready. Click "Download" or "Open Full Window" to view.</p>
+              {/* Preview Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '10px',
+                      background: isPdf ? 'rgba(239, 68, 68, 0.15)' : isImage ? 'rgba(236, 72, 153, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                      border: `1px solid ${isPdf ? 'rgba(239, 68, 68, 0.35)' : isImage ? 'rgba(236, 72, 153, 0.35)' : 'rgba(56, 189, 248, 0.35)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                    }}
+                  >
+                    {isPdf ? '📄' : isImage ? '🖼️' : '📁'}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '5px',
+                          background: isPdf ? 'rgba(239, 68, 68, 0.2)' : isImage ? 'rgba(236, 72, 153, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                          color: isPdf ? '#ef4444' : isImage ? '#ec4899' : '#38bdf8',
+                        }}
+                      >
+                        {isPdf ? 'PDF DOCUMENT' : isImage ? 'IMAGE VIEWER' : 'ACADEMY FILE'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                        {previewMaterial.category || 'Course Material'} · {previewMaterial.fileSize || '1.5 MB'}
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0 0', color: '#f8fafc' }}>
+                      {previewMaterial.title}
+                    </h3>
+                  </div>
                 </div>
-              )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => window.open(url, '_blank')}
+                    title="Open in new window"
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 700 }}
+                  >
+                    <ExternalLink size={13} />
+                    <span>Open Full Window</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadMaterial(previewMaterial)}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 700 }}
+                  >
+                    <Download size={13} />
+                    <span>Download</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMaterial(null)}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.5rem', marginLeft: '6px', lineHeight: 1 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview Body */}
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: '440px',
+                  maxHeight: '68vh',
+                  overflow: 'auto',
+                  background: '#0b1120',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: isPdf ? '0' : '16px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                {isPdf ? (
+                  <iframe
+                    src={url}
+                    title={previewMaterial.title}
+                    style={{ width: '100%', height: '620px', border: 'none', borderRadius: '10px', background: '#ffffff' }}
+                  />
+                ) : isImage ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%', height: '100%' }}>
+                    <img
+                      src={url}
+                      alt={previewMaterial.title}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '580px',
+                        objectFit: 'contain',
+                        borderRadius: '10px',
+                        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: '40px' }}>
+                    <FileText size={56} style={{ margin: '0 auto 12px', opacity: 0.5, color: '#ec4899' }} />
+                    <h4 style={{ color: '#f8fafc', fontSize: '16px', marginBottom: '6px' }}>{previewMaterial.fileName || previewMaterial.title}</h4>
+                    <p style={{ fontSize: '13px', maxWidth: '380px', margin: '0 auto 16px' }}>
+                      This document is ready to view. Click below to open in a new browser tab or download to your device.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => window.open(url, '_blank')}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        Open in New Window
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadMaterial(previewMaterial)}
+                        className="btn btn-primary btn-sm"
+                      >
+                        Download Document
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Student Form Modal (Register & Edit) */}
       <FormModal
@@ -2429,19 +2579,26 @@ export const StudentAcademyPage = () => {
                     onChange={(e) => handleSelectPlanInAssignModal(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      background: '#0f172a',
-                      border: '1px solid var(--border-color)',
+                      padding: '10px 36px 10px 14px',
+                      borderRadius: '10px',
+                      background: 'rgba(15, 23, 42, 0.9)',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                      border: '1px solid rgba(236, 72, 153, 0.4)',
                       color: '#f8fafc',
                       fontSize: '13px',
                       fontWeight: 600,
                       outline: 'none',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
                     }}
                   >
-                    <option value="">-- Select Parlour Plan --</option>
+                    <option value="" style={{ background: '#0f172a', color: '#94a3b8' }}>-- Select Parlour Plan & Package --</option>
                     {planOptions.map((p) => (
-                      <option key={p.planId || p.value} value={p.value}>
+                      <option key={p.planId || p.value} value={p.value} style={{ background: '#0f172a', color: '#f8fafc' }}>
                         {p.label}
                       </option>
                     ))}
@@ -2818,20 +2975,27 @@ export const StudentAcademyPage = () => {
                           onChange={(e) => setNewPayment({ ...newPayment, paymentMethod: e.target.value })}
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '6px',
-                            background: '#020617',
-                            border: '1px solid var(--border-color)',
+                            padding: '9px 36px 9px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(2, 6, 23, 0.9)',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 12px center',
+                            border: '1px solid rgba(236, 72, 153, 0.35)',
                             color: '#f8fafc',
-                            fontSize: '12px',
+                            fontSize: '12.5px',
                             fontWeight: 600,
+                            outline: 'none',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            cursor: 'pointer',
                           }}
                         >
-                          <option value="UPI / Online">UPI / GPay / Paytm</option>
-                          <option value="Cash">Cash</option>
-                          <option value="Debit / Credit Card">Debit / Credit Card</option>
-                          <option value="Bank Transfer / NEFT">Bank Transfer / NEFT</option>
-                          <option value="Net Banking">Net Banking</option>
+                          <option value="UPI / Online" style={{ background: '#020617', color: '#f8fafc' }}>UPI / GPay / Paytm</option>
+                          <option value="Cash" style={{ background: '#020617', color: '#f8fafc' }}>Cash</option>
+                          <option value="Debit / Credit Card" style={{ background: '#020617', color: '#f8fafc' }}>Debit / Credit Card</option>
+                          <option value="Bank Transfer / NEFT" style={{ background: '#020617', color: '#f8fafc' }}>Bank Transfer / NEFT</option>
+                          <option value="Net Banking" style={{ background: '#020617', color: '#f8fafc' }}>Net Banking</option>
                         </select>
                       </div>
                     </div>
@@ -3433,171 +3597,467 @@ export const StudentAcademyPage = () => {
         </div>
       )}
 
-      {/* Student Course Documents & Materials Modal */}
-      {selectedStudentForDocs && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(6px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: '20px',
-          }}
-          onClick={() => setSelectedStudentForDocs(null)}
-        >
+      {/* STUDENT COURSE DOCUMENTS & MATERIALS ASSIGNMENT MODAL */}
+      {selectedStudentForDocs && (() => {
+        const studentAssignedList = Array.isArray(selectedStudentForDocs.assignedDocuments)
+          ? selectedStudentForDocs.assignedDocuments
+          : [];
+
+        return (
           <div
             style={{
-              background: '#1e293b',
-              border: '1px solid var(--border-color)',
-              borderRadius: '16px',
-              width: '100%',
-              maxWidth: '680px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              padding: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(8px)',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1100,
+              padding: '16px',
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setSelectedStudentForDocs(null)}
           >
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 800, textTransform: 'uppercase' }}>
-                  Course Syllabus & Study Documents
-                </span>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0 0 0', color: '#f8fafc' }}>
-                  Academy Documents for {selectedStudentForDocs.name}
-                </h3>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-                  Enrolled Course: <strong style={{ color: '#ec4899' }}>{selectedStudentForDocs.course || selectedStudentForDocs.planId?.name || 'General Beauty Training'}</strong> · Roll: {selectedStudentForDocs.studentId || 'N/A'}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedStudentForDocs(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '8px',
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Action Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-              <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-                Total Available Materials: <strong style={{ color: '#f8fafc' }}>{materials.length}</strong>
-              </span>
-              <button
-                onClick={() => {
-                  setSelectedStudentForDocs(null);
-                  handleOpenUploadModal();
-                }}
-                className="btn btn-primary btn-sm"
-                style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <UploadCloud size={13} /> + Upload New PDF/Doc
-              </button>
-            </div>
-
-            {/* Materials List */}
-            {materials.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                <FileText className="w-10 h-10 mx-auto mb-2 opacity-40 text-pink-500" />
-                <p style={{ margin: 0 }}>No course materials uploaded in database yet.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {materials.map((mat) => {
-                  const isPdf = mat.fileType?.includes('pdf') || mat.fileName?.toLowerCase().endsWith('.pdf');
-                  return (
+            <div
+              style={{
+                background: '#1e293b',
+                border: '1px solid rgba(236, 72, 153, 0.35)',
+                borderRadius: '18px',
+                width: '100%',
+                maxWidth: '780px',
+                maxHeight: '92vh',
+                overflowY: 'auto',
+                padding: '24px',
+                boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '18px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  {selectedStudentForDocs.photo ? (
+                    <img
+                      src={selectedStudentForDocs.photo}
+                      alt={selectedStudentForDocs.name}
+                      style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #ec4899', flexShrink: 0 }}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
                     <div
-                      key={mat._id}
                       style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
+                        color: '#fff',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-color)',
-                        gap: '12px',
+                        justifyContent: 'center',
+                        fontWeight: 900,
+                        fontSize: '18px',
+                        flexShrink: 0,
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {selectedStudentForDocs.name?.charAt(0) || 'S'}
+                    </div>
+                  )}
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', color: '#ec4899', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Academy Trainee Document Manager
+                      </span>
+                      <span style={{ fontSize: '11px', padding: '1px 7px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.08)', color: '#94a3b8' }}>
+                        Roll: {selectedStudentForDocs.studentId || 'N/A'}
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: '2px 0 0 0', color: '#f8fafc' }}>
+                      {selectedStudentForDocs.name}
+                    </h3>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '3px' }}>
+                      Enrolled: <strong style={{ color: '#ec4899' }}>{selectedStudentForDocs.course || selectedStudentForDocs.planId?.name || 'General Beauty Training'}</strong> · Phone: {selectedStudentForDocs.phone}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForDocs(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '6px',
+                    borderRadius: '8px',
+                    fontSize: '1.5rem',
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Navigation Tabs Bar & Quick Actions */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.8)', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDocsActiveTab('assigned')}
+                    style={{
+                      padding: '7px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: docsActiveTab === 'assigned' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' : 'transparent',
+                      color: docsActiveTab === 'assigned' ? '#ffffff' : '#94a3b8',
+                      fontWeight: 800,
+                      fontSize: '12.5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>📑 Assigned Documents</span>
+                    <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: docsActiveTab === 'assigned' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.1)' }}>
+                      {studentAssignedList.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDocsActiveTab('library')}
+                    style={{
+                      padding: '7px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: docsActiveTab === 'library' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' : 'transparent',
+                      color: docsActiveTab === 'library' ? '#ffffff' : '#94a3b8',
+                      fontWeight: 800,
+                      fontSize: '12.5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>📚 Academy Library & Syllabus</span>
+                    <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: docsActiveTab === 'library' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.1)' }}>
+                      {materials.length}
+                    </span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStudentForDocs(null);
+                    handleOpenUploadModal();
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}
+                >
+                  <UploadCloud size={14} />
+                  <span>+ Upload New PDF / Image</span>
+                </button>
+              </div>
+
+              {/* TAB 1: ASSIGNED DOCUMENTS TO THIS STUDENT */}
+              {docsActiveTab === 'assigned' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {studentAssignedList.length === 0 ? (
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        padding: '40px 20px',
+                        background: 'rgba(15, 23, 42, 0.4)',
+                        borderRadius: '12px',
+                        border: '1px dashed rgba(255, 255, 255, 0.12)',
+                        color: '#94a3b8',
+                      }}
+                    >
+                      <FileText className="w-12 h-12 mx-auto mb-2 opacity-30 text-pink-500" />
+                      <h4 style={{ color: '#f8fafc', fontSize: '15px', fontWeight: 800, marginBottom: '6px' }}>
+                        No Documents Assigned Yet
+                      </h4>
+                      <p style={{ fontSize: '13px', maxWidth: '420px', margin: '0 auto 16px', lineHeight: 1.5 }}>
+                        This student currently has no individual documents assigned. Click below to view available syllabus, guides, and certificates in the Academy Library to assign with 1-click.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setDocsActiveTab('library')}
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#ec4899', borderColor: 'rgba(236, 72, 153, 0.35)', fontWeight: 700 }}
+                      >
+                        Browse Academy Library ({materials.length} Materials) →
+                      </button>
+                    </div>
+                  ) : (
+                    studentAssignedList.map((doc, idx) => {
+                      const isPdf =
+                        doc.type === 'pdf' ||
+                        doc.fileType?.includes('pdf') ||
+                        doc.fileName?.toLowerCase().endsWith('.pdf') ||
+                        doc.fileUrl?.toLowerCase().includes('.pdf');
+
+                      const isImg =
+                        !isPdf && (
+                          doc.type === 'image' ||
+                          doc.fileType?.startsWith('image/') ||
+                          /\.(png|jpe?g|webp|gif|svg)$/i.test(doc.fileName || '') ||
+                          /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(doc.fileUrl || '') ||
+                          doc.fileUrl?.includes('imagedelivery.net') ||
+                          doc.fileUrl?.includes('/uploads/')
+                        );
+
+                      return (
                         <div
+                          key={doc._id || idx}
                           style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '8px',
-                            background: isPdf ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                            color: isPdf ? '#ef4444' : '#38bdf8',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
+                            justifyContent: 'space-between',
+                            padding: '14px 18px',
+                            borderRadius: '12px',
+                            background: 'rgba(15, 23, 42, 0.6)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            gap: '12px',
                           }}
                         >
-                          {isPdf ? <FileText size={18} /> : <File size={18} />}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f8fafc' }}>
-                            {mat.title}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                            {mat.category || 'Syllabus'} · {mat.fileName} ({mat.fileSize || '1.5 MB'})
-                          </div>
-                        </div>
-                      </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '10px',
+                                background: isPdf ? 'rgba(239, 68, 68, 0.15)' : isImg ? 'rgba(236, 72, 153, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                                color: isPdf ? '#ef4444' : isImg ? '#ec4899' : '#38bdf8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                fontSize: '20px',
+                                border: `1px solid ${isPdf ? 'rgba(239, 68, 68, 0.3)' : isImg ? 'rgba(236, 72, 153, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                              }}
+                            >
+                              {isPdf ? '📄' : isImg ? '🖼️' : '📁'}
+                            </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewMaterial(mat)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}
-                        >
-                          <Eye size={12} color="#ec4899" /> View
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadMaterial(mat)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}
-                        >
-                          <Download size={12} color="#10b981" /> Download
-                        </button>
-                      </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {doc.title}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '10.5px',
+                                    fontWeight: 800,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    background: isPdf ? 'rgba(239, 68, 68, 0.2)' : isImg ? 'rgba(236, 72, 153, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                                    color: isPdf ? '#ef4444' : isImg ? '#ec4899' : '#38bdf8',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isPdf ? 'PDF' : isImg ? 'IMAGE' : 'FILE'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '3px' }}>
+                                {doc.category || 'Course Material'} · {doc.fileName} ({doc.fileSize || '1.5 MB'})
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewMaterial(doc)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                            >
+                              <Eye size={13} color="#ec4899" />
+                              <span>View</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadMaterial(doc)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                            >
+                              <Download size={13} color="#10b981" />
+                              <span>Download</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleUnassignDocumentFromStudent(selectedStudentForDocs, doc._id || doc.fileUrl)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '3px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                              title="Unassign document from student"
+                            >
+                              ✕ Remove
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: ACADEMY LIBRARY & SYLLABUS LIST (1-CLICK ASSIGN) */}
+              {docsActiveTab === 'library' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {materials.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                      <FileText className="w-10 h-10 mx-auto mb-2 opacity-40 text-pink-500" />
+                      <p style={{ margin: 0 }}>No course materials uploaded in database yet.</p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  ) : (
+                    materials.map((mat) => {
+                      const isAlreadyAssigned = studentAssignedList.some(
+                        (d) => (d._id && d._id === mat._id) || (d.fileUrl && d.fileUrl === mat.fileUrl)
+                      );
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setSelectedStudentForDocs(null)}
-                className="btn btn-secondary btn-sm"
-              >
-                Close
-              </button>
+                      const isPdf =
+                        mat.type === 'pdf' ||
+                        mat.fileType?.includes('pdf') ||
+                        mat.fileName?.toLowerCase().endsWith('.pdf') ||
+                        mat.fileUrl?.toLowerCase().includes('.pdf');
+
+                      const isImg =
+                        !isPdf && (
+                          mat.type === 'image' ||
+                          mat.fileType?.startsWith('image/') ||
+                          /\.(png|jpe?g|webp|gif|svg)$/i.test(mat.fileName || '') ||
+                          /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(mat.fileUrl || '') ||
+                          mat.fileUrl?.includes('imagedelivery.net') ||
+                          mat.fileUrl?.includes('/uploads/')
+                        );
+
+                      return (
+                        <div
+                          key={mat._id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '14px 18px',
+                            borderRadius: '12px',
+                            background: isAlreadyAssigned ? 'rgba(34, 197, 94, 0.05)' : 'rgba(15, 23, 42, 0.6)',
+                            border: `1px solid ${isAlreadyAssigned ? 'rgba(34, 197, 94, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`,
+                            gap: '12px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '10px',
+                                background: isPdf ? 'rgba(239, 68, 68, 0.15)' : isImg ? 'rgba(236, 72, 153, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                                color: isPdf ? '#ef4444' : isImg ? '#ec4899' : '#38bdf8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                fontSize: '20px',
+                                border: `1px solid ${isPdf ? 'rgba(239, 68, 68, 0.3)' : isImg ? 'rgba(236, 72, 153, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                              }}
+                            >
+                              {isPdf ? '📄' : isImg ? '🖼️' : '📁'}
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {mat.title}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '10.5px',
+                                    fontWeight: 800,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    background: isPdf ? 'rgba(239, 68, 68, 0.2)' : isImg ? 'rgba(236, 72, 153, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                                    color: isPdf ? '#ef4444' : isImg ? '#ec4899' : '#38bdf8',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isPdf ? 'PDF' : isImg ? 'IMAGE' : 'FILE'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '3px' }}>
+                                {mat.category || 'Syllabus'} · {mat.fileName} ({mat.fileSize || '1.5 MB'})
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewMaterial(mat)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                            >
+                              <Eye size={13} color="#ec4899" />
+                              <span>View</span>
+                            </button>
+
+                            {isAlreadyAssigned ? (
+                              <span
+                                style={{
+                                  fontSize: '11.5px',
+                                  fontWeight: 800,
+                                  padding: '5px 12px',
+                                  borderRadius: '8px',
+                                  background: 'rgba(34, 197, 94, 0.15)',
+                                  color: '#22c55e',
+                                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                ✓ Assigned
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleAssignDocumentToStudent(selectedStudentForDocs, mat)}
+                                className="btn btn-primary btn-sm"
+                                style={{ fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 800 }}
+                              >
+                                + Assign to Trainee
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForDocs(null)}
+                  className="btn btn-secondary"
+                  style={{ fontWeight: 700, padding: '8px 20px' }}
+                >
+                  Close Document Manager
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

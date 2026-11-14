@@ -8,6 +8,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 
 import { env } from './config/env.js';
 import { corsConfig } from './config/cors.config.js';
@@ -16,6 +17,7 @@ import { requestIdMiddleware } from './middleware/request-id.middleware.js';
 import { notFoundMiddleware } from './middleware/not-found.middleware.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import apiRoutes from './routes/index.js';
+import uploadRoutes from './routes/upload.routes.js';
 
 export const createApp = () => {
   const app = express();
@@ -38,6 +40,13 @@ export const createApp = () => {
 
   // 6. Cookie Parser for secure HttpOnly refresh tokens
   app.use(cookieParser());
+
+  // 6b. Static serving of uploaded images
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  // 6c. Top-level /uploadimage and /upload route endpoints
+  app.use('/uploadimage', uploadRoutes);
+  app.use('/upload', uploadRoutes);
 
   // 7. Mount Core API Routes under /api/v1
   app.use(env.API_PREFIX, apiRoutes);

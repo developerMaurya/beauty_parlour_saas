@@ -6,6 +6,7 @@
  * @module frontend/src/services/uploadService
  */
 
+import axios from 'axios';
 import { axiosClient } from './api/axiosClient.js';
 
 /**
@@ -31,7 +32,7 @@ export async function uploadImageToCloudflare(file, options = {}) {
   if (options.entityId) formData.append('entityId', options.entityId);
 
   let res = null;
-  // Step 1: Call /uploadimage endpoint
+  // Step 1: Call /uploadimage endpoint (via axiosClient -> /api/v1/uploadimage)
   try {
     res = await axiosClient.post('/uploadimage', formData, {
       headers: {
@@ -39,20 +40,31 @@ export async function uploadImageToCloudflare(file, options = {}) {
       },
     });
   } catch (err1) {
-    // Fallback: Call /upload/image endpoint
+    // Step 2: Fallback to direct root /uploadimage
     try {
-      res = await axiosClient.post('/upload/image', formData, {
+      const resp = await axios.post('/uploadimage', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+      res = resp.data;
     } catch (err2) {
-      const errorMsg =
-        err2?.response?.data?.message ||
-        err1?.response?.data?.message ||
-        err2?.message ||
-        'Failed to upload image to cloud storage.';
-      throw new Error(errorMsg);
+      // Step 3: Fallback to /upload/image
+      try {
+        res = await axiosClient.post('/upload/image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } catch (err3) {
+        const errorMsg =
+          err3?.response?.data?.message ||
+          err2?.response?.data?.message ||
+          err1?.response?.data?.message ||
+          err3?.message ||
+          'Failed to upload image.';
+        throw new Error(errorMsg);
+      }
     }
   }
 
@@ -75,7 +87,7 @@ export async function uploadImageToCloudflare(file, options = {}) {
     throw new Error(res?.message || 'Upload succeeded but no image URL was returned.');
   }
 
-  // Create a String primitive object or return URL with metadata attached
+  // Attach id and url properties to returned String
   const returnStr = new String(liveUrl);
   returnStr.url = liveUrl;
   returnStr.id = imageId;

@@ -158,7 +158,7 @@ export const StaffManagementPage = () => {
     { name: 'name', label: 'Full Name', required: true, placeholder: 'e.g. Alisha Khan' },
     { name: 'phone', label: 'Phone Number', required: true, placeholder: '+91 9876543210' },
     { name: 'email', label: 'Email Address', type: 'email', placeholder: 'alisha@salon.com' },
-    { name: 'photo', label: 'Staff Profile Photo URL (Optional)', placeholder: 'https://images.unsplash.com/... or paste image URL' },
+    { name: 'photo', label: 'Staff Profile Photo / Avatar', type: 'image', placeholder: 'Choose image file or enter URL' },
     { name: 'password', label: 'Staff Portal Password (For /staff/login)', type: 'password', placeholder: 'e.g. Staff@123' },
     { name: 'employeeId', label: 'Employee ID', placeholder: 'STF-001' },
     {

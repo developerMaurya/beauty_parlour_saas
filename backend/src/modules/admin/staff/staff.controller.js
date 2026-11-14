@@ -112,6 +112,8 @@ export const createStaff = async (req, res) => {
       weeklyOff: Array.isArray(weeklyOff) ? weeklyOff : ['Sunday'],
       address: address || {},
       emergencyContact: emergencyContact || {},
+      photo: req.body.photo || '',
+      documentUrl: req.body.documentUrl || '',
       notes: notes || '',
       businessVertical: (businessVertical || 'BEAUTY').toUpperCase(),
       verticalRole: (verticalRole || 'STAFF').toUpperCase(),

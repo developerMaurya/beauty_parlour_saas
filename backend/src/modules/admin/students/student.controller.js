@@ -20,12 +20,47 @@ import { recordActivity } from '../../../utils/activity.utils.js';
 export const createStudent = async (req, res) => {
   try {
     const { name, phone, email, branchId, dateOfBirth, address, emergencyContact, course, planId, joiningDate, password } = req.body;
-    if (!name || !phone || !branchId) {
-      return sendError(res, 'Name, phone, and branch are required', [], 400);
+    if (!name || !phone) {
+      return sendError(res, 'Student Name and Phone Number are required', [], 400);
     }
 
     const TenantUser = getTenantModel(req, 'TenantUser');
     const Student = getTenantModel(req, 'Student');
+    const Branch = getTenantModel(req, 'Branch');
+
+    // Auto-resolve branch if omitted from the form
+    let targetBranchId = branchId;
+    if (!targetBranchId) {
+      try {
+        const firstBranch = await Branch.findOne({ tenantId: req.tenantId });
+        if (firstBranch) targetBranchId = firstBranch._id;
+      } catch (bErr) {
+        // Continue
+      }
+    }
+
+    // Helper to parse dates (handles both YYYY-MM-DD and DD/MM/YYYY)
+    const parseDateRobust = (val) => {
+      if (!val) return null;
+      if (val instanceof Date && !isNaN(val.getTime())) return val;
+      if (typeof val === 'string') {
+        const ddmmyyyy = val.trim().match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
+        if (ddmmyyyy) {
+          const d = new Date(parseInt(ddmmyyyy[3], 10), parseInt(ddmmyyyy[2], 10) - 1, parseInt(ddmmyyyy[1], 10));
+          if (!isNaN(d.getTime())) return d;
+        }
+        const parsed = new Date(val);
+        if (!isNaN(parsed.getTime())) return parsed;
+        return val; // preserve string
+      }
+      return val;
+    };
+
+    // Sanitize planId to prevent Mongoose CastError on custom string IDs (e.g. 'plan_p_101')
+    let safePlanId = planId;
+    if (safePlanId && !mongoose.Types.ObjectId.isValid(safePlanId)) {
+      safePlanId = null;
+    }
 
     // Create user account
     let user = null;
@@ -53,12 +88,36 @@ export const createStudent = async (req, res) => {
         username: email ? email.split('@')[0] : `student_${Date.now()}`,
         passwordHash,
         role: 'STUDENT',
-        branchId,
+        branchId: targetBranchId || null,
         status: 'active',
       });
     }
 
     const studentCustomId = req.body.studentId?.trim() || `STU-${Date.now().toString().slice(-5)}`;
+
+    // Explicit Duplicate Check in Student Collection (Phone, Student Roll ID, Email)
+    const duplicateOr = [{ phone: phone.trim() }];
+    if (studentCustomId) duplicateOr.push({ studentId: studentCustomId });
+    if (email?.trim()) duplicateOr.push({ email: email.trim().toLowerCase() });
+
+    const existingStudent = await Student.findOne({
+      tenantId: req.tenantId,
+      $or: duplicateOr,
+    });
+
+    if (existingStudent) {
+      const matchField = existingStudent.phone === phone.trim()
+        ? `phone number "${phone.trim()}"`
+        : existingStudent.studentId === studentCustomId
+        ? `Student Roll ID "${studentCustomId}"`
+        : `email address "${email.trim()}"`;
+      return sendError(
+        res,
+        `Duplicate Entry: A student trainee with ${matchField} already exists in the database (Student: ${existingStudent.name}). Please use a unique phone number or edit the existing trainee.`,
+        [],
+        409
+      );
+    }
 
     const contactData = typeof emergencyContact === 'string'
       ? { phone: emergencyContact.trim(), name: '', relation: '' }
@@ -68,18 +127,18 @@ export const createStudent = async (req, res) => {
       tenantId: req.tenantId,
       userId: user._id,
       studentId: studentCustomId,
-      branchId,
+      branchId: targetBranchId || null,
       name: name.trim(),
       phone: phone.trim(),
       email: email ? email.trim().toLowerCase() : '',
       photo: req.body.photo || '',
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      dateOfBirth: parseDateRobust(dateOfBirth),
       address: address || {},
       emergencyContact: contactData,
       course: course || '',
-      planId: planId || null,
-      joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
-      status: 'active',
+      planId: safePlanId,
+      joiningDate: parseDateRobust(joiningDate) || new Date(),
+      status: req.body.status || 'active',
     });
 
     await recordAuditLog({
@@ -100,6 +159,9 @@ export const createStudent = async (req, res) => {
 
     return sendSuccess(res, 'Student created successfully', student, 201);
   } catch (error) {
+    if (error.code === 11000) {
+      return sendError(res, 'Duplicate Entry: A student trainee with this Roll ID, Phone, or Email already exists in database.', [], 409);
+    }
     return sendError(res, `Failed to create student: ${error.message}`, [], 500);
   }
 };
@@ -178,6 +240,11 @@ export const updateStudent = async (req, res) => {
     if (data.installments !== undefined) {
       student.installments = data.installments;
       student.markModified('installments');
+    }
+
+    if (data.assignedDocuments !== undefined) {
+      student.assignedDocuments = data.assignedDocuments;
+      student.markModified('assignedDocuments');
     }
 
     await student.save();
