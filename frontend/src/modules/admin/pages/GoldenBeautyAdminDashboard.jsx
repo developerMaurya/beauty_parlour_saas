@@ -40,6 +40,7 @@ import {
   Image as ImageIcon,
   Layers,
   Check,
+  MessageSquare,
 } from 'lucide-react';
 
 export function GoldenBeautyAdminDashboard({ defaultTab }) {
