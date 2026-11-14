@@ -26,7 +26,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-export default function ParlourAttendanceManager({ showToast }) {
+export function ParlourAttendanceManager({ showToast }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [activeTab, setActiveTab] = useState('STAFF'); // 'STAFF' | 'STUDENT'
 
@@ -497,3 +497,7 @@ export default function ParlourAttendanceManager({ showToast }) {
     </div>
   );
 }
+
+export default ParlourAttendanceManager;
+
+

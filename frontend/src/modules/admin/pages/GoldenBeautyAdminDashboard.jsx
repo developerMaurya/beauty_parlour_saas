@@ -46,11 +46,11 @@ import {
   RotateCcw,
 } from 'lucide-react';
 
-import ParlourBillingManager from '../components/parlour/ParlourBillingManager.jsx';
-import ParlourPaymentHistory from '../components/parlour/ParlourPaymentHistory.jsx';
-import ParlourProductAssignments from '../components/parlour/ParlourProductAssignments.jsx';
-import ParlourStaffSalaryManager from '../components/parlour/ParlourStaffSalaryManager.jsx';
-import ParlourAttendanceManager from '../components/parlour/ParlourAttendanceManager.jsx';
+import { ParlourBillingManager } from '../components/parlour/ParlourBillingManager.jsx';
+import { ParlourPaymentHistory } from '../components/parlour/ParlourPaymentHistory.jsx';
+import { ParlourProductAssignments } from '../components/parlour/ParlourProductAssignments.jsx';
+import { ParlourStaffSalaryManager } from '../components/parlour/ParlourStaffSalaryManager.jsx';
+import { ParlourAttendanceManager } from '../components/parlour/ParlourAttendanceManager.jsx';
 
 export function GoldenBeautyAdminDashboard({ defaultTab }) {
   const navigate = useNavigate();

@@ -30,7 +30,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
-export default function ParlourStaffSalaryManager({ showToast }) {
+export function ParlourStaffSalaryManager({ showToast }) {
   // Staff Roster
   const [staffList, setStaffList] = useState(() => {
     try {
@@ -835,3 +835,7 @@ export default function ParlourStaffSalaryManager({ showToast }) {
     </div>
   );
 }
+
+export default ParlourStaffSalaryManager;
+
+

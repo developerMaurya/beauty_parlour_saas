@@ -26,7 +26,7 @@ import {
   Download,
 } from 'lucide-react';
 
-export default function ParlourPaymentHistory({ showToast }) {
+export function ParlourPaymentHistory({ showToast }) {
   const [filterPeriod, setFilterPeriod] = useState('ALL'); // 'ALL' | 'TODAY' | 'THIS_MONTH' | 'THIS_YEAR'
   const [searchTerm, setSearchTerm] = useState('');
   const [manualPayModal, setManualPayModal] = useState(false);
@@ -586,3 +586,7 @@ export default function ParlourPaymentHistory({ showToast }) {
     </div>
   );
 }
+
+export default ParlourPaymentHistory;
+
+

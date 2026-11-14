@@ -27,7 +27,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-export default function ParlourBillingManager({ products = [], setProducts, showToast }) {
+export function ParlourBillingManager({ products = [], setProducts, showToast }) {
   // Invoices State
   const [invoices, setInvoices] = useState(() => {
     try {
@@ -767,3 +767,7 @@ export default function ParlourBillingManager({ products = [], setProducts, show
     </div>
   );
 }
+
+export default ParlourBillingManager;
+
+

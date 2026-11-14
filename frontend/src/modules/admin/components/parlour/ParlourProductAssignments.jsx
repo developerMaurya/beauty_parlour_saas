@@ -27,7 +27,7 @@ import {
   Tag,
 } from 'lucide-react';
 
-export default function ParlourProductAssignments({ products = [], setProducts, showToast }) {
+export function ParlourProductAssignments({ products = [], setProducts, showToast }) {
   const [filterType, setFilterType] = useState('ALL'); // 'ALL' | 'STAFF' | 'STUDENT' | 'ACTIVE' | 'RETURNED'
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -653,3 +653,7 @@ export default function ParlourProductAssignments({ products = [], setProducts, 
     </div>
   );
 }
+
+export default ParlourProductAssignments;
+
+
