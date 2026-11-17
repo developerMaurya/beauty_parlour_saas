@@ -143,36 +143,115 @@ export const seedDemoTenant = async () => {
     }
   }
 
-  // 5. Seed Staff User & Profile
-  let staffUser = await TenantUserModel.findOne({ tenantId, email: 'staff@blossom.com' });
-  if (!staffUser) {
-    staffUser = await TenantUserModel.create({
-      tenantId,
+  // 5. Seed Staff Users & Full Parlour Staff Team
+  const parlourStaffMembers = [
+    {
+      name: 'Suman Sharma',
+      email: 'suman@blossom.com',
+      username: 'suman_bridal',
+      phone: '9876543201',
+      designation: 'Senior Bridal Makeup Head & Cosmetologist',
+      salary: 28000,
+      gender: 'female',
+      rating: 4.95,
+      photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
+    },
+    {
+      name: 'Priya Patel',
+      email: 'priya@blossom.com',
+      username: 'priya_nail',
+      phone: '9876543202',
+      designation: 'Nail Art Specialist & Hair Stylist',
+      salary: 24000,
+      gender: 'female',
+      rating: 4.88,
+      photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+    },
+    {
+      name: 'Rekha Maurya',
+      email: 'rekha@blossom.com',
+      username: 'rekha_spa',
+      phone: '9876543203',
+      designation: 'Skin Aesthetician & Spa Director',
+      salary: 35000,
+      gender: 'female',
+      rating: 5.0,
+      photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+    },
+    {
+      name: 'Aarti Gupta',
+      email: 'aarti@blossom.com',
+      username: 'aarti_drape',
+      phone: '9876543204',
+      designation: 'Draping & Mehendi Artist',
+      salary: 20000,
+      gender: 'female',
+      rating: 4.85,
+      photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150',
+    },
+    {
+      name: 'Pooja Singh',
+      email: 'pooja@blossom.com',
+      username: 'pooja_asst',
+      phone: '9876543205',
+      designation: 'Junior Beautician & Academy Assistant',
+      salary: 16000,
+      gender: 'female',
+      rating: 4.75,
+      photo: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150',
+    },
+    {
       name: 'Rhea Sen',
       email: 'staff@blossom.com',
       username: 'rhea_stylist',
       phone: '9876543211',
-      passwordHash: staffPasswordHash,
-      role: 'STAFF',
-      status: 'active',
-      branchId: branch._id,
-    });
-  }
-  let staffProfile = await StaffModel.findOne({ tenantId, email: 'staff@blossom.com' });
-  if (!staffProfile) {
-    staffProfile = await StaffModel.create({
-      tenantId,
-      userId: staffUser._id,
-      branchId: branch._id,
-      name: 'Rhea Sen',
       designation: 'Senior Creative Hair Stylist & Aesthetician',
-      phone: '9876543211',
-      email: 'staff@blossom.com',
+      salary: 25000,
       gender: 'female',
-      status: 'active',
       rating: 4.9,
-    });
-    console.log('[SEED] Staff profile created:', staffProfile.name);
+      photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    },
+  ];
+
+  for (const st of parlourStaffMembers) {
+    let staffUser = await TenantUserModel.findOne({ tenantId, email: st.email });
+    if (!staffUser) {
+      staffUser = await TenantUserModel.create({
+        tenantId,
+        name: st.name,
+        email: st.email,
+        username: st.username,
+        phone: st.phone,
+        passwordHash: staffPasswordHash,
+        role: 'STAFF',
+        status: 'active',
+        branchId: branch._id,
+      });
+    }
+
+    let staffProfile = await StaffModel.findOne({ tenantId, email: st.email });
+    if (!staffProfile) {
+      staffProfile = await StaffModel.create({
+        tenantId,
+        userId: staffUser._id,
+        branchId: branch._id,
+        name: st.name,
+        designation: st.designation,
+        phone: st.phone,
+        email: st.email,
+        salary: st.salary,
+        gender: st.gender,
+        status: 'active',
+        rating: st.rating,
+        photo: st.photo,
+      });
+      console.log('[SEED] Staff profile created:', staffProfile.name, 'Salary: ₹' + st.salary);
+    } else {
+      staffProfile.salary = st.salary;
+      staffProfile.designation = st.designation;
+      staffProfile.photo = st.photo;
+      await staffProfile.save();
+    }
   }
 
   // 6. Seed Student User & Profile

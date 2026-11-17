@@ -2026,9 +2026,12 @@ WorkScheduleSchema.index({ tenantId: 1, staffId: 1 });
 export const PayslipSchema = new Schema(
   {
     tenantId: { type: String, required: true, index: true },
-    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null },
+    branchId: { type: Schema.Types.Mixed, default: null },
     staffId: { type: Schema.Types.ObjectId, ref: 'Staff', required: true },
-    month: { type: String, required: true }, // e.g. "October 2026"
+    staffName: { type: String, default: '' },
+    employeeId: { type: String, default: '' },
+    role: { type: String, default: '' },
+    month: { type: String, required: true }, // e.g. "November 2026"
     year: { type: Number, default: 2026 },
     baseSalary: { type: Number, default: 0 },
     commissionAmount: { type: Number, default: 0 },
@@ -2039,16 +2042,17 @@ export const PayslipSchema = new Schema(
     netAmount: { type: Number, required: true },
     paymentStatus: {
       type: String,
-      enum: ['paid', 'pending'],
-      default: 'paid',
+      default: 'PAID',
     },
     paidDate: { type: Date, default: Date.now },
     paymentMethod: { type: String, default: 'Bank Transfer' },
     transactionRef: { type: String, default: '' },
+    notes: { type: String, default: '' },
   },
   { timestamps: true }
 );
 PayslipSchema.index({ tenantId: 1, staffId: 1, month: 1 });
+PayslipSchema.index({ tenantId: 1, year: 1, month: 1 });
 
 /**
  * 68. Notification Preference Schema

@@ -104,14 +104,14 @@ export const AdminRoutes = (
       <Route path="parlour-requests" element={<AdminParlourDashboard defaultTab="requests" />} />
       <Route path="parlour-products" element={<AdminParlourDashboard defaultTab="products" />} />
       <Route path="parlour-inventory" element={<AdminParlourDashboard defaultTab="products" />} />
-      <Route path="parlour-billing" element={<AdminParlourDashboard defaultTab="billing" />} />
-      <Route path="parlour-invoices" element={<AdminParlourDashboard defaultTab="billing" />} />
-      <Route path="parlour-payments" element={<AdminParlourDashboard defaultTab="payments" />} />
-      <Route path="parlour-ledger" element={<AdminParlourDashboard defaultTab="payments" />} />
+      <Route path="parlour-billing" element={<Navigate to="/admin/golden-beauty-parlour" replace />} />
+      <Route path="parlour-invoices" element={<Navigate to="/admin/golden-beauty-parlour" replace />} />
+      <Route path="parlour-payments" element={<Navigate to="/admin/golden-beauty-parlour" replace />} />
+      <Route path="parlour-ledger" element={<Navigate to="/admin/golden-beauty-parlour" replace />} />
       <Route path="parlour-assignments" element={<AdminParlourDashboard defaultTab="assignments" />} />
       <Route path="parlour-salary" element={<AdminParlourDashboard defaultTab="salary" />} />
       <Route path="parlour-payroll" element={<AdminParlourDashboard defaultTab="salary" />} />
-      <Route path="parlour-attendance" element={<AdminParlourDashboard defaultTab="attendance" />} />
+      <Route path="parlour-attendance" element={<Navigate to="/admin/golden-beauty-parlour" replace />} />
       <Route path="parlour-certificates" element={<AdminParlourDashboard defaultTab="certificates" />} />
       {/* ── Central Administration System Configurations ── */}
       <Route path="system/database" element={<SystemConfigPage />} />

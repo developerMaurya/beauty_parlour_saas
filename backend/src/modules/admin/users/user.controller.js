@@ -93,7 +93,10 @@ export const getUsers = async (req, res) => {
     const TenantUser = getTenantModel(req, 'TenantUser');
     const { page, limit, skip } = getPagination(req.query);
     const sort = getSort(req.query, 'createdAt');
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
 
     if (req.query.targetBusiness && req.query.targetBusiness !== 'ALL') {
       filter.targetBusiness = req.query.targetBusiness.toUpperCase();

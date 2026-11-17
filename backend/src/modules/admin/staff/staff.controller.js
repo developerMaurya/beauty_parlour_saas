@@ -148,7 +148,10 @@ export const getStaffList = async (req, res) => {
     const Staff = getTenantModel(req, 'Staff');
     const { page, limit, skip } = getPagination(req.query);
     const sort = getSort(req.query, 'name');
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
 
     if (req.query.departmentId) filter.departmentId = req.query.departmentId;
     if (req.query.designationId) filter.designationId = req.query.designationId;
@@ -668,6 +671,183 @@ export const getCalendarImportantDates = async (req, res) => {
   }
 };
 
+export const getAdminSalaryList = async (req, res) => {
+  try {
+    const Payslip = getTenantModel(req, 'Payslip');
+    const filter = { tenantId: req.tenantId };
+
+    if (req.query.staffId && req.query.staffId !== 'ALL') {
+      filter.staffId = req.query.staffId;
+    }
+    if (req.query.month && req.query.month !== 'ALL') {
+      filter.month = req.query.month;
+    }
+    if (req.query.year && req.query.year !== 'ALL') {
+      filter.year = Number(req.query.year);
+    }
+    if (req.query.search) {
+      filter.$or = [
+        { staffName: { $regex: req.query.search, $options: 'i' } },
+        { employeeId: { $regex: req.query.search, $options: 'i' } },
+        { role: { $regex: req.query.search, $options: 'i' } },
+        { transactionRef: { $regex: req.query.search, $options: 'i' } },
+      ];
+    }
+
+    const records = await Payslip.find(filter).sort({ paidDate: -1, createdAt: -1 }).lean();
+    return sendSuccess(res, 'Salary records retrieved successfully', records);
+  } catch (error) {
+    return sendError(res, `Failed to retrieve salary records: ${error.message}`, [], 500);
+  }
+};
+
+export const createAdminSalaryPayment = async (req, res) => {
+  try {
+    const Payslip = getTenantModel(req, 'Payslip');
+    const Staff = getTenantModel(req, 'Staff');
+    const StaffEarning = getTenantModel(req, 'StaffEarning');
+
+    const {
+      staffId,
+      month,
+      year,
+      baseSalary,
+      bonus = 0,
+      deductions = 0,
+      paymentMethod = 'Bank Transfer',
+      transactionRef = '',
+      notes = '',
+      paidDate,
+    } = req.body;
+
+    if (!staffId) return sendError(res, 'Staff ID is required', [], 400);
+
+    const staff = await Staff.findOne({ _id: staffId, tenantId: req.tenantId });
+    if (!staff) return sendError(res, 'Staff member not found', [], 404);
+
+    const base = Number(baseSalary ?? staff.salary) || 0;
+    const bon = Number(bonus) || 0;
+    const ded = Number(deductions) || 0;
+    const netAmount = Math.max(0, base + bon - ded);
+
+    const currentYear = year ? Number(year) : new Date().getFullYear();
+    const currentMonth = month || new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    const payslip = await Payslip.create({
+      tenantId: req.tenantId,
+      branchId: staff.branchId || null,
+      staffId: staff._id,
+      staffName: staff.name,
+      employeeId: staff.employeeId || '',
+      role: staff.designation || staff.role || 'Staff Stylist',
+      month: currentMonth,
+      year: currentYear,
+      baseSalary: base,
+      bonus: bon,
+      deductions: ded,
+      netAmount,
+      paymentStatus: 'PAID',
+      paidDate: paidDate ? new Date(paidDate) : new Date(),
+      paymentMethod,
+      transactionRef: transactionRef || `SAL-${Date.now().toString().slice(-6)}`,
+      notes,
+    });
+
+    try {
+      await StaffEarning.create({
+        tenantId: req.tenantId,
+        branchId: staff.branchId || null,
+        staffId: staff._id,
+        date: payslip.paidDate,
+        type: 'salary',
+        amount: netAmount,
+        description: `Monthly Salary: ${currentMonth}`,
+        referenceId: payslip._id,
+      });
+    } catch (e) {
+      console.warn('StaffEarning log warning:', e.message);
+    }
+
+    return sendSuccess(res, 'Salary payment recorded successfully', payslip, 201);
+  } catch (error) {
+    return sendError(res, `Failed to record salary payment: ${error.message}`, [], 500);
+  }
+};
+
+export const deleteAdminSalaryPayment = async (req, res) => {
+  try {
+    const Payslip = getTenantModel(req, 'Payslip');
+    const { salaryId } = req.params;
+
+    const deleted = await Payslip.findOneAndDelete({ _id: salaryId, tenantId: req.tenantId });
+    if (!deleted) return sendError(res, 'Salary record not found', [], 404);
+
+    return sendSuccess(res, 'Salary record deleted successfully', deleted);
+  } catch (error) {
+    return sendError(res, `Failed to delete salary record: ${error.message}`, [], 500);
+  }
+};
+
+export const getStaffFullProfile = async (req, res) => {
+  try {
+    const Staff = getTenantModel(req, 'Staff');
+    const Payslip = getTenantModel(req, 'Payslip');
+    const Attendance = getTenantModel(req, 'Attendance');
+    const Appointment = getTenantModel(req, 'Appointment');
+
+    const { staffId } = req.params;
+    const staff = await Staff.findOne({ _id: staffId, tenantId: req.tenantId })
+      .populate('departmentId', 'name')
+      .populate('designationId', 'name')
+      .lean();
+
+    if (!staff) return sendError(res, 'Staff member not found', [], 404);
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const attendanceRecords = await Attendance.find({
+      tenantId: req.tenantId,
+      staffId: staff._id,
+      date: { $gte: startOfMonth, $lte: endOfMonth },
+    }).lean();
+
+    const attendanceSummary = {
+      month: now.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+      totalLogged: attendanceRecords.length,
+      present: attendanceRecords.filter((a) => a.status === 'present').length,
+      absent: attendanceRecords.filter((a) => a.status === 'absent').length,
+      halfDay: attendanceRecords.filter((a) => a.status === 'half-day').length,
+      onLeave: attendanceRecords.filter((a) => a.status === 'leave').length,
+    };
+
+    const salaryHistory = await Payslip.find({ tenantId: req.tenantId, staffId: staff._id })
+      .sort({ paidDate: -1, createdAt: -1 })
+      .lean();
+
+    const totalSalaryPaid = salaryHistory.reduce((sum, s) => sum + (Number(s.netAmount) || 0), 0);
+
+    const appointmentsCount = await Appointment.countDocuments({
+      tenantId: req.tenantId,
+      staffId: staff._id,
+      status: 'completed',
+    });
+
+    return sendSuccess(res, 'Staff full profile retrieved successfully', {
+      staff,
+      attendanceSummary,
+      salaryHistory,
+      totalSalaryPaid,
+      appointmentsCount,
+      documents: staff.documents || [],
+      certificates: staff.certificates || [],
+    });
+  } catch (error) {
+    return sendError(res, `Failed to retrieve staff full profile: ${error.message}`, [], 500);
+  }
+};
+
 export default {
   createStaff,
   getStaffList,
@@ -697,4 +877,8 @@ export default {
   deleteStaffCertificate,
   getCalendarBirthdays,
   getCalendarImportantDates,
+  getAdminSalaryList,
+  createAdminSalaryPayment,
+  deleteAdminSalaryPayment,
+  getStaffFullProfile,
 };

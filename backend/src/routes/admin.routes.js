@@ -176,6 +176,12 @@ router.get('/staff/:staffId/appointments', staffCtrl.getStaffAppointments);
 router.get('/staff/:staffId/commission', staffCtrl.getStaffCommission);
 router.get('/staff/:staffId/salary', staffCtrl.getStaffSalary);
 router.get('/staff/:staffId/performance', staffCtrl.getStaffPerformance);
+router.get('/staff/:staffId/full-profile', staffCtrl.getStaffFullProfile);
+
+// Staff Salary Management & Payroll (DB-Backed)
+router.get('/salaries', staffCtrl.getAdminSalaryList);
+router.post('/salaries', staffCtrl.createAdminSalaryPayment);
+router.delete('/salaries/:salaryId', staffCtrl.deleteAdminSalaryPayment);
 
 // Staff Documents
 router.post('/staff/:staffId/documents', requirePermission('staff.update'), staffCtrl.addStaffDocument);

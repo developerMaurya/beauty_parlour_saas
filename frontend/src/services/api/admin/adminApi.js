@@ -154,10 +154,18 @@ export const staffFetcher = {
   getAppointments: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/appointments`),
   getCommission: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/commission`),
   getSalary: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/salary`),
+  getFullProfile: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/full-profile`),
   getDocuments: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/documents`),
   getCertificates: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/certificates`),
   getBirthdays: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/birthdays`),
   getPerformance: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}/performance`),
+};
+
+// 10b. Salary & Payroll Fetcher
+export const salaryFetcher = {
+  list: (params) => adminAxiosClient.get('/admin/salaries', { params: buildParams(params) }),
+  create: (data) => adminAxiosClient.post('/admin/salaries', data),
+  delete: (salaryId) => adminAxiosClient.delete(`/admin/salaries/${salaryId}`),
 };
 
 // 11. Student Fetcher

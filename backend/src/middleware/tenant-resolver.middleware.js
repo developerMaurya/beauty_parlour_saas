@@ -10,6 +10,10 @@ import { Tenant } from '../modules/superadmin/tenants/models/tenant.model.js';
 import { tenantDatabaseResolver } from '../core/database/tenantDatabaseResolver.js';
 import { verifyAccessToken } from '../modules/auth/services/token.service.js';
 
+// Fast in-memory cache for resolved tenants (TTL: 2 minutes)
+const TENANT_CACHE = new Map();
+const TENANT_CACHE_TTL_MS = 2 * 60 * 1000;
+
 export const tenantResolverMiddleware = async (req, res, next) => {
   try {
     let tenantIdentifier = req.headers['x-tenant-id'] || 
@@ -100,37 +104,52 @@ export const tenantResolverMiddleware = async (req, res, next) => {
       });
     }
 
-    // Resolve tenant document from Central DB
+    // Check in-memory cache for ultra-fast instant resolution (<1ms)
+    const cacheKey = String(tenantIdentifier).toLowerCase().trim();
+    const cachedEntry = TENANT_CACHE.get(cacheKey);
     let tenant = null;
-    if (tenantIdentifier.match(/^[0-9a-fA-F]{24}$/)) {
-      tenant = await Tenant.findById(tenantIdentifier);
-    }
-    if (!tenant) {
-      const cleanIdent = String(tenantIdentifier).toLowerCase().trim();
-      const cleanWithoutWww = cleanIdent.replace(/^www\./, '');
-      tenant = await Tenant.findOne({
-        $or: [
-          { slug: cleanIdent },
-          { slug: cleanWithoutWww },
-          { subdomain: cleanIdent },
-          { subdomain: cleanWithoutWww },
-          { primaryDomain: cleanIdent },
-          { primaryDomain: cleanWithoutWww },
-          { primaryDomain: `www.${cleanWithoutWww}` },
-          { code: cleanIdent.toUpperCase() },
-        ],
-      });
+
+    if (cachedEntry && Date.now() - cachedEntry.timestamp < TENANT_CACHE_TTL_MS) {
+      tenant = cachedEntry.tenant;
     }
 
     if (!tenant) {
-      const cleanIdent = String(tenantIdentifier).toLowerCase().trim();
-      const cleanWithoutWww = cleanIdent.replace(/^www\./, '');
-      const { Domain } = await import('../modules/superadmin/domains/models/domain.model.js');
-      const domainDoc = await Domain.findOne({
-        domain: { $in: [cleanIdent, cleanWithoutWww, `www.${cleanWithoutWww}`] },
-      });
-      if (domainDoc && domainDoc.tenantId) {
-        tenant = await Tenant.findById(domainDoc.tenantId);
+      if (tenantIdentifier.match(/^[0-9a-fA-F]{24}$/)) {
+        tenant = await Tenant.findById(tenantIdentifier);
+      }
+      if (!tenant) {
+        const cleanIdent = String(tenantIdentifier).toLowerCase().trim();
+        const cleanWithoutWww = cleanIdent.replace(/^www\./, '');
+        tenant = await Tenant.findOne({
+          $or: [
+            { slug: cleanIdent },
+            { slug: cleanWithoutWww },
+            { subdomain: cleanIdent },
+            { subdomain: cleanWithoutWww },
+            { primaryDomain: cleanIdent },
+            { primaryDomain: cleanWithoutWww },
+            { primaryDomain: `www.${cleanWithoutWww}` },
+            { code: cleanIdent.toUpperCase() },
+          ],
+        });
+      }
+
+      if (!tenant) {
+        const cleanIdent = String(tenantIdentifier).toLowerCase().trim();
+        const cleanWithoutWww = cleanIdent.replace(/^www\./, '');
+        const { Domain } = await import('../modules/superadmin/domains/models/domain.model.js');
+        const domainDoc = await Domain.findOne({
+          domain: { $in: [cleanIdent, cleanWithoutWww, `www.${cleanWithoutWww}`] },
+        });
+        if (domainDoc && domainDoc.tenantId) {
+          tenant = await Tenant.findById(domainDoc.tenantId);
+        }
+      }
+
+      if (tenant) {
+        TENANT_CACHE.set(cacheKey, { tenant, timestamp: Date.now() });
+        if (tenant.slug) TENANT_CACHE.set(tenant.slug.toLowerCase(), { tenant, timestamp: Date.now() });
+        if (tenant._id) TENANT_CACHE.set(tenant._id.toString(), { tenant, timestamp: Date.now() });
       }
     }
 

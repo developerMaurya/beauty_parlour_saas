@@ -44,13 +44,11 @@ import {
   DollarSign,
   Receipt,
   RotateCcw,
+  Package,
 } from 'lucide-react';
 
-import { ParlourBillingManager } from '../components/parlour/ParlourBillingManager.jsx';
-import { ParlourPaymentHistory } from '../components/parlour/ParlourPaymentHistory.jsx';
 import { ParlourProductAssignments } from '../components/parlour/ParlourProductAssignments.jsx';
 import { ParlourStaffSalaryManager } from '../components/parlour/ParlourStaffSalaryManager.jsx';
-import { ParlourAttendanceManager } from '../components/parlour/ParlourAttendanceManager.jsx';
 
 export function GoldenBeautyAdminDashboard({ defaultTab }) {
   const navigate = useNavigate();
@@ -60,23 +58,17 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
   // Determine active view strictly from route or query param
   let activeView = 'overview';
   if (defaultTab) {
-    activeView = defaultTab;
+    activeView = defaultTab === 'billing' || defaultTab === 'payments' || defaultTab === 'attendance' ? 'overview' : defaultTab;
   } else if (location.pathname.includes('inquiries') || location.pathname.includes('requests')) {
     activeView = 'requests';
   } else if (location.pathname.includes('products') || location.pathname.includes('inventory')) {
     activeView = 'products';
   } else if (location.pathname.includes('certificates')) {
     activeView = 'certificates';
-  } else if (location.pathname.includes('billing') || location.pathname.includes('invoice')) {
-    activeView = 'billing';
-  } else if (location.pathname.includes('payments') || location.pathname.includes('ledger') || location.pathname.includes('revenue')) {
-    activeView = 'payments';
-  } else if (location.pathname.includes('assignments') || location.pathname.includes('allocate')) {
+  } else if (location.pathname.includes('assignments') || location.pathname.includes('allocate') || location.pathname.includes('issue')) {
     activeView = 'assignments';
   } else if (location.pathname.includes('salary') || location.pathname.includes('payroll')) {
     activeView = 'salary';
-  } else if (location.pathname.includes('attendance')) {
-    activeView = 'attendance';
   } else if (searchParams.get('tab')) {
     activeView = searchParams.get('tab');
   }
@@ -780,36 +772,14 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                 </div>
 
                 <div
-                  onClick={() => navigate('/admin/parlour-billing')}
-                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
-                >
-                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#faf5ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                    <Receipt size={20} />
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>POS Billing & Invoices</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Generate tax bills with auto-stock sync</div>
-                </div>
-
-                <div
-                  onClick={() => navigate('/admin/parlour-payments')}
-                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
-                >
-                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ecfdf5', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                    <DollarSign size={20} />
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Payment History Ledger</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Today, Monthly & Yearly collection</div>
-                </div>
-
-                <div
                   onClick={() => navigate('/admin/parlour-assignments')}
                   style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
                 >
                   <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#f5f3ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
                     <Package size={20} />
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Product Allocation</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Issue items to staff & academy students</div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Issue Salon Product</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Products & student practical service quota</div>
                 </div>
 
                 <div
@@ -819,19 +789,8 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                   <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#f0f9ff', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
                     <Users size={20} />
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Staff Salary & Payroll</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Disbursements, bonus & printable slips</div>
-                </div>
-
-                <div
-                  onClick={() => navigate('/admin/parlour-attendance')}
-                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
-                >
-                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#fffbeb', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                    <Calendar size={20} />
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Attendance Register</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Daily tracking for staff & students</div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Salary</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Disbursements, bonus & employee profiles</div>
                 </div>
 
                 <div
@@ -1108,9 +1067,30 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                 </div>
               </div>
 
-              {/* Action Buttons: Manage Categories & Add Product */}
+              {/* Action Buttons: Manage Categories, Sell POS Products & Add Product */}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
+                  type="button"
+                  onClick={() => navigate('/admin/parlour-payments')}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: '10px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    border: '1.5px solid #a7f3d0',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <DollarSign size={16} /> 🛍️ Sell / Purchase Products (POS Bill)
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setCategoryModalOpen(true)}
                   style={{
                     padding: '9px 16px',
@@ -1935,27 +1915,7 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════
-            VIEW 5: POS BILLING & TAX INVOICES
-            ══════════════════════════════════════════════════════════════════════ */}
-        {activeView === 'billing' && (
-          <ParlourBillingManager
-            products={products}
-            setProducts={setProducts}
-            showToast={showToast}
-          />
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════════
-            VIEW 6: PAYMENT HISTORY & REVENUE LEDGER (TODAY / MONTHLY / YEARLY)
-            ══════════════════════════════════════════════════════════════════════ */}
-        {activeView === 'payments' && (
-          <ParlourPaymentHistory
-            showToast={showToast}
-          />
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════════
-            VIEW 7: PRODUCT ASSIGNMENTS TO STAFF & STUDENTS (WITH STOCK SYNC)
+            VIEW 5: ISSUE SALON PRODUCT & STUDENT PRACTICAL SERVICE TRACKER
             ══════════════════════════════════════════════════════════════════════ */}
         {activeView === 'assignments' && (
           <ParlourProductAssignments
@@ -1966,19 +1926,10 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════
-            VIEW 8: STAFF SALARY & PAYROLL CRUD (DISBURSEMENTS & PAYSLIPS)
+            VIEW 7: STAFF SALARY (DB-CONNECTED DISBURSEMENTS & PROFILES)
             ══════════════════════════════════════════════════════════════════════ */}
         {activeView === 'salary' && (
           <ParlourStaffSalaryManager
-            showToast={showToast}
-          />
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════════
-            VIEW 9: STAFF & ACADEMY STUDENT DAILY ATTENDANCE
-            ══════════════════════════════════════════════════════════════════════ */}
-        {activeView === 'attendance' && (
-          <ParlourAttendanceManager
             showToast={showToast}
           />
         )}

@@ -171,7 +171,10 @@ export const getStudents = async (req, res) => {
     const Student = getTenantModel(req, 'Student');
     const { page, limit, skip } = getPagination(req.query);
     const sort = getSort(req.query, 'name');
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
 
     if (req.query.planId) filter.planId = req.query.planId;
     if (req.query.search) {
@@ -421,7 +424,10 @@ export const getStudentPlans = async (req, res) => {
     const StudentPlan = getTenantModel(req, 'StudentPlan');
     const { page, limit, skip } = getPagination(req.query);
     const sort = getSort(req.query, 'price');
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
 
     if (req.query.search) {
       filter.$or = [
@@ -598,7 +604,10 @@ export const getAllEnrollments = async (req, res) => {
   try {
     const Enrollment = getTenantModel(req, 'Enrollment');
     const { page, limit, skip } = getPagination(req.query);
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
 
     const [items, total] = await Promise.all([
       Enrollment.find(filter)
@@ -721,7 +730,10 @@ export const getStudentAttendanceList = async (req, res) => {
   try {
     const StudentAttendance = getTenantModel(req, 'StudentAttendance');
     const { page, limit, skip } = getPagination(req.query);
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
 
     if (req.query.date) filter.date = req.query.date;
     if (req.query.studentId) filter.studentId = req.query.studentId;
@@ -754,7 +766,10 @@ export const getStudentAttendanceHistory = async (req, res) => {
 export const getStudentAttendanceReports = async (req, res) => {
   try {
     const StudentAttendance = getTenantModel(req, 'StudentAttendance');
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
 
     const report = await StudentAttendance.aggregate([
       { $match: filter },
@@ -874,7 +889,10 @@ export const deleteStudentCertificate = async (req, res) => {
 export const getCourseMaterials = async (req, res) => {
   try {
     const CourseMaterial = getTenantModel(req, 'CourseMaterial');
-    const filter = buildTenantFilter(req);
+    const filter = { tenantId: req.tenantId };
+    if (req.query.branchId && req.query.branchId !== 'all') {
+      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    }
     if (req.query.search) {
       filter.$or = [
         { title: { $regex: req.query.search, $options: 'i' } },
