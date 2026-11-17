@@ -189,9 +189,19 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         staffFetcher.list({ limit: 100 }).catch(() => ({ data: [] })),
       ]);
 
-      const rawCust = Array.isArray(custRes?.data) ? custRes.data : custRes?.data?.items || [];
-      const rawStu = Array.isArray(stuRes?.data) ? stuRes.data : stuRes?.data?.items || [];
-      const rawStaff = Array.isArray(staffRes?.data) ? staffRes.data : staffRes?.data?.items || [];
+      const extractList = (res) => {
+        if (!res) return [];
+        if (Array.isArray(res)) return res;
+        if (Array.isArray(res.data)) return res.data;
+        if (Array.isArray(res.data?.items)) return res.data.items;
+        if (Array.isArray(res.data?.data)) return res.data.data;
+        if (Array.isArray(res.items)) return res.items;
+        return [];
+      };
+
+      const rawCust = extractList(custRes);
+      const rawStu = extractList(stuRes);
+      const rawStaff = extractList(staffRes);
 
       // Fallbacks if empty
       const fallbackCust = [
@@ -212,9 +222,15 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         { _id: 'staff_04', name: 'Aarti Gupta', designation: 'Draping & Mehendi Artist', phone: '+91 98765 43204', email: 'aarti@blossom.com', address: 'Durgakund, Varanasi' },
       ];
 
+      const actualStaff = rawStaff.length > 0 ? rawStaff : fallbackStaff;
       setCustomersList(rawCust.length > 0 ? rawCust : fallbackCust);
       setStudentsList(rawStu.length > 0 ? rawStu : fallbackStu);
-      setStaffList(rawStaff.length > 0 ? rawStaff : fallbackStaff);
+      setStaffList(actualStaff);
+
+      // Auto-assign default attendant from DB staff
+      if (actualStaff.length > 0) {
+        setAttendantStaff((prev) => (prev && actualStaff.some((s) => s.name === prev) ? prev : actualStaff[0].name));
+      }
     } catch (e) {
       console.warn('Failed to load buyers:', e.message);
     } finally {
@@ -257,21 +273,38 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
   const [discountAmount, setDiscountAmount] = useState(0);
   const [taxPercent, setTaxPercent] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
-  const [attendantStaff, setAttendantStaff] = useState('Front Desk Receptionist');
+  const [attendantStaff, setAttendantStaff] = useState('');
   const [transactionRef, setTransactionRef] = useState('');
   const [salesNotes, setSalesNotes] = useState('');
 
-  // Helper: Auto-Generate Realistic Transaction & Receipt References
+  // Helper: Auto-Generate Guaranteed Unique Realistic Transaction References
   const generateSaleRef = (method = 'Cash') => {
-    const rand = Math.floor(100000 + Math.random() * 900000);
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    if (method.includes('UPI')) return `UPI-${dateStr}-${rand}`;
-    if (method.includes('Card')) return `POS-CARD-${rand}`;
-    if (method.includes('Bank')) return `IMPS-${rand}`;
-    return `CASH-REC-${rand}`;
+    const timestamp = Date.now().toString().slice(-6);
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const prefix = method.toUpperCase().includes('UPI')
+      ? 'UPI'
+      : method.toUpperCase().includes('CARD')
+      ? 'CARD'
+      : method.toUpperCase().includes('BANK')
+      ? 'NEFT'
+      : method.toUpperCase().includes('LATER')
+      ? 'CREDIT'
+      : 'CASH';
+    return `${prefix}-REF-${timestamp}-${rand}`;
   };
 
-  // Initiate Buy for a Product (Single Buy Button, Direct Flow)
+  // Helper: Auto-Generate Guaranteed Unique Bill / Receipt Serial Numbers
+  const generateUniqueBillNumber = () => {
+    const d = new Date();
+    const y = d.getFullYear().toString().slice(-2);
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const time = d.getTime().toString().slice(-5);
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `GBP-${y}${m}${day}-${time}-${rand}`;
+  };
+
+  // Initiate Buy for a Product (Direct Flow)
   const handleInitiateBuy = (product) => {
     const stock = Number(product.stock) || 0;
     if (stock <= 0) {
@@ -289,19 +322,17 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
 
     // Start strictly at Step 1: Product & Quantity Selection
     setCheckoutStep(1);
-    setIsBrowsingMoreProducts(false);
     setTransactionRef(generateSaleRef(paymentMethod));
     setCheckoutModalOpen(true);
   };
 
-  // Open Checkout from Floating Cart
+  // Open Checkout from Floating Cart / Top Header Button
   const handleOpenCheckoutFromCart = () => {
     if (cart.length === 0) {
-      alert('Please select at least one product before checking out!');
+      alert('Please add at least one product to the bill before checking out!');
       return;
     }
     setCheckoutStep(1);
-    setIsBrowsingMoreProducts(false);
     setTransactionRef(generateSaleRef(paymentMethod));
     setCheckoutModalOpen(true);
   };
@@ -484,7 +515,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
       }
     }
 
-    const billNumber = `GBP-BILL-${Date.now().toString().slice(-5)}`;
+    const billNumber = generateUniqueBillNumber();
 
     // Prepare purchased line items
     const purchasedItems = cart.map((item) => ({
@@ -499,7 +530,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
 
     // 1. Create Sale Record
     const saleRecord = {
-      id: `SALE-${Date.now()}`,
+      id: `SALE-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
       billNumber,
       buyerType,
       customerName: customerName.trim(),
@@ -779,31 +810,55 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         </div>
 
         {/* Tab Toggle: Catalog POS vs Sales Receipts */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Active Bill / Cart Status Button */}
-          {cart.length > 0 && (
-            <button
-              type="button"
-              onClick={handleOpenCheckoutFromCart}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#ffffff',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
-              }}
-            >
-              <ShoppingCart size={16} />
-              Bill Items ({cartTotalItems}) · ₹{cartSubtotal.toLocaleString()}
-            </button>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Active Bill / Add to Cart Top Button */}
+          <button
+            type="button"
+            onClick={handleOpenCheckoutFromCart}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '10px',
+              background: cart.length > 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(255, 255, 255, 0.08)',
+              color: '#ffffff',
+              border: cart.length > 0 ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.15)',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: cart.length > 0 ? '0 4px 14px rgba(16, 185, 129, 0.45)' : 'none',
+              transition: 'all 0.2s ease',
+            }}
+            title="Click to view Cart & Open Checkout"
+          >
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <ShoppingCart size={17} />
+              {cartTotalItems > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-7px',
+                    right: '-9px',
+                    background: '#ec4899',
+                    color: '#ffffff',
+                    borderRadius: '10px',
+                    padding: '1px 5px',
+                    fontSize: '10px',
+                    fontWeight: 900,
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  {cartTotalItems}
+                </span>
+              )}
+            </div>
+            <span>
+              {cart.length > 0
+                ? `Cart (${cartTotalItems}) · ₹${cartSubtotal.toLocaleString('en-IN')}`
+                : 'Cart (0)'}
+            </span>
+          </button>
 
           <div
             style={{
@@ -1316,6 +1371,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                               type="button"
                               onClick={() => {
                                 setCheckoutStep(1);
+                                setTransactionRef(generateSaleRef(paymentMethod));
                                 setCheckoutModalOpen(true);
                               }}
                               style={{
@@ -1334,7 +1390,8 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                               }}
                               title="Open Bill & Continue Checkout"
                             >
-                              Bill →
+                              <ShoppingCart size={13} />
+                              View Cart ({quantityInCart}) →
                             </button>
                           </div>
                         ) : (
@@ -1344,24 +1401,28 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                               disabled={isOutOfStock}
                               onClick={() => {
                                 handleAddToCart(p, 1);
+                                if (typeof showToast === 'function') {
+                                  showToast(`Added "${p.name}" to cart!`);
+                                }
                               }}
                               style={{
-                                padding: '7px 12px',
+                                padding: '8px 14px',
                                 borderRadius: '8px',
                                 background: isOutOfStock ? '#f1f5f9' : '#fdf2f8',
                                 border: `1.5px solid ${isOutOfStock ? '#e2e8f0' : '#ec4899'}`,
                                 color: isOutOfStock ? '#94a3b8' : '#db2777',
-                                fontSize: '12px',
+                                fontSize: '12.5px',
                                 fontWeight: 800,
                                 cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '4px',
+                                gap: '5px',
+                                transition: 'all 0.15s ease',
                               }}
-                              title="Add product to current bill"
+                              title="Add product to cart"
                             >
-                              <Plus size={13} />
-                              Add
+                              <ShoppingCart size={14} />
+                              + Add to Cart
                             </button>
 
                             <button
@@ -1381,13 +1442,14 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                                 cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '4px',
+                                gap: '5px',
                                 boxShadow: isOutOfStock ? 'none' : '0 3px 10px rgba(236, 72, 153, 0.35)',
+                                transition: 'all 0.15s ease',
                               }}
-                              title="Buy now and proceed to checkout"
+                              title="Buy now and open checkout directly"
                             >
                               <Sparkles size={13} />
-                              Buy
+                              Buy Now
                             </button>
                           </div>
                         )}
@@ -2593,9 +2655,10 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '5px' }}>
-                          Sales Attendant
+                          Sales Attendant (DB Staff) <span style={{ color: '#ec4899' }}>*</span>
                         </label>
                         <select
+                          required
                           value={attendantStaff}
                           onChange={(e) => setAttendantStaff(e.target.value)}
                           style={{
@@ -2606,14 +2669,14 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                             border: '1px solid #334155',
                             color: '#f8fafc',
                             fontSize: '12.5px',
+                            fontWeight: 600,
                             outline: 'none',
                           }}
                         >
-                          <option value="Front Desk Receptionist">Front Desk Receptionist</option>
-                          <option value="Salon Manager">Salon Manager</option>
+                          <option value="">-- Select Staff Attendant (From DB) --</option>
                           {staffList.map((st) => (
                             <option key={st._id || st.id} value={st.name}>
-                              {st.name} ({st.designation || 'Staff'})
+                              {st.name} {st.designation ? `(${st.designation})` : ''} {st.phone ? `· ${st.phone}` : ''}
                             </option>
                           ))}
                         </select>
