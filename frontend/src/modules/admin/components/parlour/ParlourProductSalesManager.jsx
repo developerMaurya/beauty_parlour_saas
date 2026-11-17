@@ -1507,6 +1507,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
           }}
         >
           <div
+            id="retail-checkout-modal-body"
             style={{
               background: '#0f172a',
               border: '1.5px solid rgba(236, 72, 153, 0.45)',
@@ -1527,19 +1528,38 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '14px',
+                marginBottom: '16px',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                paddingBottom: '12px',
+                paddingBottom: '14px',
               }}
             >
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
-                  {isBrowsingMoreProducts && 'Select Products to Add to Bill'}
-                  {!isBrowsingMoreProducts && checkoutStep === 1 && 'Step 1: Product & Quantity Selection'}
-                  {!isBrowsingMoreProducts && checkoutStep === 2 && 'Step 2: Buyer Selection (Who is purchasing?)'}
-                  {!isBrowsingMoreProducts && checkoutStep === 3 && 'Step 3: Payment & Order Confirmation'}
-                </h3>
-                <div style={{ fontSize: '12px', color: '#c084fc', marginTop: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                  {!isBrowsingMoreProducts && (
+                    <span
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(236, 72, 153, 0.15)',
+                        border: '1px solid rgba(236, 72, 153, 0.35)',
+                        color: '#f472b6',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        letterSpacing: '0.4px',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Step {checkoutStep} of 3
+                    </span>
+                  )}
+                  <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
+                    {isBrowsingMoreProducts && 'Select Products to Add to Bill'}
+                    {!isBrowsingMoreProducts && checkoutStep === 1 && 'Products & Quantity Selection'}
+                    {!isBrowsingMoreProducts && checkoutStep === 2 && 'Buyer Details & Identification'}
+                    {!isBrowsingMoreProducts && checkoutStep === 3 && 'Payment & Order Placement'}
+                  </h3>
+                </div>
+                <div style={{ fontSize: '12px', color: '#c084fc' }}>
                   Golden Beauty Parlour Retail Sales Billing & Stock Ledger
                 </div>
               </div>
@@ -1564,49 +1584,6 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                 ✕
               </button>
             </div>
-
-            {/* Stepper Progress Indicator (Strict Step by Step - No Skipping Ahead) */}
-            {!isBrowsingMoreProducts && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
-                {[
-                  { step: 1, title: 'Step 1: Products & Qty' },
-                  { step: 2, title: 'Step 2: Buyer Details' },
-                  { step: 3, title: 'Step 3: Pay & Place Order' },
-                ].map((s) => {
-                  const isActive = checkoutStep === s.step;
-                  const isCompleted = checkoutStep > s.step;
-                  const canNavigate = s.step < checkoutStep; // Only previous completed steps can be clicked
-
-                  return (
-                    <div
-                      key={s.step}
-                      onClick={() => {
-                        if (canNavigate) setCheckoutStep(s.step);
-                      }}
-                      style={{
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        background: isActive
-                          ? 'linear-gradient(135deg, #ec4899, #db2777)'
-                          : isCompleted
-                          ? 'rgba(16, 185, 129, 0.15)'
-                          : 'rgba(255, 255, 255, 0.04)',
-                        border: `1px solid ${isActive ? '#ec4899' : isCompleted ? '#10b981' : 'rgba(255, 255, 255, 0.08)'}`,
-                        color: isActive ? '#ffffff' : isCompleted ? '#34d399' : '#64748b',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        textAlign: 'center',
-                        cursor: canNavigate ? 'pointer' : 'default',
-                        userSelect: 'none',
-                      }}
-                      title={canNavigate ? `Go back to ${s.title}` : isActive ? 'Current Step' : 'Complete previous step to unlock'}
-                    >
-                      {isCompleted ? '✓ ' : ''}{s.title}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
 
             {/* ════════════════════════════════════════════════════════════════
                 VIEW 1A: VISUAL PRODUCT CATALOG PICKER (WHEN "+ ADD MORE" CLICKED)
@@ -2060,7 +2037,10 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                       <button
                         type="button"
                         disabled={cart.length === 0}
-                        onClick={() => setCheckoutStep(2)}
+                        onClick={() => {
+                          setCheckoutStep(2);
+                          document.getElementById('retail-checkout-modal-body')?.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         style={{
                           padding: '10px 22px',
                           borderRadius: '8px',
@@ -2454,7 +2434,10 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
                       <button
                         type="button"
-                        onClick={() => setCheckoutStep(1)}
+                        onClick={() => {
+                          setCheckoutStep(1);
+                          document.getElementById('retail-checkout-modal-body')?.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         style={{
                           padding: '9px 18px',
                           borderRadius: '8px',
@@ -2476,7 +2459,10 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                       <button
                         type="button"
                         disabled={!customerName.trim()}
-                        onClick={() => setCheckoutStep(3)}
+                        onClick={() => {
+                          setCheckoutStep(3);
+                          document.getElementById('retail-checkout-modal-body')?.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         style={{
                           padding: '10px 22px',
                           borderRadius: '8px',
@@ -2776,7 +2762,10 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                     >
                       <button
                         type="button"
-                        onClick={() => setCheckoutStep(2)}
+                        onClick={() => {
+                          setCheckoutStep(2);
+                          document.getElementById('retail-checkout-modal-body')?.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         style={{
                           padding: '9px 18px',
                           borderRadius: '8px',
