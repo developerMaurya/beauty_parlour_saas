@@ -45,6 +45,7 @@ import {
   MessageSquare,
   Layers,
   Box,
+  ShoppingBag,
   Trees,
   Home,
   Building,
@@ -273,6 +274,7 @@ export const TenantAdminLayout = () => {
       items: [
         { label: 'Beauty Parlour Overview', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard, badge: 'Overview' },
         { label: 'Customer Inquiries & Requests', path: '/admin/parlour-inquiries', icon: MessageSquare, badge: 'Inquiries' },
+        { label: 'Sale', path: '/admin/parlour-sales', icon: ShoppingBag, badge: 'Sale' },
         { label: 'Products & Stock Inventory', path: '/admin/parlour-products', icon: Box, badge: 'Stock' },
         { label: 'Issue Salon Product', path: '/admin/parlour-assignments', icon: Package, badge: 'Issue' },
         { label: 'Salary', path: '/admin/parlour-salary', icon: Users, badge: 'Salary' },

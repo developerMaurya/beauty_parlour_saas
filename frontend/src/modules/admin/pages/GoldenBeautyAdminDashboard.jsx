@@ -45,10 +45,12 @@ import {
   Receipt,
   RotateCcw,
   Package,
+  ShoppingBag,
 } from 'lucide-react';
 
 import { ParlourProductAssignments } from '../components/parlour/ParlourProductAssignments.jsx';
 import { ParlourStaffSalaryManager } from '../components/parlour/ParlourStaffSalaryManager.jsx';
+import { ParlourProductSalesManager } from '../components/parlour/ParlourProductSalesManager.jsx';
 
 export function GoldenBeautyAdminDashboard({ defaultTab }) {
   const navigate = useNavigate();
@@ -61,6 +63,8 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
     activeView = defaultTab === 'billing' || defaultTab === 'payments' || defaultTab === 'attendance' ? 'overview' : defaultTab;
   } else if (location.pathname.includes('inquiries') || location.pathname.includes('requests')) {
     activeView = 'requests';
+  } else if (location.pathname.includes('sales') || location.pathname.includes('sale')) {
+    activeView = 'sales';
   } else if (location.pathname.includes('products') || location.pathname.includes('inventory')) {
     activeView = 'products';
   } else if (location.pathname.includes('certificates')) {
@@ -758,6 +762,17 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                   </div>
                   <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Customer Inquiries</div>
                   <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Review & approve incoming bookings</div>
+                </div>
+
+                <div
+                  onClick={() => navigate('/admin/parlour-sales')}
+                  style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                >
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))', color: '#ec4899', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                    <ShoppingBag size={20} />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Sale (POS Billing)</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Direct retail selling, buy & instant receipts</div>
                 </div>
 
                 <div
@@ -1912,6 +1927,17 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
               </div>
             )}
           </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW: PARLOUR PRODUCT SALES (POS, INVENTORY DEDUCTION & RECEIPTS)
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'sales' && (
+          <ParlourProductSalesManager
+            products={products}
+            setProducts={setProducts}
+            showToast={showToast}
+          />
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════

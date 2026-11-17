@@ -233,6 +233,123 @@ export const stockOut = async (req, res) => {
   }
 };
 
+export const sellProduct = async (req, res) => {
+  try {
+    const {
+      productId,
+      quantity = 1,
+      customerName = 'Walk-in Customer',
+      customerPhone = '',
+      paymentMethod = 'Cash',
+      transactionRef = '',
+      notes = '',
+      discount = 0,
+      tax = 0,
+      branchId,
+    } = req.body;
+
+    if (!productId || Number(quantity) <= 0) {
+      return sendError(res, 'Valid Product ID and quantity are required', [], 400);
+    }
+
+    const Product = getTenantModel(req, 'Product');
+    const InventoryTransaction = getTenantModel(req, 'InventoryTransaction');
+    const Bill = getTenantModel(req, 'Bill');
+
+    const product = await Product.findOne({ _id: productId, tenantId: req.tenantId });
+    if (!product) return sendError(res, 'Product not found', [], 404);
+
+    const qty = Number(quantity);
+    if ((product.stockQuantity || 0) < qty) {
+      return sendError(
+        res,
+        `Insufficient stock! Only ${product.stockQuantity || 0} ${product.unit || 'units'} available in inventory.`,
+        [],
+        400
+      );
+    }
+
+    const prevStock = product.stockQuantity || 0;
+    const currentStock = prevStock - qty;
+
+    product.stockQuantity = currentStock;
+    await product.save();
+
+    // Log Stock Out Transaction
+    const tx = await InventoryTransaction.create({
+      tenantId: req.tenantId,
+      productId: product._id,
+      branchId: branchId || product.branchId || null,
+      type: 'STOCK_OUT',
+      quantity: qty,
+      previousStock: prevStock,
+      currentStock,
+      reason: `Retail Sale to ${customerName} (${customerPhone || 'Counter'})`,
+      performedBy: req.user?._id || null,
+    });
+
+    const unitPrice = Number(product.sellingPrice) || 0;
+    const subtotal = unitPrice * qty;
+    const discountAmount = Number(discount) || 0;
+    const taxAmount = Number(tax) || 0;
+    const grandTotal = Math.max(0, subtotal - discountAmount + taxAmount);
+    const billNumber = transactionRef || `SALE-${Date.now().toString().slice(-6)}`;
+
+    // Create Bill / Invoice
+    let bill = null;
+    try {
+      bill = await Bill.create({
+        tenantId: req.tenantId,
+        billNumber,
+        branchId: branchId || product.branchId || null,
+        items: [
+          {
+            itemType: 'product',
+            itemId: product._id,
+            name: product.name,
+            quantity: qty,
+            unitPrice,
+            discountAmount,
+            taxAmount,
+            totalPrice: grandTotal,
+          },
+        ],
+        subtotal,
+        discountTotal: discountAmount,
+        taxTotal: taxAmount,
+        grandTotal,
+        paidAmount: grandTotal,
+        balanceAmount: 0,
+        paymentStatus: 'paid',
+        paymentMethod,
+        notes: `${notes} | Customer: ${customerName} (${customerPhone || 'N/A'})`,
+      });
+    } catch (billErr) {
+      console.warn('Bill creation warning:', billErr.message);
+    }
+
+    return sendSuccess(res, 'Product sold successfully and inventory updated', {
+      product,
+      transaction: tx,
+      bill,
+      saleDetails: {
+        billNumber,
+        productName: product.name,
+        quantity: qty,
+        unitPrice,
+        grandTotal,
+        customerName,
+        customerPhone,
+        paymentMethod,
+        remainingStock: currentStock,
+        date: new Date(),
+      },
+    });
+  } catch (error) {
+    return sendError(res, `Failed to process product sale: ${error.message}`, [], 500);
+  }
+};
+
 export const adjustStock = async (req, res) => {
   try {
     const { productId, branchId, newStockQuantity, reason } = req.body;
@@ -518,6 +635,7 @@ export default {
   getLowStockProducts,
   stockIn,
   stockOut,
+  sellProduct,
   adjustStock,
   transferStock,
   getInventoryTransactions,

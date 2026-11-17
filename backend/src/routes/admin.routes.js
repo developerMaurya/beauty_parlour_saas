@@ -434,6 +434,7 @@ router.get('/inventory', requirePermission('inventory.view'), invCtrl.getInvento
 router.get('/inventory/low-stock', requirePermission('inventory.view'), invCtrl.getLowStockProducts);
 router.post('/inventory/stock-in', requirePermission('inventory.create'), invCtrl.stockIn);
 router.post('/inventory/stock-out', requirePermission('inventory.update'), invCtrl.stockOut);
+router.post('/inventory/sale', requirePermission('inventory.update'), invCtrl.sellProduct);
 router.post('/inventory/adjust', requirePermission('inventory.update'), invCtrl.adjustStock);
 router.post('/inventory/transfer', requirePermission('inventory.update'), invCtrl.transferStock);
 router.get('/inventory/transactions', requirePermission('inventory.view'), invCtrl.getInventoryTransactions);

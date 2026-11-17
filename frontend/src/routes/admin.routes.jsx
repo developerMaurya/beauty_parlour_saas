@@ -102,6 +102,8 @@ export const AdminRoutes = (
       <Route path="golden-beauty-parlour" element={<AdminParlourDashboard defaultTab="overview" />} />
       <Route path="parlour-inquiries" element={<AdminParlourDashboard defaultTab="requests" />} />
       <Route path="parlour-requests" element={<AdminParlourDashboard defaultTab="requests" />} />
+      <Route path="parlour-sales" element={<AdminParlourDashboard defaultTab="sales" />} />
+      <Route path="parlour-sale" element={<AdminParlourDashboard defaultTab="sales" />} />
       <Route path="parlour-products" element={<AdminParlourDashboard defaultTab="products" />} />
       <Route path="parlour-inventory" element={<AdminParlourDashboard defaultTab="products" />} />
       <Route path="parlour-billing" element={<Navigate to="/admin/golden-beauty-parlour" replace />} />
