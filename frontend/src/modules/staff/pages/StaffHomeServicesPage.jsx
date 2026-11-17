@@ -161,7 +161,9 @@ export default function StaffHomeServicesPage() {
                     <span style={statusBadgeStyle(hs.status)}>{hs.status}</span>
                   </div>
                   <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '3px' }}>
-                    📍 {hs.customer?.address || 'Client Address'}
+                    📍 {typeof hs.customer?.address === 'object' && hs.customer?.address
+                      ? [hs.customer.address.street, hs.customer.address.city].filter(Boolean).join(', ') || 'Client Address'
+                      : hs.customer?.address || 'Client Address'}
                   </div>
                   <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                     {hs.service?.name} • {hs.date ? new Date(hs.date).toLocaleDateString() : ''} at {hs.scheduledTime}

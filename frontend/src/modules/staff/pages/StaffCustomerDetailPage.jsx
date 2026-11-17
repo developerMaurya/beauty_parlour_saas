@@ -130,7 +130,9 @@ export default function StaffCustomerDetailPage() {
               📞 {c.phone || 'No phone'} • ✉️ {c.email || 'No email on record'}
             </div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-              📍 {c.address || 'Address not listed'}
+              📍 {typeof c.address === 'object' && c.address
+                ? [c.address.street, c.address.city].filter(Boolean).join(', ') || 'Address not listed'
+                : c.address || 'Address not listed'}
             </div>
           </div>
         </div>

@@ -474,7 +474,9 @@ export default function StaffDashboardPage() {
                           {home.customer?.name}
                         </div>
                         <div style={{ fontSize: '12.5px', color: '#94a3b8', marginTop: '2px' }}>
-                          📍 {home.customer?.address || 'Client Address'}
+                          📍 {typeof home.customer?.address === 'object' && home.customer?.address
+                            ? [home.customer.address.street, home.customer.address.city].filter(Boolean).join(', ') || 'Client Address'
+                            : home.customer?.address || 'Client Address'}
                         </div>
                         <div style={{ marginTop: '6px' }}>
                           <span style={statusBadgeStyle(home.status)}>{home.status}</span>

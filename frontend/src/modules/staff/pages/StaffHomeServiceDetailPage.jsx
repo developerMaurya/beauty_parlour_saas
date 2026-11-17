@@ -433,11 +433,16 @@ export default function StaffHomeServiceDetailPage() {
             </a>
           </div>
           <div>
-            <strong style={{ color: '#fff' }}>Address:</strong> {c.address || a.homeAddress || 'Not Provided'}
+            <strong style={{ color: '#fff' }}>Address:</strong>{' '}
+            {typeof c.address === 'object' && c.address
+              ? [c.address.street, c.address.city].filter(Boolean).join(', ')
+              : c.address || a.homeAddress || 'Not Provided'}
           </div>
           {c.address && (
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                typeof c.address === 'object' ? [c.address.street, c.address.city].filter(Boolean).join(', ') : c.address
+              )}`}
               target="_blank"
               rel="noreferrer"
               style={{

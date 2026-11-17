@@ -114,7 +114,11 @@ export const HomeServicesDispatchPage = () => {
           <div style={{ fontWeight: 700 }}>{row.customer?.name}</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <MapPin className="w-3.5 h-3.5 text-rose-500" />
-            {row.customerAddress || row.customer?.address || 'Client Location'}
+            {row.customerAddress ||
+              (typeof row.customer?.address === 'object' && row.customer?.address
+                ? [row.customer.address.street, row.customer.address.city, row.customer.address.state].filter(Boolean).join(', ')
+                : row.customer?.address) ||
+              'Client Location'}
           </div>
         </div>
       ),

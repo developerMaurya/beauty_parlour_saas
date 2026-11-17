@@ -55,6 +55,23 @@ import {
 import axios from 'axios';
 import { customerFetcher, studentFetcher, staffFetcher, userFetcher } from '../../../../services/api/admin/adminApi.js';
 
+// Safely format an address (object or string) into a display string
+export const formatAddressString = (addr) => {
+  if (!addr) return '';
+  if (typeof addr === 'string') return addr;
+  if (typeof addr === 'object') {
+    const parts = [
+      addr.street,
+      addr.landmark,
+      addr.city,
+      addr.state,
+      addr.postalCode || addr.pincode,
+    ].filter(Boolean);
+    return parts.join(', ') || addr.city || addr.street || '';
+  }
+  return String(addr);
+};
+
 export function ParlourProductSalesManager({ products = [], setProducts, showToast }) {
   // Active Tab: 'catalog' | 'history'
   const [activeTab, setActiveTab] = useState('catalog');
@@ -311,7 +328,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         setCustomerName(found.name || '');
         setCustomerPhone(found.phone || '');
         setCustomerEmail(found.email || '');
-        setCustomerAddress(found.address || '');
+        setCustomerAddress(formatAddressString(found.address));
         setBuyerDetailTag('Registered Salon Client');
       }
     } else if (buyerType === 'student') {
@@ -320,7 +337,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         setCustomerName(found.name || '');
         setCustomerPhone(found.phone || '');
         setCustomerEmail(found.email || '');
-        setCustomerAddress(found.address || '');
+        setCustomerAddress(formatAddressString(found.address));
         setBuyerDetailTag(found.rollNo ? `Student Roll: ${found.rollNo}` : 'Trainee Academy Student');
       }
     } else if (buyerType === 'staff') {
@@ -329,7 +346,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         setCustomerName(found.name || '');
         setCustomerPhone(found.phone || '');
         setCustomerEmail(found.email || '');
-        setCustomerAddress(found.address || '');
+        setCustomerAddress(formatAddressString(found.address));
         setBuyerDetailTag(found.designation || found.role || 'Staff Member');
       }
     }
@@ -384,7 +401,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         setCustomerName(created.name);
         setCustomerPhone(created.phone);
         setCustomerEmail(created.email);
-        setCustomerAddress(created.address);
+        setCustomerAddress(formatAddressString(created.address));
         setBuyerDetailTag('Newly Registered Client');
       } else if (buyerType === 'student') {
         const studentPayload = { ...payload, rollNo: newBuyerForm.roleOrId || `STU-${Date.now().toString().slice(-3)}` };
@@ -395,7 +412,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         setCustomerName(created.name);
         setCustomerPhone(created.phone);
         setCustomerEmail(created.email);
-        setCustomerAddress(created.address);
+        setCustomerAddress(formatAddressString(created.address));
         setBuyerDetailTag(`Student Roll: ${created.rollNo}`);
       } else if (buyerType === 'staff') {
         const staffPayload = { ...payload, designation: newBuyerForm.roleOrId || 'Salon Stylist' };
@@ -406,7 +423,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
         setCustomerName(created.name);
         setCustomerPhone(created.phone);
         setCustomerEmail(created.email);
-        setCustomerAddress(created.address);
+        setCustomerAddress(formatAddressString(created.address));
         setBuyerDetailTag(created.designation);
       }
 
@@ -492,7 +509,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim() || 'N/A',
       customerEmail: customerEmail.trim() || '',
-      customerAddress: customerAddress.trim() || 'Varanasi, UP',
+      customerAddress: formatAddressString(customerAddress).trim() || 'Varanasi, UP',
       buyerDetailTag,
       items: purchasedItems,
       totalItemsCount: cartTotalItems,
@@ -1195,102 +1212,6 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
               })}
             </div>
           )}
-
-          {/* Floating Cart Summary Bar */}
-          {cart.length > 0 && (
-            <div
-              style={{
-                position: 'sticky',
-                bottom: '16px',
-                zIndex: 900,
-                background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)',
-                borderRadius: '16px',
-                padding: '14px 22px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
-                border: '1.5px solid rgba(236, 72, 153, 0.45)',
-                color: '#ffffff',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div
-                  style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                  }}
-                >
-                  <ShoppingCart size={22} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 800 }}>
-                    {cartTotalItems} {cartTotalItems === 1 ? 'Product' : 'Products'} in Current Bill ({cart.length} items)
-                  </div>
-                  <div style={{ fontSize: '11.5px', color: '#c084fc', marginTop: '2px' }}>
-                    {cart.map((i) => `${i.product.name} (x${i.quantity})`).slice(0, 3).join(', ')}
-                    {cart.length > 3 ? ` +${cart.length - 3} more` : ''}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '11px', color: '#a7f3d0' }}>Total Subtotal:</div>
-                  <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#34d399' }}>
-                    ₹{cartSubtotal.toLocaleString('en-IN')}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleClearCart}
-                  style={{
-                    padding: '9px 14px',
-                    borderRadius: '8px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#fca5a5',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Clear Bill
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenCheckoutFromCart}
-                  style={{
-                    padding: '10px 22px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #ec4899, #db2777)',
-                    border: 'none',
-                    color: '#ffffff',
-                    fontSize: '13.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 14px rgba(236, 72, 153, 0.45)',
-                  }}
-                >
-                  Continue to Checkout
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -1383,7 +1304,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{s.customerPhone}</div>
                           {s.customerAddress && (
                             <div style={{ fontSize: '10.5px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px' }}>
-                              <MapPin size={10} /> {s.customerAddress}
+                              <MapPin size={10} /> {formatAddressString(s.customerAddress)}
                             </div>
                           )}
                         </td>
@@ -2337,7 +2258,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                               {buyerType === 'customer' &&
                                 customersList.map((c) => (
                                   <option key={c._id || c.id} value={c._id || c.id}>
-                                    {c.name} ({c.phone || c.email || 'Client'}) {c.address ? `· ${c.address}` : ''}
+                                    {c.name} ({c.phone || c.email || 'Client'}) {formatAddressString(c.address) ? `· ${formatAddressString(c.address)}` : ''}
                                   </option>
                                 ))}
                               {buyerType === 'student' &&
@@ -2413,7 +2334,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                         </label>
                         <input
                           type="text"
-                          value={customerAddress}
+                          value={formatAddressString(customerAddress)}
                           onChange={(e) => setCustomerAddress(e.target.value)}
                           placeholder="e.g. Mahmoorganj, Varanasi - 221010"
                           style={{
@@ -2516,7 +2437,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                           {customerName} ({customerPhone || 'Counter'})
                         </div>
                         {customerAddress && (
-                          <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>{customerAddress}</div>
+                          <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>{formatAddressString(customerAddress)}</div>
                         )}
                       </div>
                     </div>
@@ -2957,7 +2878,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                       <span>{selectedReceipt.customerPhone}</span>
                     </div>
                     {selectedReceipt.customerAddress && (
-                      <div style={{ fontSize: '10px' }}>Address: {selectedReceipt.customerAddress}</div>
+                      <div style={{ fontSize: '10px' }}>Address: {formatAddressString(selectedReceipt.customerAddress)}</div>
                     )}
                     <div style={{ fontSize: '10px' }}>Mode: {selectedReceipt.paymentMethod}</div>
                   </div>
@@ -3077,7 +2998,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                       {selectedReceipt.customerAddress && (
                         <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                           <MapPin size={11} color="#64748b" />
-                          <span>Address: {selectedReceipt.customerAddress}</span>
+                          <span>Address: {formatAddressString(selectedReceipt.customerAddress)}</span>
                         </div>
                       )}
                     </div>

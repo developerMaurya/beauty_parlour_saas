@@ -204,7 +204,11 @@ export default function StaffAppointmentDetailPage() {
             </div>
             <div style={{ ...rowStyle, borderBottom: 'none' }}>
               <span style={{ color: '#94a3b8' }}>Address:</span>
-              <span style={{ color: '#fff' }}>{c.address || 'In Salon'}</span>
+              <span style={{ color: '#fff' }}>
+                {typeof c.address === 'object' && c.address
+                  ? [c.address.street, c.address.city].filter(Boolean).join(', ') || 'In Salon'
+                  : c.address || 'In Salon'}
+              </span>
             </div>
           </div>
         </div>
