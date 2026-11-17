@@ -685,6 +685,12 @@ export const getAdminSalaryList = async (req, res) => {
     if (req.query.year && req.query.year !== 'ALL') {
       filter.year = Number(req.query.year);
     }
+    if (req.query.paymentStatus && req.query.paymentStatus !== 'ALL') {
+      filter.paymentStatus = req.query.paymentStatus;
+    }
+    if (req.query.paymentCategory && req.query.paymentCategory !== 'ALL') {
+      filter.paymentCategory = req.query.paymentCategory;
+    }
     if (req.query.search) {
       filter.$or = [
         { staffName: { $regex: req.query.search, $options: 'i' } },
@@ -718,6 +724,11 @@ export const createAdminSalaryPayment = async (req, res) => {
       transactionRef = '',
       notes = '',
       paidDate,
+      paymentCategory = 'regular',
+      amountPaid,
+      monthsCovered = [],
+      advanceDeducted = 0,
+      previousDuePaid = 0,
     } = req.body;
 
     if (!staffId) return sendError(res, 'Staff ID is required', [], 400);
@@ -728,7 +739,22 @@ export const createAdminSalaryPayment = async (req, res) => {
     const base = Number(baseSalary ?? staff.salary) || 0;
     const bon = Number(bonus) || 0;
     const ded = Number(deductions) || 0;
-    const netAmount = Math.max(0, base + bon - ded);
+    const totalDue = Math.max(0, base + bon - ded);
+    const paid = amountPaid !== undefined && amountPaid !== null && !isNaN(Number(amountPaid))
+      ? Math.max(0, Number(amountPaid))
+      : totalDue;
+    const balanceRemaining = Math.max(0, totalDue - paid);
+
+    let paymentStatus = 'PAID';
+    if (paymentCategory === 'advance') {
+      paymentStatus = 'ADVANCE';
+    } else if (balanceRemaining > 0 && paid > 0) {
+      paymentStatus = 'PARTIAL';
+    } else if (paid === 0) {
+      paymentStatus = 'PENDING';
+    } else {
+      paymentStatus = 'PAID';
+    }
 
     const currentYear = year ? Number(year) : new Date().getFullYear();
     const currentMonth = month || new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -745,8 +771,15 @@ export const createAdminSalaryPayment = async (req, res) => {
       baseSalary: base,
       bonus: bon,
       deductions: ded,
-      netAmount,
-      paymentStatus: 'PAID',
+      totalDue,
+      amountPaid: paid,
+      balanceRemaining,
+      netAmount: paid, // for backward compatibility with total net paid
+      paymentCategory,
+      monthsCovered: Array.isArray(monthsCovered) && monthsCovered.length > 0 ? monthsCovered : [currentMonth],
+      advanceDeducted: Number(advanceDeducted) || 0,
+      previousDuePaid: Number(previousDuePaid) || 0,
+      paymentStatus,
       paidDate: paidDate ? new Date(paidDate) : new Date(),
       paymentMethod,
       transactionRef: transactionRef || `SAL-${Date.now().toString().slice(-6)}`,
@@ -759,9 +792,13 @@ export const createAdminSalaryPayment = async (req, res) => {
         branchId: staff.branchId || null,
         staffId: staff._id,
         date: payslip.paidDate,
-        type: 'salary',
-        amount: netAmount,
-        description: `Monthly Salary: ${currentMonth}`,
+        type: paymentCategory === 'advance' ? 'advance' : 'salary',
+        amount: paid,
+        description: paymentCategory === 'advance'
+          ? `Salary Advance: ${currentMonth}`
+          : paymentStatus === 'PARTIAL'
+          ? `Partial Salary Paid: ${currentMonth} (Bal: ₹${balanceRemaining})`
+          : `Monthly Salary: ${currentMonth}`,
         referenceId: payslip._id,
       });
     } catch (e) {

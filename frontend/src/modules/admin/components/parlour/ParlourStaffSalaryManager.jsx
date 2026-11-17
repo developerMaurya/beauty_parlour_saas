@@ -45,8 +45,45 @@ import {
   Phone,
   Mail,
   AlertCircle,
+  Zap,
+  AlertTriangle,
+  Layers,
 } from 'lucide-react';
 import { staffFetcher, salaryFetcher } from '../../../../services/api/admin/adminApi.js';
+
+// Helper: Calculate array of covered months for multi-month disbursement
+const calculateCoveredMonths = (baseMonthStr, count = 1) => {
+  const num = Math.max(1, Number(count) || 1);
+  const result = [];
+  try {
+    const parts = (baseMonthStr || '').split(' ');
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    let mIdx = monthNames.indexOf(parts[0]);
+    let y = Number(parts[1]) || new Date().getFullYear();
+    if (mIdx === -1) mIdx = new Date().getMonth();
+
+    // Start (num - 1) months earlier so the window naturally culminates at the selected base month
+    const startOffset = num > 1 ? num - 1 : 0;
+    let startM = mIdx - startOffset;
+    let startY = y;
+    while (startM < 0) {
+      startM += 12;
+      startY -= 1;
+    }
+
+    for (let i = 0; i < num; i++) {
+      const curM = (startM + i) % 12;
+      const curY = startY + Math.floor((startM + i) / 12);
+      result.push(`${monthNames[curM]} ${curY}`);
+    }
+  } catch (e) {
+    result.push(baseMonthStr || 'Current Month');
+  }
+  return result;
+};
 
 export function ParlourStaffSalaryManager({ showToast }) {
   // Loading & Error States
@@ -61,6 +98,7 @@ export function ParlourStaffSalaryManager({ showToast }) {
   const [selectedStaffFilter, setSelectedStaffFilter] = useState('ALL');
   const [selectedMonthFilter, setSelectedMonthFilter] = useState('ALL');
   const [selectedYearFilter, setSelectedYearFilter] = useState('ALL');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('ALL'); // 'ALL' | 'PAID' | 'PARTIAL' | 'ADVANCE' | 'BONUS'
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modals State
@@ -70,17 +108,47 @@ export function ParlourStaffSalaryManager({ showToast }) {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [employeeProfileData, setEmployeeProfileData] = useState(null);
 
+  // Helper: Auto-Generate Realistic Transaction & Receipt References
+  const generateTransactionRef = (method = 'Bank Transfer (IMPS)') => {
+    const randNum = Math.floor(100000 + Math.random() * 900000);
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    if (method.includes('IMPS')) {
+      return `IMPS-${dateStr}-${randNum}`;
+    } else if (method.includes('UPI')) {
+      return `UPI-${dateStr}-${randNum}`;
+    } else if (method.includes('NEFT')) {
+      return `NEFT-${dateStr}-${randNum}`;
+    } else if (method.includes('Cash')) {
+      return `CASH-REC-${dateStr}-${Math.floor(1000 + Math.random() * 9000)}`;
+    } else if (method.includes('Cheque')) {
+      return `CHQ-${randNum}`;
+    }
+    return `SAL-${dateStr}-${randNum}`;
+  };
+
+  const initDate = new Date();
+  const initMonthPickerVal = `${initDate.getFullYear()}-${(initDate.getMonth() + 1).toString().padStart(2, '0')}`;
+  const initMonthName = initDate.toLocaleString('en-US', { month: 'long' });
+  const initFullMonthStr = `${initMonthName} ${initDate.getFullYear()}`;
+
   // Pay Salary Form State
   const [payForm, setPayForm] = useState({
     staffId: '',
-    month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
-    year: new Date().getFullYear(),
+    paymentCategory: 'regular', // 'regular' | 'advance' | 'bonus'
+    monthsCount: 1,
+    monthlySalary: 0,
+    monthPicker: initMonthPickerVal,
+    month: initFullMonthStr,
+    year: initDate.getFullYear(),
+    disbursementDate: initDate.toISOString().slice(0, 10),
     baseSalary: '',
     bonus: 0,
     deductions: 0,
+    amountPaid: '', // User customized amount paying now (defaults to full due)
     paymentMethod: 'Bank Transfer (IMPS)',
-    transactionRef: '',
-    notes: '',
+    transactionRef: generateTransactionRef('Bank Transfer (IMPS)'),
+    notes: 'Regular Monthly Salary',
   });
 
   // 1. Fetch Staff Roster & Salary Records from DB
@@ -158,6 +226,29 @@ export function ParlourStaffSalaryManager({ showToast }) {
       if (selectedYearFilter !== 'ALL' && Number(rec.year) !== Number(selectedYearFilter)) {
         return false;
       }
+      // Payment Type / Status filter
+      if (selectedTypeFilter !== 'ALL') {
+        if (selectedTypeFilter === 'PARTIAL') {
+          if (rec.paymentStatus !== 'PARTIAL' && !(Number(rec.balanceRemaining) > 0)) {
+            return false;
+          }
+        } else if (selectedTypeFilter === 'ADVANCE') {
+          if (rec.paymentCategory !== 'advance' && rec.paymentStatus !== 'ADVANCE') {
+            return false;
+          }
+        } else if (selectedTypeFilter === 'PAID') {
+          if (rec.paymentStatus && rec.paymentStatus !== 'PAID') {
+            return false;
+          }
+          if (Number(rec.balanceRemaining) > 0 || rec.paymentCategory === 'advance') {
+            return false;
+          }
+        } else if (selectedTypeFilter === 'BONUS') {
+          if (rec.paymentCategory !== 'bonus' && !(Number(rec.bonus) > 0)) {
+            return false;
+          }
+        }
+      }
       // Search term
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
@@ -172,61 +263,267 @@ export function ParlourStaffSalaryManager({ showToast }) {
       }
       return true;
     });
-  }, [salaryRecords, selectedStaffFilter, selectedMonthFilter, selectedYearFilter, searchTerm]);
+  }, [salaryRecords, selectedStaffFilter, selectedMonthFilter, selectedYearFilter, selectedTypeFilter, searchTerm]);
 
   // Aggregated Stats
   const totalNetDisbursed = useMemo(() => {
-    return filteredSalaries.reduce((sum, r) => sum + (Number(r.netAmount) || 0), 0);
+    return filteredSalaries.reduce((sum, r) => sum + (Number(r.amountPaid ?? r.netAmount) || 0), 0);
   }, [filteredSalaries]);
 
   // Open Pay Modal for a specific staff or general
   const handleOpenPayModal = (staff = null) => {
+    const today = new Date();
+    const monthPickerVal = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+    const monthName = today.toLocaleString('en-US', { month: 'long' });
+    const fullMonthStr = `${monthName} ${today.getFullYear()}`;
+    const defaultMethod = 'Bank Transfer (IMPS)';
+
     if (staff) {
+      const staffBase = Number(staff.salary ?? staff.baseSalary ?? staff.basicSalary ?? 0);
       setPayForm({
-        staffId: staff._id || staff.id,
-        month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
-        year: new Date().getFullYear(),
-        baseSalary: staff.salary || 25000,
+        staffId: String(staff._id || staff.id || ''),
+        paymentCategory: 'regular',
+        monthsCount: 1,
+        monthlySalary: staffBase,
+        monthPicker: monthPickerVal,
+        month: fullMonthStr,
+        year: today.getFullYear(),
+        disbursementDate: today.toISOString().slice(0, 10),
+        baseSalary: staffBase,
         bonus: 0,
         deductions: 0,
-        paymentMethod: 'Bank Transfer (IMPS)',
-        transactionRef: `SAL-${Date.now().toString().slice(-6)}`,
-        notes: '',
+        amountPaid: '',
+        paymentMethod: defaultMethod,
+        transactionRef: generateTransactionRef(defaultMethod),
+        notes: 'Regular Monthly Salary',
       });
     } else {
-      const defaultStaff = staffList[0];
       setPayForm({
-        staffId: defaultStaff ? defaultStaff._id || defaultStaff.id : '',
-        month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
-        year: new Date().getFullYear(),
-        baseSalary: defaultStaff?.salary || 25000,
+        staffId: '',
+        paymentCategory: 'regular',
+        monthsCount: 1,
+        monthlySalary: 0,
+        monthPicker: monthPickerVal,
+        month: fullMonthStr,
+        year: today.getFullYear(),
+        disbursementDate: today.toISOString().slice(0, 10),
+        baseSalary: '',
         bonus: 0,
         deductions: 0,
-        paymentMethod: 'Bank Transfer (IMPS)',
-        transactionRef: `SAL-${Date.now().toString().slice(-6)}`,
-        notes: '',
+        amountPaid: '',
+        paymentMethod: defaultMethod,
+        transactionRef: generateTransactionRef(defaultMethod),
+        notes: 'Regular Monthly Salary',
       });
     }
     setPayModalOpen(true);
   };
 
-  // Staff select inside modal -> auto fill base salary
-  const handleSelectStaffInModal = (staffId) => {
-    const found = staffList.find((s) => (s._id || s.id) === staffId);
+  // Month Picker Change handler (Syncs Month Name & Year)
+  const handleMonthPickerChange = (val) => {
+    if (!val) return;
+    try {
+      const [y, m] = val.split('-');
+      const dateObj = new Date(Number(y), Number(m) - 1, 1);
+      const monthName = dateObj.toLocaleString('en-US', { month: 'long' });
+      setPayForm((prev) => ({
+        ...prev,
+        monthPicker: val,
+        month: `${monthName} ${y}`,
+        year: Number(y),
+      }));
+    } catch (e) {
+      // Safe fallback
+    }
+  };
+
+  // Quick Month Preset (e.g. Current Month or Last Month)
+  const setMonthPreset = (offsetMonths = 0) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + offsetMonths);
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, '0');
+    const pickerVal = `${y}-${m}`;
+    const monthName = d.toLocaleString('en-US', { month: 'long' });
     setPayForm((prev) => ({
       ...prev,
-      staffId,
-      baseSalary: found?.salary || prev.baseSalary || 25000,
+      monthPicker: pickerVal,
+      month: `${monthName} ${y}`,
+      year: y,
     }));
   };
 
-  // Calculated Net Salary in Form
-  const formNetSalary = useMemo(() => {
+  // Payment Method change with automatic transaction reference generation
+  const handlePaymentMethodChange = (newMethod) => {
+    setPayForm((prev) => ({
+      ...prev,
+      paymentMethod: newMethod,
+      transactionRef: generateTransactionRef(newMethod),
+    }));
+  };
+
+  // Regenerate Transaction Ref
+  const handleRegenerateRef = () => {
+    setPayForm((prev) => ({
+      ...prev,
+      transactionRef: generateTransactionRef(prev.paymentMethod),
+    }));
+  };
+
+  // Staff select inside modal -> strictly auto-fill exact base salary from chosen employee
+  const handleSelectStaffInModal = (staffId) => {
+    const found = staffList.find((s) => String(s._id || s.id || '') === String(staffId));
+    const monthlyRate = Number(found?.salary ?? found?.baseSalary ?? found?.basicSalary ?? 0);
+    const months = Number(payForm.monthsCount || 1);
+    const calculatedBase = monthlyRate > 0 ? (payForm.paymentCategory === 'advance' ? Math.round(monthlyRate * 0.5) : monthlyRate * months) : '';
+
+    setPayForm((prev) => ({
+      ...prev,
+      staffId: String(staffId),
+      monthlySalary: monthlyRate,
+      baseSalary: calculatedBase,
+      amountPaid: '', // reset custom amount paid to match new net due
+    }));
+  };
+
+  // Change Payment Category (Regular, Advance, Bonus)
+  const handleCategoryChange = (category) => {
+    setPayForm((prev) => {
+      const monthlyRate = Number(prev.monthlySalary || 0);
+      let newBase = prev.baseSalary;
+      let newNotes = prev.notes;
+
+      if (category === 'advance') {
+        newBase = monthlyRate > 0 ? Math.round(monthlyRate * 0.5) : prev.baseSalary;
+        newNotes = 'Salary Advance against upcoming month';
+      } else if (category === 'bonus') {
+        newNotes = 'Festive / Performance Incentive Bonus';
+      } else {
+        newBase = monthlyRate > 0 ? monthlyRate * (Number(prev.monthsCount) || 1) : prev.baseSalary;
+        newNotes = 'Regular Monthly Salary';
+      }
+
+      return {
+        ...prev,
+        paymentCategory: category,
+        baseSalary: newBase,
+        amountPaid: '',
+        notes: newNotes,
+      };
+    });
+  };
+
+  // Change Number of Months (Salary Tenure / Duration)
+  const handleMonthsCountChange = (count) => {
+    const numMonths = Math.max(1, Number(count) || 1);
+    setPayForm((prev) => {
+      const monthlyRate = Number(prev.monthlySalary || 0);
+      const newBase = monthlyRate > 0 ? monthlyRate * numMonths : prev.baseSalary;
+      return {
+        ...prev,
+        monthsCount: numMonths,
+        baseSalary: newBase,
+        amountPaid: '', // reset partial amount to full due
+      };
+    });
+  };
+
+  // Selected Staff Object for Live Profile Card in Modal
+  const selectedStaffObj = useMemo(() => {
+    return staffList.find((s) => String(s._id || s.id || '') === String(payForm.staffId)) || null;
+  }, [staffList, payForm.staffId]);
+
+  // Covered Months List for Multi-Month selection
+  const coveredMonthsList = useMemo(() => {
+    const count = Number(payForm.monthsCount) || 1;
+    return calculateCoveredMonths(payForm.month, count);
+  }, [payForm.month, payForm.monthsCount]);
+
+  // Selected Staff Past History & Dues / Advance
+  const staffHistoryStats = useMemo(() => {
+    if (!payForm.staffId) return null;
+    const records = salaryRecords.filter(
+      (r) => String(r.staffId || r.staff?._id || '') === String(payForm.staffId)
+    );
+
+    // Unpaid / Partial remaining balance
+    const pendingRecords = records.filter((r) => Number(r.balanceRemaining) > 0);
+    const totalPendingDues = pendingRecords.reduce(
+      (sum, r) => sum + (Number(r.balanceRemaining) || 0),
+      0
+    );
+
+    // Active Advance
+    const advanceRecords = records.filter(
+      (r) => r.paymentCategory === 'advance' || r.paymentStatus === 'ADVANCE'
+    );
+    const totalAdvanceGiven = advanceRecords.reduce(
+      (sum, r) => sum + (Number(r.amountPaid ?? r.netAmount) || 0),
+      0
+    );
+    const totalAdvanceDeducted = records.reduce(
+      (sum, r) => sum + (Number(r.advanceDeducted) || 0),
+      0
+    );
+    const outstandingAdvance = Math.max(0, totalAdvanceGiven - totalAdvanceDeducted);
+
+    // Paid months
+    const paidMonths = records
+      .filter((r) => r.paymentStatus === 'PAID' || (!r.balanceRemaining && r.paymentCategory !== 'advance'))
+      .map((r) => r.month);
+
+    return {
+      recordsCount: records.length,
+      pendingRecords,
+      totalPendingDues,
+      advanceRecords,
+      totalAdvanceGiven,
+      totalAdvanceDeducted,
+      outstandingAdvance,
+      paidMonths,
+    };
+  }, [salaryRecords, payForm.staffId]);
+
+  // Calculated Net Payable Due in Form
+  const formNetDue = useMemo(() => {
     const base = Number(payForm.baseSalary) || 0;
     const bon = Number(payForm.bonus) || 0;
     const ded = Number(payForm.deductions) || 0;
     return Math.max(0, base + bon - ded);
   }, [payForm.baseSalary, payForm.bonus, payForm.deductions]);
+
+  // Amount being disbursed now (if amountPaid is blank/null, pays full due)
+  const formDisbursingNow = useMemo(() => {
+    if (payForm.amountPaid !== '' && payForm.amountPaid !== null && !isNaN(Number(payForm.amountPaid))) {
+      return Math.max(0, Number(payForm.amountPaid));
+    }
+    return formNetDue;
+  }, [payForm.amountPaid, formNetDue]);
+
+  // Remaining Balance (Baki)
+  const formBalanceRemaining = useMemo(() => {
+    return Math.max(0, formNetDue - formDisbursingNow);
+  }, [formNetDue, formDisbursingNow]);
+
+  // Backward compatibility alias for formNetSalary
+  const formNetSalary = formDisbursingNow;
+
+  // Word count for Remarks textarea
+  const remarksWordCount = useMemo(() => {
+    const text = (payForm.notes || '').trim();
+    if (!text) return 0;
+    return text.split(/\s+/).filter(Boolean).length;
+  }, [payForm.notes]);
+
+  // Add chip to Remarks
+  const handleAddRemarkChip = (tag) => {
+    setPayForm((prev) => {
+      const cur = (prev.notes || '').trim();
+      if (!cur) return { ...prev, notes: tag };
+      if (cur.toLowerCase().includes(tag.toLowerCase())) return prev;
+      return { ...prev, notes: `${cur}, ${tag}` };
+    });
+  };
 
   // Submit Salary Payment to DB
   const handleSaveSalaryPayment = async (e) => {
@@ -236,22 +533,36 @@ export function ParlourStaffSalaryManager({ showToast }) {
       return;
     }
     if (!payForm.baseSalary || Number(payForm.baseSalary) <= 0) {
-      alert('Please enter a valid base salary amount.');
+      alert('Please enter a valid salary amount.');
       return;
     }
 
     try {
+      const months = Number(payForm.monthsCount) || 1;
+      let monthTitle = payForm.month;
+      if (payForm.paymentCategory === 'advance') {
+        monthTitle = `Advance for ${payForm.month}`;
+      } else if (months > 1) {
+        monthTitle = `${payForm.month} (${months} Months: ${coveredMonthsList.join(', ')})`;
+      }
+
       const payload = {
         staffId: payForm.staffId,
-        month: payForm.month,
+        month: monthTitle,
         year: payForm.year,
         baseSalary: Number(payForm.baseSalary),
         bonus: Number(payForm.bonus) || 0,
         deductions: Number(payForm.deductions) || 0,
         paymentMethod: payForm.paymentMethod,
-        transactionRef: payForm.transactionRef || `SAL-${Date.now().toString().slice(-6)}`,
+        transactionRef: payForm.transactionRef || generateTransactionRef(payForm.paymentMethod),
         notes: payForm.notes,
-        paidDate: new Date().toISOString(),
+        paidDate: payForm.disbursementDate ? new Date(payForm.disbursementDate).toISOString() : new Date().toISOString(),
+        paymentCategory: payForm.paymentCategory,
+        amountPaid: formDisbursingNow,
+        totalDue: formNetDue,
+        balanceRemaining: formBalanceRemaining,
+        monthsCovered: coveredMonthsList,
+        advanceDeducted: Number(payForm.deductions) || 0,
       };
 
       const res = await salaryFetcher.create(payload);
@@ -334,13 +645,18 @@ export function ParlourStaffSalaryManager({ showToast }) {
       'Role / Designation',
       'Month',
       'Year',
+      'Type',
       'Base Salary (INR)',
       'Bonus / Incentive (INR)',
       'Deductions (INR)',
-      'Net Paid (INR)',
+      'Total Due (INR)',
+      'Amount Paid (INR)',
+      'Pending Due (INR)',
+      'Status',
       'Payment Method',
       'Payment Date',
       'Transaction Ref',
+      'Covered Months',
       'Notes',
     ];
 
@@ -351,13 +667,18 @@ export function ParlourStaffSalaryManager({ showToast }) {
       `"${s.role || ''}"`,
       `"${s.month || ''}"`,
       s.year || '',
+      `"${s.paymentCategory || 'regular'}"`,
       s.baseSalary || 0,
       s.bonus || 0,
       s.deductions || 0,
-      s.netAmount || 0,
+      s.totalDue || s.netAmount || 0,
+      s.amountPaid ?? s.netAmount ?? 0,
+      s.balanceRemaining || 0,
+      `"${s.paymentStatus || 'PAID'}"`,
       `"${s.paymentMethod || ''}"`,
       s.paidDate ? new Date(s.paidDate).toLocaleDateString() : '',
       `"${s.transactionRef || ''}"`,
+      `"${(s.monthsCovered || []).join('; ')}"`,
       `"${(s.notes || '').replace(/"/g, '""')}"`,
     ]);
 
@@ -674,16 +995,42 @@ export function ParlourStaffSalaryManager({ showToast }) {
               ))}
             </select>
           </div>
+
+          {/* Payment Type / Status Filter */}
+          <div style={{ minWidth: '160px' }}>
+            <select
+              value={selectedTypeFilter}
+              onChange={(e) => setSelectedTypeFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#1e293b',
+                background: '#f8fafc',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="ALL">💳 All Payment Types</option>
+              <option value="PAID">✅ Full Paid</option>
+              <option value="PARTIAL">⚠️ Partial (Due Remaining)</option>
+              <option value="ADVANCE">⚡ Salary Advance</option>
+              <option value="BONUS">🎁 Bonus / Incentive</option>
+            </select>
+          </div>
         </div>
 
         {/* Clear Filters */}
-        {(selectedStaffFilter !== 'ALL' || selectedMonthFilter !== 'ALL' || selectedYearFilter !== 'ALL' || searchTerm) && (
+        {(selectedStaffFilter !== 'ALL' || selectedMonthFilter !== 'ALL' || selectedYearFilter !== 'ALL' || selectedTypeFilter !== 'ALL' || searchTerm) && (
           <button
             type="button"
             onClick={() => {
               setSelectedStaffFilter('ALL');
               setSelectedMonthFilter('ALL');
               setSelectedYearFilter('ALL');
+              setSelectedTypeFilter('ALL');
               setSearchTerm('');
             }}
             style={{
@@ -797,7 +1144,16 @@ export function ParlourStaffSalaryManager({ showToast }) {
                       {/* Payroll Month */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 700, color: '#1e293b' }}>{rec.month}</div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>Ref: {rec.transactionRef || 'N/A'}</div>
+                        {rec.paymentCategory === 'advance' || rec.paymentStatus === 'ADVANCE' ? (
+                          <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                            <Zap size={11} /> Salary Advance
+                          </div>
+                        ) : rec.monthsCovered?.length > 1 ? (
+                          <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
+                            {rec.monthsCovered.length} Mos ({rec.monthsCovered.join(', ')})
+                          </div>
+                        ) : null}
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Ref: {rec.transactionRef || 'N/A'}</div>
                       </td>
 
                       {/* Base Salary */}
@@ -815,11 +1171,21 @@ export function ParlourStaffSalaryManager({ showToast }) {
                         -₹{(Number(rec.deductions) || 0).toLocaleString('en-IN')}
                       </td>
 
-                      {/* Net Paid */}
+                      {/* Net Paid & Due */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 800, color: '#047857', fontSize: '14px' }}>
-                          ₹{(Number(rec.netAmount) || 0).toLocaleString('en-IN')}
+                          ₹{(Number(rec.amountPaid ?? rec.netAmount) || 0).toLocaleString('en-IN')}
                         </div>
+                        {Number(rec.balanceRemaining) > 0 ? (
+                          <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>
+                            Baki Due: ₹{Number(rec.balanceRemaining).toLocaleString('en-IN')}
+                          </div>
+                        ) : null}
+                        {Number(rec.advanceDeducted) > 0 ? (
+                          <div style={{ fontSize: '10.5px', color: '#7c3aed', fontWeight: 600, marginTop: '1px' }}>
+                            Adv Ded: ₹{Number(rec.advanceDeducted).toLocaleString('en-IN')}
+                          </div>
+                        ) : null}
                       </td>
 
                       {/* Paid Date & Mode */}
@@ -832,23 +1198,61 @@ export function ParlourStaffSalaryManager({ showToast }) {
 
                       {/* Status */}
                       <td style={{ padding: '12px 16px' }}>
-                        <span
-                          style={{
-                            background: '#ecfdf5',
-                            color: '#059669',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            border: '1px solid #a7f3d0',
-                          }}
-                        >
-                          <CheckCircle2 size={12} />
-                          PAID
-                        </span>
+                        {rec.paymentCategory === 'advance' || rec.paymentStatus === 'ADVANCE' ? (
+                          <span
+                            style={{
+                              background: '#f3e8ff',
+                              color: '#7e22ce',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              border: '1px solid #d8b4fe',
+                            }}
+                          >
+                            <Zap size={12} />
+                            ADVANCE
+                          </span>
+                        ) : rec.paymentStatus === 'PARTIAL' || Number(rec.balanceRemaining) > 0 ? (
+                          <span
+                            style={{
+                              background: '#fffbeb',
+                              color: '#b45309',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              border: '1px solid #fde68a',
+                            }}
+                          >
+                            <Clock size={12} />
+                            PARTIAL
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              border: '1px solid #a7f3d0',
+                            }}
+                          >
+                            <CheckCircle2 size={12} />
+                            PAID
+                          </span>
+                        )}
                       </td>
 
                       {/* Actions */}
@@ -927,63 +1331,114 @@ export function ParlourStaffSalaryManager({ showToast }) {
         </div>
       </div>
 
-      {/* ── Modal 1: Add / Pay Salary Modal ── */}
+      {/* ── Modal 1: Add / Pay Salary Modal (Enhanced Modern UX) ── */}
       {payModalOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(15, 23, 42, 0.82)',
+            backdropFilter: 'blur(8px)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '16px',
           }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPayModalOpen(false);
+          }}
         >
           <div
             style={{
               background: '#0f172a',
-              border: '1px solid rgba(236, 72, 153, 0.3)',
-              borderRadius: '16px',
-              maxWidth: '560px',
+              border: '1.5px solid rgba(236, 72, 153, 0.4)',
+              borderRadius: '20px',
+              maxWidth: '640px',
               width: '100%',
-              padding: '24px',
+              padding: '24px 26px',
               color: '#f8fafc',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-              maxHeight: '90vh',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 25px rgba(236, 72, 153, 0.15)',
+              maxHeight: '92vh',
               overflowY: 'auto',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <DollarSign size={20} color="#fff" />
+            {/* Modal Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '18px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                paddingBottom: '14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.35)',
+                  }}
+                >
+                  <DollarSign size={22} color="#fff" />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
-                    Record Staff Salary Disbursement
-                  </h3>
-                  <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                    Saves directly to MongoDB database & updates employee ledger
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h3 style={{ fontSize: '17px', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+                      Disburse Staff Salary
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        background: 'rgba(236, 72, 153, 0.15)',
+                        color: '#ec4899',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                      }}
+                    >
+                      PAYROLL
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                    Auto-synced to MongoDB database & staff ledger
                   </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setPayModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.4rem' }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2rem',
+                }}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveSalaryPayment} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Select Staff Member from DB */}
+            <form onSubmit={handleSaveSalaryPayment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* 1. Staff Selection & Clean Live Profile Card */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                  Select Staff Member <span style={{ color: '#ec4899' }}>*</span>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '6px' }}>
+                  Select Employee / Staff Member <span style={{ color: '#ec4899' }}>*</span>
                 </label>
                 <select
                   value={payForm.staffId}
@@ -991,74 +1446,413 @@ export function ParlourStaffSalaryManager({ showToast }) {
                   required
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    padding: '11px 14px',
+                    borderRadius: '10px',
                     background: '#1e293b',
-                    border: '1px solid rgba(236, 72, 153, 0.4)',
+                    border: '1px solid rgba(236, 72, 153, 0.45)',
                     color: '#f8fafc',
-                    fontSize: '13px',
+                    fontSize: '13.5px',
                     fontWeight: 600,
+                    outline: 'none',
                   }}
                 >
                   <option value="">-- Choose Employee --</option>
                   {staffList.map((s) => (
-                    <option key={s._id || s.id} value={s._id || s.id}>
-                      {s.name} ({s.designation || s.role || 'Staff'}) · Salary: ₹{(s.salary || 0).toLocaleString()}
+                    <option key={String(s._id || s.id)} value={String(s._id || s.id)}>
+                      {s.name} · {s.designation || s.role || 'Staff'}
                     </option>
                   ))}
                 </select>
+
+                {/* Employee Past Dues & Advance Status Alerts */}
+                {staffHistoryStats && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                    {/* Pending Dues Alert */}
+                    {staffHistoryStats.totalPendingDues > 0 && (
+                      <div
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          borderRadius: '10px',
+                          padding: '10px 14px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '10px',
+                        }}
+                      >
+                        <div>
+                          <div style={{ color: '#f87171', fontWeight: 800, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <AlertTriangle size={14} /> Previous Pending Dues / Baki: ₹{staffHistoryStats.totalPendingDues.toLocaleString('en-IN')}
+                          </div>
+                          <div style={{ color: '#cbd5e1', fontSize: '11px', marginTop: '2px' }}>
+                            Pichle partial salary payments ka balance bacha hua hai ({staffHistoryStats.pendingRecords.map((r) => r.month).join(', ')}).
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPayForm((prev) => ({
+                              ...prev,
+                              bonus: (Number(prev.bonus) || 0) + staffHistoryStats.totalPendingDues,
+                              notes: prev.notes
+                                ? `${prev.notes} + Cleared Prev Due ₹${staffHistoryStats.totalPendingDues}`
+                                : `Includes Prev Due ₹${staffHistoryStats.totalPendingDues}`,
+                            }));
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.25)',
+                            border: '1px solid #ef4444',
+                            color: '#fca5a5',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                          }}
+                        >
+                          + Add to Net Payout
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Outstanding Advance Alert */}
+                    {staffHistoryStats.outstandingAdvance > 0 && (
+                      <div
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          borderRadius: '10px',
+                          padding: '10px 14px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '10px',
+                        }}
+                      >
+                        <div>
+                          <div style={{ color: '#fbbf24', fontWeight: 800, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Clock size={14} /> Active Advance Outstanding: ₹{staffHistoryStats.outstandingAdvance.toLocaleString('en-IN')}
+                          </div>
+                          <div style={{ color: '#cbd5e1', fontSize: '11px', marginTop: '2px' }}>
+                            Yeh employee pehle advance le chuka hai jo salary se deduct nahi hua.
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPayForm((prev) => ({
+                              ...prev,
+                              deductions: staffHistoryStats.outstandingAdvance,
+                              notes: prev.notes
+                                ? `${prev.notes} - Advance Deducted ₹${staffHistoryStats.outstandingAdvance}`
+                                : `Advance Deducted ₹${staffHistoryStats.outstandingAdvance}`,
+                            }));
+                          }}
+                          style={{
+                            background: 'rgba(245, 158, 11, 0.25)',
+                            border: '1px solid #f59e0b',
+                            color: '#fde68a',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                          }}
+                        >
+                          ⚡ Auto-Deduct as Deduction
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Paid Months Ribbon */}
+                    {staffHistoryStats.paidMonths.length > 0 && (
+                      <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, color: '#cbd5e1' }}>Already Paid Months:</span>
+                        {staffHistoryStats.paidMonths.slice(0, 4).map((mStr) => (
+                          <span
+                            key={mStr}
+                            style={{
+                              background: 'rgba(34, 197, 94, 0.1)',
+                              border: '1px solid rgba(34, 197, 94, 0.25)',
+                              color: '#4ade80',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            ✓ {mStr}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Month & Year Selection */}
+              {/* 2. Payment Category Tabs (Regular, Advance, Bonus) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '6px' }}>
+                  Payment Category / Type <span style={{ color: '#ec4899' }}>*</span>
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[
+                    { key: 'regular', label: '💵 Regular Salary', desc: 'Standard monthly payroll' },
+                    { key: 'advance', label: '⚡ Salary Advance', desc: 'Early advance against pay' },
+                    { key: 'bonus', label: '🎁 Bonus / Reward', desc: 'Performance or festive reward' },
+                  ].map((cat) => {
+                    const isSelected = payForm.paymentCategory === cat.key;
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        onClick={() => handleCategoryChange(cat.key)}
+                        style={{
+                          padding: '9px 10px',
+                          borderRadius: '10px',
+                          background: isSelected ? 'rgba(236, 72, 153, 0.2)' : 'rgba(30, 41, 59, 0.6)',
+                          border: `1.5px solid ${isSelected ? '#ec4899' : 'rgba(148, 163, 184, 0.2)'}`,
+                          color: isSelected ? '#ffffff' : '#94a3b8',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: isSelected ? '#f472b6' : '#e2e8f0' }}>
+                          {cat.label}
+                        </div>
+                        <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                          {cat.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Salary Duration (Kitne Month Ka Salary Dena Hai) - for Regular Salary */}
+              {payForm.paymentCategory === 'regular' && (
+                <div
+                  style={{
+                    background: 'rgba(30, 41, 59, 0.45)',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(148, 163, 184, 0.15)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Clock size={13} color="#ec4899" />
+                      Salary Duration (Kitne Month Ka Salary Dena Hai) <span style={{ color: '#ec4899' }}>*</span>
+                    </label>
+                    <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 700 }}>
+                      {payForm.monthsCount} {Number(payForm.monthsCount) === 1 ? 'Month' : 'Months'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                    {[1, 2, 3, 6].map((m) => {
+                      const isSelected = Number(payForm.monthsCount) === m;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => handleMonthsCountChange(m)}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            background: isSelected ? 'linear-gradient(135deg, #ec4899, #db2777)' : 'rgba(255, 255, 255, 0.06)',
+                            border: `1.5px solid ${isSelected ? '#ec4899' : 'rgba(255, 255, 255, 0.1)'}`,
+                            color: isSelected ? '#ffffff' : '#cbd5e1',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {m} {m === 1 ? 'Month' : 'Months'}
+                        </button>
+                      );
+                    })}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
+                      <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>Custom:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={payForm.monthsCount || 1}
+                        onChange={(e) => handleMonthsCountChange(e.target.value)}
+                        style={{
+                          width: '56px',
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          background: '#0f172a',
+                          border: '1px solid #334155',
+                          color: '#f8fafc',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          textAlign: 'center',
+                          outline: 'none',
+                        }}
+                      />
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>mo</span>
+                    </div>
+                  </div>
+
+                  {/* Covered Months Visual Breakdown */}
+                  {Number(payForm.monthsCount) > 1 && (
+                    <div
+                      style={{
+                        background: 'rgba(56, 189, 248, 0.08)',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
+                        borderRadius: '10px',
+                        padding: '10px 12px',
+                        marginTop: '10px',
+                      }}
+                    >
+                      <div style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Calendar size={13} /> Covered Months Breakdown ({payForm.monthsCount} Months):
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {coveredMonthsList.map((mStr, idx) => (
+                          <span
+                            key={mStr}
+                            style={{
+                              background: '#0f172a',
+                              border: '1px solid rgba(56, 189, 248, 0.4)',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              color: '#f8fafc',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            <CheckCircle2 size={12} color="#38bdf8" />
+                            Month {idx + 1}: {mStr}
+                            <span style={{ color: '#94a3b8', fontSize: '10.5px' }}>
+                              (₹{(Number(payForm.monthlySalary) || 0).toLocaleString()})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Calculation breakdown hint */}
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '7px' }}>
+                    Calculation: ₹{(payForm.monthlySalary || 0).toLocaleString('en-IN')} (Monthly) × {payForm.monthsCount || 1} {Number(payForm.monthsCount) === 1 ? 'Month' : 'Months'} = <strong style={{ color: '#38bdf8' }}>₹{(Number(payForm.baseSalary) || 0).toLocaleString('en-IN')}</strong> Base
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Payroll Period & Disbursement Date */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {/* Payroll Month Picker */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                    Payroll Month <span style={{ color: '#ec4899' }}>*</span>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '5px' }}>
+                    {payForm.paymentCategory === 'advance' ? 'Advance for Month' : 'Payroll Month'} <span style={{ color: '#ec4899' }}>*</span>
                   </label>
                   <input
-                    type="text"
-                    value={payForm.month}
-                    onChange={(e) => setPayForm({ ...payForm, month: e.target.value })}
-                    placeholder="e.g. November 2026"
+                    type="month"
+                    value={payForm.monthPicker || ''}
+                    onChange={(e) => handleMonthPickerChange(e.target.value)}
                     required
                     style={{
                       width: '100%',
                       padding: '9px 12px',
                       borderRadius: '8px',
                       background: '#1e293b',
-                      border: '1px solid #334155',
+                      border: '1px solid rgba(236, 72, 153, 0.35)',
                       color: '#f8fafc',
                       fontSize: '13px',
+                      fontWeight: 600,
+                      outline: 'none',
                     }}
                   />
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setMonthPreset(0)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        background: 'rgba(236, 72, 153, 0.12)',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                        color: '#ec4899',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ⚡ Current Month
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMonthPreset(-1)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        background: 'rgba(148, 163, 184, 0.1)',
+                        border: '1px solid rgba(148, 163, 184, 0.25)',
+                        color: '#94a3b8',
+                        fontSize: '10.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ⏪ Previous Month
+                    </button>
+                  </div>
                 </div>
+
+                {/* Disbursement Date */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                    Year <span style={{ color: '#ec4899' }}>*</span>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '5px' }}>
+                    Disbursement Date <span style={{ color: '#ec4899' }}>*</span>
                   </label>
                   <input
-                    type="number"
-                    value={payForm.year}
-                    onChange={(e) => setPayForm({ ...payForm, year: Number(e.target.value) })}
+                    type="date"
+                    value={payForm.disbursementDate || ''}
+                    onChange={(e) => setPayForm({ ...payForm, disbursementDate: e.target.value })}
                     required
                     style={{
                       width: '100%',
                       padding: '9px 12px',
                       borderRadius: '8px',
                       background: '#1e293b',
-                      border: '1px solid #334155',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
                       color: '#f8fafc',
                       fontSize: '13px',
+                      fontWeight: 600,
+                      outline: 'none',
                     }}
                   />
+                  <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '6px' }}>
+                    Date salary is released / disbursed
+                  </div>
                 </div>
               </div>
 
-              {/* Base Salary, Bonus, Deductions */}
+              {/* 5. Base Salary, Bonus, Deductions (Color Coded Matrix) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#cbd5e1', marginBottom: '4px' }}>
-                    Base Salary (₹) *
+                {/* Base Salary */}
+                <div
+                  style={{
+                    background: 'rgba(30, 41, 59, 0.5)',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                  }}
+                >
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#38bdf8', marginBottom: '4px' }}>
+                    {payForm.paymentCategory === 'advance' ? 'Advance Amount (₹) *' : 'Base Salary (₹) *'}
                   </label>
                   <input
                     type="number"
@@ -1069,21 +1863,59 @@ export function ParlourStaffSalaryManager({ showToast }) {
                     placeholder="25000"
                     style={{
                       width: '100%',
-                      padding: '9px 10px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#0f172a',
                       border: '1px solid #334155',
                       color: '#f8fafc',
-                      fontSize: '13px',
-                      fontWeight: 700,
+                      fontSize: '13.5px',
+                      fontWeight: 800,
+                      outline: 'none',
                     }}
                   />
+                  {payForm.paymentCategory === 'advance' ? (
+                    <div style={{ display: 'flex', gap: '3px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      {[5000, 10000, 15000].map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setPayForm((p) => ({ ...p, baseSalary: amt }))}
+                          style={{
+                            padding: '2px 5px',
+                            borderRadius: '3px',
+                            background: 'rgba(56, 189, 248, 0.1)',
+                            border: '1px solid rgba(56, 189, 248, 0.25)',
+                            color: '#38bdf8',
+                            fontSize: '9.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ₹{amt / 1000}k
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
+                      Standard pay
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#4ade80', marginBottom: '4px' }}>
-                    Bonus / Incentive (₹)
-                  </label>
+                {/* Bonus / Incentive */}
+                <div
+                  style={{
+                    background: 'rgba(30, 41, 59, 0.5)',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(74, 222, 128, 0.25)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#4ade80' }}>
+                      Bonus / Incentive (₹)
+                    </label>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -1092,21 +1924,70 @@ export function ParlourStaffSalaryManager({ showToast }) {
                     placeholder="0"
                     style={{
                       width: '100%',
-                      padding: '9px 10px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#0f172a',
                       border: '1px solid #334155',
                       color: '#4ade80',
-                      fontSize: '13px',
-                      fontWeight: 700,
+                      fontSize: '13.5px',
+                      fontWeight: 800,
+                      outline: 'none',
                     }}
                   />
+                  {/* Quick Add Chips */}
+                  <div style={{ display: 'flex', gap: '3px', marginTop: '4px' }}>
+                    {[1000, 2000, 5000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setPayForm((p) => ({ ...p, bonus: (Number(p.bonus) || 0) + amt }))}
+                        style={{
+                          padding: '2px 5px',
+                          borderRadius: '3px',
+                          background: 'rgba(74, 222, 128, 0.1)',
+                          border: '1px solid rgba(74, 222, 128, 0.25)',
+                          color: '#4ade80',
+                          fontSize: '9.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        +{amt >= 1000 ? `${amt / 1000}k` : amt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#f87171', marginBottom: '4px' }}>
-                    Deductions (₹)
-                  </label>
+                {/* Deductions */}
+                <div
+                  style={{
+                    background: 'rgba(30, 41, 59, 0.5)',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(248, 113, 113, 0.25)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#f87171' }}>
+                      Deductions (₹)
+                    </label>
+                    {payForm.deductions > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPayForm((p) => ({ ...p, deductions: 0 }))}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          fontSize: '9.5px',
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -1115,48 +1996,173 @@ export function ParlourStaffSalaryManager({ showToast }) {
                     placeholder="0"
                     style={{
                       width: '100%',
-                      padding: '9px 10px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#0f172a',
                       border: '1px solid #334155',
                       color: '#f87171',
-                      fontSize: '13px',
-                      fontWeight: 700,
+                      fontSize: '13.5px',
+                      fontWeight: 800,
+                      outline: 'none',
                     }}
                   />
+                  <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
+                    Advances / leaves
+                  </div>
                 </div>
               </div>
 
-              {/* Calculated Net Salary Banner */}
+              {/* 6. Calculated Net Due & Partial Payment Matrix */}
               <div
                 style={{
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  borderRadius: '10px',
-                  padding: '12px 16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  background: 'rgba(30, 41, 59, 0.65)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  padding: '14px 16px',
                 }}
               >
-                <div>
-                  <div style={{ fontSize: '12px', color: '#a7f3d0', fontWeight: 600 }}>Total Net Salary to Disburse:</div>
-                  <div style={{ fontSize: '11px', color: '#6ee7b7' }}>Formula: (Base + Bonus - Deductions)</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
+                      Total Net Payable Amount
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                      Formula: ₹{(Number(payForm.baseSalary) || 0).toLocaleString()} (Base) + ₹{(Number(payForm.bonus) || 0).toLocaleString()} (Bonus) - ₹{(Number(payForm.deductions) || 0).toLocaleString()} (Deductions)
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#38bdf8' }}>
+                    ₹{formNetDue.toLocaleString('en-IN')}
+                  </div>
                 </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#34d399' }}>
-                  ₹{formNetSalary.toLocaleString('en-IN')}
+
+                <div style={{ borderTop: '1px dashed rgba(148, 163, 184, 0.2)', paddingTop: '12px', marginTop: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <CreditCard size={13} color="#ec4899" />
+                      Amount Disbursing Now (₹) <span style={{ color: '#ec4899' }}>*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setPayForm((p) => ({ ...p, amountPaid: formNetDue }))}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          background: formBalanceRemaining === 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                          border: `1px solid ${formBalanceRemaining === 0 ? '#22c55e' : 'rgba(255, 255, 255, 0.15)'}`,
+                          color: formBalanceRemaining === 0 ? '#4ade80' : '#cbd5e1',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Pay Full Due (₹{formNetDue.toLocaleString()})
+                      </button>
+                      {formNetDue > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPayForm((p) => ({ ...p, amountPaid: Math.round(formNetDue / 2) }))}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            background: 'rgba(245, 158, 11, 0.12)',
+                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                            color: '#fbbf24',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          50% Partial (₹{Math.round(formNetDue / 2).toLocaleString()})
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <input
+                    type="number"
+                    min="0"
+                    max={formNetDue * 2}
+                    value={payForm.amountPaid === '' ? formNetDue : payForm.amountPaid}
+                    onChange={(e) => setPayForm({ ...payForm, amountPaid: e.target.value })}
+                    placeholder={`e.g. ${formNetDue}`}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      background: '#0f172a',
+                      border: '1.5px solid #334155',
+                      color: '#f8fafc',
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      outline: 'none',
+                    }}
+                  />
+
+                  {/* Live Balance & Status Feedback */}
+                  <div style={{ marginTop: '10px' }}>
+                    {formBalanceRemaining === 0 ? (
+                      <div
+                        style={{
+                          background: 'rgba(34, 197, 94, 0.12)',
+                          border: '1px solid rgba(34, 197, 94, 0.3)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#4ade80', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <CheckCircle2 size={14} /> Full Payment Settled
+                        </div>
+                        <span style={{ fontSize: '11.5px', color: '#a7f3d0' }}>
+                          Paid: <strong>₹{formDisbursingNow.toLocaleString()}</strong> · Baki Due: ₹0
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 800, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Clock size={14} /> Partial Disbursement Mode
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '2px' }}>
+                            Paying ₹{formDisbursingNow.toLocaleString()} now. Remaining balance will be tracked in database.
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '10.5px', color: '#f87171', fontWeight: 700, textTransform: 'uppercase' }}>
+                            Pending Balance (Baki)
+                          </div>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f87171' }}>
+                            ₹{formBalanceRemaining.toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Payment Method & Ref */}
+              {/* 7. Payment Mode & Auto-Generated Transaction Reference */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                    Payment Mode
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '5px' }}>
+                    Payment Mode <span style={{ color: '#ec4899' }}>*</span>
                   </label>
                   <select
                     value={payForm.paymentMethod}
-                    onChange={(e) => setPayForm({ ...payForm, paymentMethod: e.target.value })}
+                    onChange={(e) => handlePaymentMethodChange(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -1165,94 +2171,214 @@ export function ParlourStaffSalaryManager({ showToast }) {
                       border: '1px solid #334155',
                       color: '#f8fafc',
                       fontSize: '13px',
+                      fontWeight: 600,
+                      outline: 'none',
                     }}
                   >
-                    <option value="Bank Transfer (IMPS)">Bank Transfer (IMPS)</option>
-                    <option value="Bank Transfer (NEFT)">Bank Transfer (NEFT)</option>
-                    <option value="UPI (GPay / PhonePe / Paytm)">UPI (GPay / PhonePe / Paytm)</option>
-                    <option value="Cash">Cash at Counter</option>
-                    <option value="Cheque">Cheque</option>
+                    <option value="Bank Transfer (IMPS)">🏦 Bank Transfer (IMPS)</option>
+                    <option value="UPI (GPay / PhonePe / Paytm)">📱 UPI (GPay / PhonePe / Paytm)</option>
+                    <option value="Bank Transfer (NEFT)">🏛️ Bank Transfer (NEFT)</option>
+                    <option value="Cash">💵 Cash at Counter</option>
+                    <option value="Cheque">📝 Cheque</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                    Transaction / Receipt Ref
-                  </label>
-                  <input
-                    type="text"
-                    value={payForm.transactionRef}
-                    onChange={(e) => setPayForm({ ...payForm, transactionRef: e.target.value })}
-                    placeholder="e.g. UTR-9821812 / Slip #401"
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid #334155',
-                      color: '#f8fafc',
-                      fontSize: '13px',
-                    }}
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      Transaction / Receipt Ref <span style={{ color: '#ec4899' }}>*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleRegenerateRef}
+                      title="Generate new unique transaction reference"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ec4899',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        padding: 0,
+                      }}
+                    >
+                      <RefreshCw size={11} /> Auto-Generate
+                    </button>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={payForm.transactionRef}
+                      onChange={(e) => setPayForm({ ...payForm, transactionRef: e.target.value })}
+                      required
+                      placeholder="e.g. IMPS-202611-982181 / Slip #401"
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        paddingRight: '80px',
+                        borderRadius: '8px',
+                        background: '#1e293b',
+                        border: '1px solid rgba(236, 72, 153, 0.4)',
+                        color: '#f8fafc',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRegenerateRef}
+                      style={{
+                        position: 'absolute',
+                        right: '4px',
+                        top: '4px',
+                        bottom: '4px',
+                        padding: '0 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(236, 72, 153, 0.15)',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                        color: '#ec4899',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                      }}
+                    >
+                      <RefreshCw size={10} /> Regen
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#10b981', marginTop: '3px', fontWeight: 600 }}>
+                    ⚡ Auto-generated reference for {payForm.paymentMethod}
+                  </div>
                 </div>
               </div>
 
-              {/* Notes */}
+              {/* 8. Remarks / Disbursement Notes (Textarea for up to ~100 words, max 500 chars) */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                  Remarks / Notes (Optional)
-                </label>
-                <input
-                  type="text"
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    Remarks / Disbursement Notes (Optional)
+                  </label>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: remarksWordCount > 100 ? '#f87171' : '#94a3b8',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {remarksWordCount} / 100 Words ({payForm.notes?.length || 0} / 500 chars)
+                  </span>
+                </div>
+
+                {/* Clean Preset Pills */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                  {[
+                    'Regular Monthly Salary',
+                    'Salary Advance Paid',
+                    'Diwali / Festive Bonus',
+                    'Advance Cleared & Deducted',
+                    'Partial Settlement Released',
+                    'Performance Incentive',
+                  ].map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleAddRemarkChip(tag)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(236, 72, 153, 0.1)',
+                        border: '1px solid rgba(236, 72, 153, 0.25)',
+                        color: '#f472b6',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={3}
+                  maxLength={500}
                   value={payForm.notes}
                   onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
-                  placeholder="e.g. Performance incentive included for bridal season"
+                  placeholder="Enter disbursement notes, remarks, reference details, or reasons (up to ~100 words / 500 characters)..."
                   style={{
                     width: '100%',
-                    padding: '9px 12px',
+                    padding: '10px 12px',
                     borderRadius: '8px',
                     background: '#1e293b',
                     border: '1px solid #334155',
                     color: '#f8fafc',
                     fontSize: '13px',
+                    lineHeight: '1.45',
+                    resize: 'vertical',
+                    outline: 'none',
                   }}
                 />
               </div>
 
-              {/* Submit Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setPayModalOpen(false)}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    background: 'transparent',
-                    border: '1px solid #475569',
-                    color: '#cbd5e1',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '10px 22px',
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #ec4899, #db2777)',
-                    border: 'none',
-                    color: '#ffffff',
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(236, 72, 153, 0.4)',
-                  }}
-                >
-                  Confirm & Disburse Salary
-                </button>
+              {/* 7. Action Footer */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '8px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  paddingTop: '14px',
+                }}
+              >
+                <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  Payroll Month: <strong style={{ color: '#f8fafc' }}>{payForm.month}</strong> ({payForm.monthsCount} {Number(payForm.monthsCount) === 1 ? 'Month' : 'Months'})
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPayModalOpen(false)}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid #475569',
+                      color: '#cbd5e1',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '10px 22px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 14px rgba(236, 72, 153, 0.4)',
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    Confirm & Disburse ₹{formNetSalary.toLocaleString('en-IN')}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1528,8 +2654,22 @@ export function ParlourStaffSalaryManager({ showToast }) {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ background: '#fdf2f8', color: '#db2777', fontWeight: 800, padding: '4px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid #fbcfe8' }}>
-                  SALARY PAY-SLIP
+                <span
+                  style={{
+                    background: selectedSlip.paymentCategory === 'advance' ? '#f3e8ff' : Number(selectedSlip.balanceRemaining) > 0 ? '#fffbeb' : '#fdf2f8',
+                    color: selectedSlip.paymentCategory === 'advance' ? '#7e22ce' : Number(selectedSlip.balanceRemaining) > 0 ? '#b45309' : '#db2777',
+                    fontWeight: 800,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    border: `1px solid ${selectedSlip.paymentCategory === 'advance' ? '#d8b4fe' : Number(selectedSlip.balanceRemaining) > 0 ? '#fde68a' : '#fbcfe8'}`,
+                  }}
+                >
+                  {selectedSlip.paymentCategory === 'advance'
+                    ? '⚡ SALARY ADVANCE SLIP'
+                    : Number(selectedSlip.balanceRemaining) > 0
+                    ? '⚠️ PARTIAL SALARY PAY-SLIP'
+                    : 'SALARY PAY-SLIP'}
                 </span>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '5px' }}>
                   Ref: {selectedSlip.transactionRef || selectedSlip._id || 'SAL-SLIP'}
@@ -1561,7 +2701,9 @@ export function ParlourStaffSalaryManager({ showToast }) {
               </thead>
               <tbody>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '10px 12px', fontWeight: 600 }}>Basic Fixed Salary</td>
+                  <td style={{ padding: '10px 12px', fontWeight: 600 }}>
+                    {selectedSlip.paymentCategory === 'advance' ? 'Advance Amount' : 'Basic Fixed Salary'}
+                  </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>₹{(Number(selectedSlip.baseSalary) || 0).toLocaleString('en-IN')}</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
@@ -1569,15 +2711,27 @@ export function ParlourStaffSalaryManager({ showToast }) {
                   <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#16a34a' }}>+₹{(Number(selectedSlip.bonus) || 0).toLocaleString('en-IN')}</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '10px 12px', fontWeight: 600, color: '#dc2626' }}>- Deductions (Leaves / Advances)</td>
+                  <td style={{ padding: '10px 12px', fontWeight: 600, color: '#dc2626' }}>- Deductions (Leaves / Advances Cleared)</td>
                   <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#dc2626' }}>-₹{(Number(selectedSlip.deductions) || 0).toLocaleString('en-IN')}</td>
                 </tr>
                 <tr style={{ background: '#fdf2f8', borderTop: '2px solid #f472b6' }}>
-                  <td style={{ padding: '12px', fontWeight: 900, color: '#831843', fontSize: '14px' }}>Net Take-Home Salary</td>
+                  <td style={{ padding: '12px', fontWeight: 900, color: '#831843', fontSize: '14px' }}>
+                    {selectedSlip.paymentCategory === 'advance' ? 'Advance Disbursed' : 'Net Take-Home Disbursed'}
+                  </td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 900, color: '#831843', fontSize: '16px' }}>
-                    ₹{(Number(selectedSlip.netAmount) || 0).toLocaleString('en-IN')}
+                    ₹{(Number(selectedSlip.amountPaid ?? selectedSlip.netAmount) || 0).toLocaleString('en-IN')}
                   </td>
                 </tr>
+                {Number(selectedSlip.balanceRemaining) > 0 && (
+                  <tr style={{ background: '#fffbeb', borderTop: '1px dashed #f59e0b' }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 800, color: '#b45309', fontSize: '13px' }}>
+                      ⚠️ Remaining Due / Baki Balance
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, color: '#dc2626', fontSize: '14px' }}>
+                      ₹{Number(selectedSlip.balanceRemaining).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
 

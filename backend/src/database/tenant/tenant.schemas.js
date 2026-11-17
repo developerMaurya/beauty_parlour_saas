@@ -2040,6 +2040,17 @@ export const PayslipSchema = new Schema(
     overtime: { type: Number, default: 0 },
     deductions: { type: Number, default: 0 },
     netAmount: { type: Number, required: true },
+    paymentCategory: {
+      type: String,
+      enum: ['regular', 'advance', 'bonus', 'settlement'],
+      default: 'regular',
+    },
+    monthsCovered: [{ type: String }], // e.g. ["October 2026", "November 2026"]
+    totalDue: { type: Number, default: 0 },
+    amountPaid: { type: Number, default: 0 },
+    balanceRemaining: { type: Number, default: 0 },
+    advanceDeducted: { type: Number, default: 0 },
+    previousDuePaid: { type: Number, default: 0 },
     paymentStatus: {
       type: String,
       default: 'PAID',
