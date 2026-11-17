@@ -233,10 +233,6 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
   // Strict Wizard Steps: 1: Product & Quantity Selection, 2: Buyer Selection, 3: Payment & Place Order
   const [checkoutStep, setCheckoutStep] = useState(1);
 
-  // Visual In-Modal "+ Add More Products" Catalog Picker State
-  const [isBrowsingMoreProducts, setIsBrowsingMoreProducts] = useState(false);
-  const [moreProductSearch, setMoreProductSearch] = useState('');
-
   // Buyer Form State
   const [buyerType, setBuyerType] = useState('customer'); // 'customer' | 'student' | 'staff' | 'walkin'
   const [selectedBuyerId, setSelectedBuyerId] = useState('');
@@ -1022,6 +1018,73 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
             )}
           </div>
 
+          {/* Active Bill In-Progress Quick Banner */}
+          {cart.length > 0 && (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)',
+                border: '1.5px solid rgba(236, 72, 153, 0.45)',
+                borderRadius: '14px',
+                padding: '12px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    boxShadow: '0 3px 10px rgba(236, 72, 153, 0.4)',
+                  }}
+                >
+                  <ShoppingCart size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#f8fafc' }}>
+                    Current Bill in Progress: {cartTotalItems} items ({cart.length} distinct products) · Subtotal:{' '}
+                    <span style={{ color: '#34d399', fontWeight: 900 }}>₹{cartSubtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: '#c084fc', marginTop: '2px' }}>
+                    Browse below to choose & add more products. All totals auto-calculate in real time!
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenCheckoutFromCart}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(236, 72, 153, 0.45)',
+                }}
+              >
+                Open Bill & Checkout ({cartTotalItems})
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          )}
+
           {/* Product Cards Grid */}
           {filteredProducts.length === 0 ? (
             <div
@@ -1160,7 +1223,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                         </div>
                       </div>
 
-                      {/* Price & Single Buy Action Button (Clean, No Add Button) */}
+                      {/* Price & Action Buttons */}
                       <div
                         style={{
                           display: 'flex',
@@ -1170,6 +1233,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                           paddingTop: '12px',
                           borderTop: '1px solid #f1f5f9',
                           gap: '8px',
+                          flexWrap: 'wrap',
                         }}
                       >
                         <div>
@@ -1179,32 +1243,154 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                           </div>
                         </div>
 
-                        {/* SINGLE "BUY" BUTTON - Direct Purchase Flow */}
-                        <button
-                          type="button"
-                          disabled={isOutOfStock}
-                          onClick={() => handleInitiateBuy(p)}
-                          style={{
-                            padding: '9px 20px',
-                            borderRadius: '10px',
-                            background: isOutOfStock
-                              ? '#e2e8f0'
-                              : 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                            color: isOutOfStock ? '#94a3b8' : '#ffffff',
-                            border: 'none',
-                            fontSize: '13px',
-                            fontWeight: 800,
-                            cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            boxShadow: isOutOfStock ? 'none' : '0 4px 12px rgba(236, 72, 153, 0.35)',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <Sparkles size={14} />
-                          {quantityInCart > 0 ? `Buy (${quantityInCart})` : 'Buy'}
-                        </button>
+                        {/* Interactive Quantity Selector or Add / Buy Buttons */}
+                        {quantityInCart > 0 ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                background: '#fdf2f8',
+                                borderRadius: '8px',
+                                border: '1.5px solid #ec4899',
+                                padding: '2px',
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCartQuantity(pId, quantityInCart - 1)}
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '5px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#db2777',
+                                  fontWeight: 900,
+                                  fontSize: '14px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                                title="Decrease quantity"
+                              >
+                                -
+                              </button>
+                              <span
+                                style={{
+                                  minWidth: '22px',
+                                  textAlign: 'center',
+                                  fontSize: '12.5px',
+                                  fontWeight: 800,
+                                  color: '#9d174d',
+                                }}
+                              >
+                                {quantityInCart}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={quantityInCart >= stock}
+                                onClick={() => handleAddToCart(p, 1)}
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '5px',
+                                  background: quantityInCart >= stock ? '#f1f5f9' : '#ec4899',
+                                  border: 'none',
+                                  color: quantityInCart >= stock ? '#94a3b8' : '#ffffff',
+                                  fontWeight: 900,
+                                  fontSize: '14px',
+                                  cursor: quantityInCart >= stock ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                                title={quantityInCart >= stock ? 'Stock limit reached' : 'Add 1 more'}
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCheckoutStep(1);
+                                setCheckoutModalOpen(true);
+                              }}
+                              style={{
+                                padding: '7px 12px',
+                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                                border: 'none',
+                                color: '#ffffff',
+                                fontSize: '12px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                boxShadow: '0 3px 10px rgba(236, 72, 153, 0.35)',
+                              }}
+                              title="Open Bill & Continue Checkout"
+                            >
+                              Bill →
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              disabled={isOutOfStock}
+                              onClick={() => {
+                                handleAddToCart(p, 1);
+                              }}
+                              style={{
+                                padding: '7px 12px',
+                                borderRadius: '8px',
+                                background: isOutOfStock ? '#f1f5f9' : '#fdf2f8',
+                                border: `1.5px solid ${isOutOfStock ? '#e2e8f0' : '#ec4899'}`,
+                                color: isOutOfStock ? '#94a3b8' : '#db2777',
+                                fontSize: '12px',
+                                fontWeight: 800,
+                                cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                              title="Add product to current bill"
+                            >
+                              <Plus size={13} />
+                              Add
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isOutOfStock}
+                              onClick={() => handleInitiateBuy(p)}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                background: isOutOfStock
+                                  ? '#e2e8f0'
+                                  : 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                                color: isOutOfStock ? '#94a3b8' : '#ffffff',
+                                border: 'none',
+                                fontSize: '12.5px',
+                                fontWeight: 800,
+                                cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                boxShadow: isOutOfStock ? 'none' : '0 3px 10px rgba(236, 72, 153, 0.35)',
+                              }}
+                              title="Buy now and proceed to checkout"
+                            >
+                              <Sparkles size={13} />
+                              Buy
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1433,7 +1619,7 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
               background: '#0f172a',
               border: '1.5px solid rgba(236, 72, 153, 0.45)',
               borderRadius: '20px',
-              maxWidth: isBrowsingMoreProducts ? '840px' : '680px',
+              maxWidth: '680px',
               width: '100%',
               padding: '24px 26px',
               color: '#f8fafc',
@@ -1456,28 +1642,25 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                  {!isBrowsingMoreProducts && (
-                    <span
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(236, 72, 153, 0.15)',
-                        border: '1px solid rgba(236, 72, 153, 0.35)',
-                        color: '#f472b6',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        letterSpacing: '0.4px',
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      Step {checkoutStep} of 3
-                    </span>
-                  )}
+                  <span
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(236, 72, 153, 0.15)',
+                      border: '1px solid rgba(236, 72, 153, 0.35)',
+                      color: '#f472b6',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      letterSpacing: '0.4px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Step {checkoutStep} of 3
+                  </span>
                   <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
-                    {isBrowsingMoreProducts && 'Select Products to Add to Bill'}
-                    {!isBrowsingMoreProducts && checkoutStep === 1 && 'Products & Quantity Selection'}
-                    {!isBrowsingMoreProducts && checkoutStep === 2 && 'Buyer Details & Identification'}
-                    {!isBrowsingMoreProducts && checkoutStep === 3 && 'Payment & Order Placement'}
+                    {checkoutStep === 1 && 'Products & Quantity Selection'}
+                    {checkoutStep === 2 && 'Buyer Details & Identification'}
+                    {checkoutStep === 3 && 'Payment & Order Placement'}
                   </h3>
                 </div>
                 <div style={{ fontSize: '12px', color: '#c084fc' }}>
@@ -1506,224 +1689,9 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
               </button>
             </div>
 
-            {/* ════════════════════════════════════════════════════════════════
-                VIEW 1A: VISUAL PRODUCT CATALOG PICKER (WHEN "+ ADD MORE" CLICKED)
-                ════════════════════════════════════════════════════════════════ */}
-            {isBrowsingMoreProducts ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                    <input
-                      type="text"
-                      placeholder="Search parlour products by name or brand..."
-                      value={moreProductSearch}
-                      onChange={(e) => setMoreProductSearch(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px 8px 34px',
-                        borderRadius: '8px',
-                        background: '#1e293b',
-                        border: '1px solid #334155',
-                        color: '#f8fafc',
-                        fontSize: '12.5px',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsBrowsingMoreProducts(false)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                    }}
-                  >
-                    ✓ Return to Bill ({cartTotalItems} items)
-                  </button>
-                </div>
-
-                {/* Catalog Grid View */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
-                    gap: '12px',
-                    maxHeight: '440px',
-                    overflowY: 'auto',
-                    padding: '4px',
-                  }}
-                >
-                  {products
-                    .filter((p) => {
-                      if (!moreProductSearch.trim()) return true;
-                      const q = moreProductSearch.toLowerCase();
-                      return (p.name || '').toLowerCase().includes(q) || (p.brand || '').toLowerCase().includes(q);
-                    })
-                    .map((p) => {
-                      const pId = p.id || p._id;
-                      const stock = Number(p.stock) || 0;
-                      const isOut = stock <= 0;
-                      const cartItem = cart.find((ci) => (ci.product.id || ci.product._id) === pId);
-                      const inCartQty = cartItem ? cartItem.quantity : 0;
-
-                      return (
-                        <div
-                          key={pId}
-                          style={{
-                            background: inCartQty > 0 ? 'rgba(236, 72, 153, 0.12)' : 'rgba(30, 41, 59, 0.6)',
-                            border: inCartQty > 0 ? '1.5px solid #ec4899' : '1px solid rgba(148, 163, 184, 0.15)',
-                            borderRadius: '12px',
-                            padding: '10px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            gap: '8px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', gap: '10px' }}>
-                            <img
-                              src={p.image || p.imageUrl || ''}
-                              alt=""
-                              style={{ width: '50px', height: '50px', borderRadius: '8px', objectFit: 'cover', background: '#334155' }}
-                              onError={(e) => {
-                                e.currentTarget.src =
-                                  'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=80';
-                              }}
-                            />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
-                                {p.brand || 'Salon Product'}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: '12.5px',
-                                  fontWeight: 800,
-                                  color: '#f8fafc',
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {p.name}
-                              </div>
-                              <div style={{ fontSize: '11px', color: isOut ? '#f87171' : '#38bdf8', marginTop: '2px' }}>
-                                {isOut ? '✕ Out of stock' : `Stock: ${stock}`}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                            <div style={{ fontSize: '13px', fontWeight: 900, color: '#34d399' }}>
-                              ₹{(Number(p.price) || 0).toLocaleString()}
-                            </div>
-
-                            {inCartQty > 0 ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateCartQuantity(pId, inCartQty - 1)}
-                                  style={{
-                                    width: '24px',
-                                    height: '24px',
-                                    borderRadius: '5px',
-                                    background: '#334155',
-                                    border: 'none',
-                                    color: '#fff',
-                                    cursor: 'pointer',
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  -
-                                </button>
-                                <span style={{ fontSize: '12px', fontWeight: 800, minWidth: '18px', textAlign: 'center' }}>
-                                  {inCartQty}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddToCart(p, 1)}
-                                  disabled={inCartQty >= stock}
-                                  style={{
-                                    width: '24px',
-                                    height: '24px',
-                                    borderRadius: '5px',
-                                    background: '#ec4899',
-                                    border: 'none',
-                                    color: '#fff',
-                                    cursor: inCartQty >= stock ? 'not-allowed' : 'pointer',
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={isOut}
-                                onClick={() => handleAddToCart(p, 1)}
-                                style={{
-                                  padding: '5px 12px',
-                                  borderRadius: '6px',
-                                  background: isOut ? '#334155' : 'linear-gradient(135deg, #ec4899, #db2777)',
-                                  border: 'none',
-                                  color: isOut ? '#94a3b8' : '#ffffff',
-                                  fontSize: '11.5px',
-                                  fontWeight: 800,
-                                  cursor: isOut ? 'not-allowed' : 'pointer',
-                                }}
-                              >
-                                + Add
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-
-                {/* Return Bar */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#34d399' }}>
-                    Total Selected: {cartTotalItems} items · ₹{cartSubtotal.toLocaleString('en-IN')}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsBrowsingMoreProducts(false)}
-                    style={{
-                      padding: '9px 20px',
-                      borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #ec4899, #db2777)',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '12.5px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                    }}
-                  >
-                    Return to Bill Summary
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* ════════════════════════════════════════════════════════════
-                    STEP 1: PRODUCT & QUANTITY SELECTION
-                    ════════════════════════════════════════════════════════════ */}
+            {/* ════════════════════════════════════════════════════════════
+                STEP 1: PRODUCT & QUANTITY SELECTION
+                ════════════════════════════════════════════════════════════ */}
                 {checkoutStep === 1 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     <div
@@ -1895,23 +1863,27 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
 
                       <button
                         type="button"
-                        onClick={() => setIsBrowsingMoreProducts(true)}
+                        onClick={() => {
+                          setCheckoutModalOpen(false);
+                          setActiveTab('catalog');
+                        }}
                         style={{
-                          padding: '8px 16px',
+                          padding: '9px 18px',
                           borderRadius: '8px',
                           background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
                           border: 'none',
                           color: '#ffffff',
-                          fontSize: '12px',
+                          fontSize: '12.5px',
                           fontWeight: 800,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          boxShadow: '0 3px 10px rgba(139, 92, 246, 0.35)',
+                          boxShadow: '0 4px 14px rgba(139, 92, 246, 0.4)',
+                          transition: 'all 0.15s ease',
                         }}
                       >
-                        <Sparkles size={13} />
+                        <Sparkles size={14} />
                         + Browse & Add More Products
                       </button>
                     </div>
@@ -2728,8 +2700,6 @@ export function ParlourProductSalesManager({ products = [], setProducts, showToa
                     </div>
                   </form>
                 )}
-              </>
-            )}
           </div>
         </div>
       )}
