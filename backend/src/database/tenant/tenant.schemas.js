@@ -476,6 +476,8 @@ export const StudentSchema = new Schema(
     paidFee: { type: Number, default: 0 },
     installments: [{ type: Schema.Types.Mixed }],
     assignedDocuments: [{ type: Schema.Types.Mixed }],
+    serviceQuotas: [{ type: Schema.Types.Mixed }],
+    enrolledPlanDetails: { type: Schema.Types.Mixed },
     status: {
       type: String,
       enum: [

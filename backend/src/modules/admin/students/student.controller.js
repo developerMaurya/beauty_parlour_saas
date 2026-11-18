@@ -250,6 +250,16 @@ export const updateStudent = async (req, res) => {
       student.markModified('assignedDocuments');
     }
 
+    if (data.serviceQuotas !== undefined) {
+      student.serviceQuotas = data.serviceQuotas;
+      student.markModified('serviceQuotas');
+    }
+
+    if (data.enrolledPlanDetails !== undefined) {
+      student.enrolledPlanDetails = data.enrolledPlanDetails;
+      student.markModified('enrolledPlanDetails');
+    }
+
     await student.save();
 
     // If name, phone, or email updated, sync TenantUser
