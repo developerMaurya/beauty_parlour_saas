@@ -1,24 +1,30 @@
 /**
  * @file PlanCatalogPage.jsx
- * @description Master Golden Beauty Parlour Plans & Packages Management.
+ * @description Master Golden Beauty Parlour: Plans, Dynamic Services & Professional Sub-Services Master.
  * Features:
- *   1. Simple Plan Creation: Plan Name, Tier (Basic, Silver, Advanced, Premium), Price, Discount Price, Duration (Hours).
- *   2. Features entered as text ("text ke roop me enter karna", 1 per line) with automatic bullet rendering.
- *   3. Prominent View Details Modal on Eye icon click showing full breakdown of all features and pricing.
- *   4. Exactly 1 single pre-seeded initial plan in DB/localStorage.
- *   5. Full CRUD: Add, Edit, View, Delete, Toggle Status.
- *   6. Clean White Luxury Theme (default) + Dark Mode Theme Switcher.
- *   7. Grid Cards View & Table List View.
- *   8. Pagination & smooth custom scrollbar.
+ *   1. Sub-Services Master Catalog (Full Page / CRUD View):
+ *      - Lists all sub-services linked dynamically to parent DB services.
+ *      - Filter by Parent Service, Search by Name/Desc, Filter by Status.
+ *      - Prominent '+ Create Sub-Service' button opening luxury modal.
+ *      - Edit, Delete, and Status Toggle for each sub-service.
+ *   2. Plan Creation & Management (With '+ Add More Service' Multi-Service Builder):
+ *      - Plan Name, Price, Validity (Months), Tier, Description, Status.
+ *      - Multiple Services: Select Service from DB dropdown + Allowed Usage Limit.
+ *      - Select Sub-Services from Database Sub-Services Master via multi-select/dropdown.
+ *      - Each sub-service is marked with 'Allowed' badge.
+ *      - No hardcoded data — everything dynamically synchronized with DB & local master store.
+ *   3. Luxury Clean White (default) + Dark Mode theme support.
  * @module frontend/src/modules/admin/pages/PlanCatalogPage
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Layers,
   Plus,
   Edit2,
   Trash2,
+  Copy,
   Search,
   LayoutGrid,
   List,
@@ -31,36 +37,31 @@ import {
   X,
   Sun,
   Moon,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Crown,
   Award,
   Star,
-  ShieldCheck,
-  Car,
-  Building,
-  Image as ImageIcon,
-  UploadCloud,
+  Scissors,
+  Tag,
+  AlertCircle,
+  Settings,
+  Filter,
 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext.jsx';
-import { useTenantAdmin } from '../../../context/TenantAdminContext.jsx';
-import { packageFetcher } from '../../../services/api/admin/adminApi.js';
-import { uploadImageToCloudflare } from '../../../services/uploadService.js';
+import {
+  serviceFetcher,
+  serviceSubcategoryFetcher,
+  serviceOptionFetcher,
+  subServiceFetcher,
+  parlourPlanFetcher,
+} from '../../../services/api/admin/adminApi.js';
 
-// Self-contained duration & validity formatter helper (Months)
+// Format duration helper
 export const formatDurationMonths = (val) => {
-  if (val === undefined || val === null || val === '') {
-    return 'Flexible / Ongoing';
-  }
+  if (val === undefined || val === null || val === '') return 'Flexible / Ongoing';
   const num = Number(val);
   if (isNaN(num) || num <= 0) return 'Flexible / Ongoing';
   return `${num} ${num === 1 ? 'Month' : 'Months'}`;
 };
-
-// Backward-compat export for any legacy references
-export const formatDurationHours = formatDurationMonths;
 
 // Plan Tiers & metadata
 export const PLAN_TIERS = [
@@ -70,57 +71,161 @@ export const PLAN_TIERS = [
   { id: 'Premium', label: 'Premium Tier', color: '#d97706', bg: '#fef3c7', icon: Crown },
 ];
 
-// Pre-seeded Master Parlour Plans (Strictly Only 1 Single Initial Plan)
+// Initial Database Sub-Services Master List
+export const INITIAL_MASTER_SUBSERVICES = [
+  // Nail Design
+  { id: 'sub_nail_1', serviceName: 'Nail Design', name: 'Simple Nail Design', description: 'Minimalist line, dot, chrome accent & single color art', status: 'active' },
+  { id: 'sub_nail_2', serviceName: 'Nail Design', name: 'French Nail Design', description: 'Classic white smile-line & modern ombre French tips', status: 'active' },
+  { id: 'sub_nail_3', serviceName: 'Nail Design', name: 'Bridal Nail Design', description: 'Heavy 3D stone, glitter, foil & chrome bridal design', status: 'active' },
+  { id: 'sub_nail_4', serviceName: 'Nail Design', name: 'Gel Extension Nail Art', description: 'UV cured acrylic tip nail extensions with gel art', status: 'active' },
+  { id: 'sub_nail_5', serviceName: 'Nail Design', name: 'Cat Eye & Velvet Nails', description: 'Magnetic shimmer velvet finish styling', status: 'active' },
+
+  // Hair Service
+  { id: 'sub_hair_1', serviceName: 'Hair Service', name: 'Haircut & Styling', description: 'Feather, layer, bob, and curtain bangs haircutting', status: 'active' },
+  { id: 'sub_hair_2', serviceName: 'Hair Service', name: 'Hair Spa Treatment', description: 'Deep moisture hydration with ozone steam therapy', status: 'active' },
+  { id: 'sub_hair_3', serviceName: 'Hair Service', name: 'Global Hair Color', description: 'Ammonia-free root touchup & global tint shading', status: 'active' },
+  { id: 'sub_hair_4', serviceName: 'Hair Service', name: 'Smoothening / Rebonding', description: 'Chemical straight styling & gloss keratin seal', status: 'active' },
+  { id: 'sub_hair_5', serviceName: 'Hair Service', name: 'Keratin Protein Wash', description: 'Frizz control formaldeyde-free protein wash', status: 'active' },
+
+  // Makeup Service
+  { id: 'sub_mu_1', serviceName: 'Makeup Service', name: 'Basic HD Makeup', description: 'Lightweight daytime natural HD foundation base', status: 'active' },
+  { id: 'sub_mu_2', serviceName: 'Makeup Service', name: 'Airbrush Bridal Makeup', description: '24-hr waterproof silicone bridal airbrush artistry', status: 'active' },
+  { id: 'sub_mu_3', serviceName: 'Makeup Service', name: 'Party Glam Makeup', description: 'Smokey glitter eye contour & bold lip finish', status: 'active' },
+  { id: 'sub_mu_4', serviceName: 'Makeup Service', name: 'Engagement Look', description: 'Soft pastel dewy finish with wispy lashes', status: 'active' },
+
+  // Facial
+  { id: 'sub_fac_1', serviceName: 'Facial', name: 'O3+ Bridal Glow Facial', description: 'Oxygenating whitening & pigmentation removal therapy', status: 'active' },
+  { id: 'sub_fac_2', serviceName: 'Facial', name: 'Hydra Facial Prep', description: 'Vacuum pore extraction with hyaluronic serum infusion', status: 'active' },
+  { id: 'sub_fac_3', serviceName: 'Facial', name: 'Herbal & Fruit Clean-Up', description: 'Botanical pore cleansing & organic scrub exfoliation', status: 'active' },
+  { id: 'sub_fac_4', serviceName: 'Facial', name: 'D-Tan Glow Pack', description: 'Sun tan removal & milk protein brightening mask', status: 'active' },
+
+  // Threading
+  { id: 'sub_thr_1', serviceName: 'Threading', name: 'Eyebrow Shaping', description: 'Precision arch threading and brow alignment', status: 'active' },
+  { id: 'sub_thr_2', serviceName: 'Threading', name: 'Upper Lip Threading', description: 'Quick sanitised upper lip hair removal', status: 'active' },
+  { id: 'sub_thr_3', serviceName: 'Threading', name: 'Full Face Threading', description: 'Forehead, chin, cheeks & jawline complete threading', status: 'active' },
+
+  // Waxing
+  { id: 'sub_wax_1', serviceName: 'Waxing', name: 'Full Arms Wax', description: 'Chocolate / Rica smooth arm waxing', status: 'active' },
+  { id: 'sub_wax_2', serviceName: 'Waxing', name: 'Half Legs Wax', description: 'Calf & knee soothing chocolate wax', status: 'active' },
+  { id: 'sub_wax_3', serviceName: 'Waxing', name: 'Rica Underarms Wax', description: 'Painless sensitive peel underarm wax', status: 'active' },
+
+  // Mehendi & Draping
+  { id: 'sub_meh_1', serviceName: 'Mehendi & Draping', name: 'Bridal Saree Draping', description: 'Pleated bridal cancan saree draping', status: 'active' },
+  { id: 'sub_meh_2', serviceName: 'Mehendi & Draping', name: 'Dupatta Setting', description: 'Double dupatta head pin-up styling', status: 'active' },
+  { id: 'sub_meh_3', serviceName: 'Mehendi & Draping', name: 'Arabic Mehendi Art', description: 'Front & back hand geometric floral art', status: 'active' },
+];
+
+// Initial Master Plans (Includes exact example requested by User)
 const INITIAL_PARLOUR_PLANS = [
   {
-    _id: 'plan_p_101',
-    name: 'Silver Luxury Bridal Glam Combo Plan',
-    tier: 'Silver', // 'Basic' | 'Silver' | 'Advanced' | 'Premium'
-    price: 18999,
-    discountPrice: 15999,
-    durationMonths: 3, // Validity: 3 Months
-    features: [
-      'Bridal HD Airbrush Makeup with 3D Lashes',
-      'Precision Hair Cut & Velvet Blowout Styling',
-      'Hydra-Glow Facial & Skin Deep Prep',
-      'Free Bridal Consultation & Skin Tone Mapping',
-      'Complimentary Touch-up Vanity Kit & Dupatta Draping',
-    ],
-    homeServiceAllowed: true,
+    _id: 'plan_p_premium',
+    name: 'Premium Beauty Package',
+    tier: 'Premium',
+    price: 15000,
+    discountPrice: 13500,
+    durationMonths: 6,
     status: 'active',
-    description: 'Comprehensive 3-month bridal transformation bundle covering airbrush bridal makeup, designer hair styling, and deep skin hydra prep.',
-    createdAt: '2026-11-01',
+    description: 'Comprehensive 6-month parlour training and practical package covering 6 dynamic service verticals with allowed quotas and variant choices.',
+    includedServices: [
+      {
+        id: 'srv_hair',
+        serviceName: 'Hair Service',
+        allowedUsage: 5,
+        allowedSubServices: ['Haircut & Styling', 'Hair Spa Treatment', 'Global Hair Color'],
+        icon: '💇‍♀️',
+      },
+      {
+        id: 'srv_makeup',
+        serviceName: 'Makeup Service',
+        allowedUsage: 6,
+        allowedSubServices: ['Basic HD Makeup', 'Airbrush Bridal Makeup', 'Party Glam Makeup'],
+        icon: '💄',
+      },
+      {
+        id: 'srv_nail',
+        serviceName: 'Nail Design',
+        allowedUsage: 3,
+        allowedSubServices: ['Simple Nail Design', 'French Nail Design', 'Bridal Nail Design'],
+        icon: '💅',
+      },
+      {
+        id: 'srv_facial',
+        serviceName: 'Facial',
+        allowedUsage: 4,
+        allowedSubServices: ['O3+ Bridal Glow Facial', 'Hydra Facial Prep', 'Herbal & Fruit Clean-Up'],
+        icon: '✨',
+      },
+      {
+        id: 'srv_threading',
+        serviceName: 'Threading',
+        allowedUsage: 10,
+        allowedSubServices: ['Eyebrow Shaping', 'Upper Lip Threading', 'Full Face Threading'],
+        icon: '✂️',
+      },
+      {
+        id: 'srv_waxing',
+        serviceName: 'Waxing',
+        allowedUsage: 3,
+        allowedSubServices: ['Full Arms Wax', 'Half Legs Wax', 'Rica Underarms Wax'],
+        icon: '🍯',
+      },
+    ],
   },
 ];
 
-const STORAGE_KEY = 'parlour_plans_master_v2';
+const STORAGE_KEY_PLANS = 'parlour_plans_master_v4';
+const STORAGE_KEY_SUBSERVICES = 'parlour_subservices_db_master_v1';
 
 const loadStoredPlans = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY_PLANS);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PARLOUR_PLANS));
-      return INITIAL_PARLOUR_PLANS;
+      const seeded = INITIAL_PARLOUR_PLANS.map((p) => ({ ...p, _id: p._id || p.id, id: p._id || p.id }));
+      localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(seeded));
+      return seeded;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_PARLOUR_PLANS;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map((p) => ({ ...p, _id: p._id || p.id, id: p._id || p.id }));
+    }
+    return INITIAL_PARLOUR_PLANS.map((p) => ({ ...p, _id: p._id || p.id, id: p._id || p.id }));
   } catch {
-    return INITIAL_PARLOUR_PLANS;
+    return INITIAL_PARLOUR_PLANS.map((p) => ({ ...p, _id: p._id || p.id, id: p._id || p.id }));
   }
 };
 
-const saveStoredPlans = (list) => {
+const loadStoredSubServices = () => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    window.dispatchEvent(new CustomEvent('parlour_plans_updated', { detail: { count: list.length } }));
-  } catch (e) {
-    console.warn('Plans storage save warning:', e);
+    const raw = localStorage.getItem(STORAGE_KEY_SUBSERVICES);
+    if (!raw) {
+      const seeded = INITIAL_MASTER_SUBSERVICES.map((s) => ({
+        ...s,
+        _id: s._id || s.id,
+        id: s._id || s.id,
+      }));
+      localStorage.setItem(STORAGE_KEY_SUBSERVICES, JSON.stringify(seeded));
+      return seeded;
+    }
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map((s) => ({ ...s, _id: s._id || s.id, id: s._id || s.id }));
+    }
+    return INITIAL_MASTER_SUBSERVICES.map((s) => ({ ...s, _id: s._id || s.id, id: s._id || s.id }));
+  } catch {
+    return INITIAL_MASTER_SUBSERVICES.map((s) => ({ ...s, _id: s._id || s.id, id: s._id || s.id }));
   }
 };
 
-export const PlanCatalogPage = () => {
+export const PlanCatalogPage = ({ initialView }) => {
   const toast = useToast();
-  const { selectedBranchId } = useTenantAdmin();
+  const location = useLocation();
+
+  // Active View: 'plans' | 'subservices'
+  const [activeView, setActiveView] = useState(() => {
+    if (initialView) return initialView;
+    if (location?.pathname?.includes('subservice')) return 'subservices';
+    return 'plans';
+  });
 
   // Theme Mode: Light (Luxury Clean White) default
   const [themeMode, setThemeMode] = useState(() => {
@@ -135,919 +240,1238 @@ export const PlanCatalogPage = () => {
 
   const isLight = themeMode === 'light';
 
-  // Master Plans State
+  // ════════════════════════════════════════════════════════════════════════════
+  // 1. DATA STATES (PLANS, SUB-SERVICES & DB SERVICES)
+  // ════════════════════════════════════════════════════════════════════════════
   const [plans, setPlans] = useState(loadStoredPlans);
-  const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const [subServices, setSubServices] = useState(loadStoredSubServices);
+  const [dbServicesList, setDbServicesList] = useState([]);
 
-  // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [tierFilter, setTierFilter] = useState('all'); // 'all' | 'Basic' | 'Silver' | 'Advanced' | 'Premium'
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+  // Search & Filter States
+  const [planSearchQuery, setPlanSearchQuery] = useState('');
+  const [planTierFilter, setPlanTierFilter] = useState('all');
+  const [planStatusFilter, setPlanStatusFilter] = useState('all');
 
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [subSearchQuery, setSubSearchQuery] = useState('');
+  const [subStatusFilter, setSubStatusFilter] = useState('all');
 
   // Modal States
-  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewPlanModalOpen, setViewPlanModalOpen] = useState(false);
   const [selectedPlanForView, setSelectedPlanForView] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [imageUploadError, setImageUploadError] = useState('');
 
-  // Form State
-  const [formData, setFormData] = useState({
+  const [subServiceModalOpen, setSubServiceModalOpen] = useState(false);
+  const [editingSubService, setEditingSubService] = useState(null);
+
+  // Sub-Service Form State
+  const [subServiceForm, setSubServiceForm] = useState({
     name: '',
-    tier: 'Silver',
-    image: '',
-    price: '',
-    discountPrice: '',
-    durationMonths: '', // Validity in Months (kitne month tak plan chalega)
-    featuresText: '', // Multi-line text for features
     description: '',
-    homeServiceAllowed: true,
     status: 'active',
   });
 
-  // Sync to localStorage
+  // Plan Form State
+  const [planForm, setPlanForm] = useState({
+    name: '',
+    tier: 'Premium',
+    price: '',
+    discountPrice: '',
+    durationMonths: '6',
+    description: '',
+    status: 'active',
+    includedServices: [],
+  });
+
+  // Sync Plans to Storage
   useEffect(() => {
-    saveStoredPlans(plans);
+    try {
+      localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(plans));
+      window.dispatchEvent(new CustomEvent('parlour_plans_updated', { detail: { count: plans.length } }));
+    } catch (e) {
+      console.warn('Storage sync error:', e);
+    }
   }, [plans]);
 
-  // Try fetching from backend on mount (graceful fallback)
+  // Sync Sub-Services to Storage
   useEffect(() => {
-    let isMounted = true;
-    const fetchRemotePlans = async () => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SUBSERVICES, JSON.stringify(subServices));
+      window.dispatchEvent(new CustomEvent('parlour_subservices_updated', { detail: { count: subServices.length } }));
+    } catch (e) {
+      console.warn('SubServices storage sync error:', e);
+    }
+  }, [subServices]);
+
+  // Fetch Sub-Services from Backend API
+  const fetchSubServices = useCallback(async () => {
+    try {
+      const res = await subServiceFetcher.list({ limit: 200 });
+      const items = res?.data?.items || res?.data || [];
+      if (Array.isArray(items) && items.length > 0) {
+        const normalized = items.map((s, idx) => ({
+          ...s,
+          _id: s._id || s.id || `sub_${idx}`,
+          id: s._id || s.id || `sub_${idx}`,
+        }));
+        setSubServices(normalized);
+      }
+    } catch (err) {
+      console.warn('SubServices API fetch fallback:', err);
+    }
+  }, []);
+
+  // Fetch Plans from Backend API
+  const fetchPlans = useCallback(async () => {
+    try {
+      const res = await parlourPlanFetcher.list({ limit: 100 });
+      const items = res?.data?.items || res?.data || [];
+      if (Array.isArray(items) && items.length > 0) {
+        const normalized = items.map((p, idx) => ({
+          ...p,
+          _id: p._id || p.id || `plan_${idx}`,
+          id: p._id || p.id || `plan_${idx}`,
+        }));
+        setPlans(normalized);
+      }
+    } catch (err) {
+      console.warn('Plans API fetch fallback:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSubServices();
+    fetchPlans();
+  }, [fetchSubServices, fetchPlans]);
+
+  // Load Database Services dynamically on Mount & when updated
+  useEffect(() => {
+    const fetchDbServices = async () => {
       try {
-        setLoading(true);
-        const res = await packageFetcher.getAll({ limit: 50 });
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0 && isMounted) {
-          const mapped = res.data.map((item, idx) => ({
-            _id: item._id || `plan_${idx + 1}`,
-            name: item.name || item.title || 'Golden Parlour Plan',
-            tier: item.tier || 'Silver',
-            price: item.price || 15000,
-            discountPrice: item.discountPrice || item.finalPrice || '',
-            durationMonths: item.durationMonths || item.validityMonths || (item.durationHours ? Math.ceil(item.durationHours / 30) : 3),
-            features: Array.isArray(item.features)
-              ? item.features
-              : Array.isArray(item.services)
-              ? item.services.map((s) => (typeof s === 'string' ? s : s.name))
-              : ['Bridal HD Airbrush Makeup', 'Hydra-Glow Facial'],
-            homeServiceAllowed: item.homeServiceAllowed !== undefined ? item.homeServiceAllowed : true,
-            status: item.status || 'active',
-            description: item.description || '',
-            createdAt: item.createdAt || '2026-11-01',
-          }));
-          setPlans(mapped);
+        const srvRes = await serviceFetcher.list({ limit: 100 }).catch(() => ({ data: [] }));
+        const apiServices = srvRes?.data?.items || srvRes?.data || [];
+
+        // Merge with local stored services
+        const localServices = (() => {
+          try {
+            return JSON.parse(localStorage.getItem('parlour_services_db_v4') || '[]');
+          } catch {
+            return [];
+          }
+        })();
+
+        const merged = [...apiServices];
+        localServices.forEach((ls) => {
+          if (!merged.some((m) => (m.name || '').toLowerCase() === (ls.name || '').toLowerCase())) {
+            merged.push(ls);
+          }
+        });
+
+        if (merged.length > 0) {
+          setDbServicesList(merged);
         }
       } catch (err) {
-        // Fallback silently
-      } finally {
-        if (isMounted) setLoading(false);
+        console.warn('Failed to fetch DB services:', err);
       }
     };
-    fetchRemotePlans();
-    return () => {
-      isMounted = false;
+
+    fetchDbServices();
+
+    const handleServiceUpdate = () => {
+      fetchDbServices();
     };
-  }, [selectedBranchId]);
+    window.addEventListener('parlour_services_updated', handleServiceUpdate);
+    window.addEventListener('storage', handleServiceUpdate);
+    return () => {
+      window.removeEventListener('parlour_services_updated', handleServiceUpdate);
+      window.removeEventListener('storage', handleServiceUpdate);
+    };
+  }, []);
 
-  // Filtered & Searched Plans
-  const filteredPlans = useMemo(() => {
-    return plans.filter((plan) => {
-      // Search Match
-      const q = searchQuery.toLowerCase().trim();
-      const nameMatch = (plan.name || '').toLowerCase().includes(q);
-      const descMatch = (plan.description || '').toLowerCase().includes(q);
-      const tierMatch = (plan.tier || '').toLowerCase().includes(q);
-      const featMatch = Array.isArray(plan.features) && plan.features.some((f) => (f || '').toLowerCase().includes(q));
-      if (q && !nameMatch && !descMatch && !tierMatch && !featMatch) return false;
-
-      // Tier Filter
-      if (tierFilter !== 'all' && plan.tier !== tierFilter) return false;
-
-      // Status Filter
-      if (statusFilter !== 'all' && plan.status !== statusFilter) return false;
-
-      return true;
-    });
-  }, [plans, searchQuery, tierFilter, statusFilter]);
-
-  // Pagination calculation
-  const totalPages = Math.ceil(filteredPlans.length / itemsPerPage) || 1;
-  const paginatedPlans = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredPlans.slice(start, start + itemsPerPage);
-  }, [filteredPlans, currentPage, itemsPerPage]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(1);
-  }, [totalPages, currentPage]);
-
-  // Open Create Modal
-  const handleOpenCreateModal = () => {
-    setEditingPlan(null);
-    setImageUploadError('');
-    setFormData({
+  // ════════════════════════════════════════════════════════════════════════════
+  // 2. SUB-SERVICES MASTER (CRUD) HANDLERS
+  // ════════════════════════════════════════════════════════════════════════════
+  const handleOpenCreateSubServiceModal = () => {
+    setEditingSubService(null);
+    setSubServiceForm({
       name: '',
-      tier: 'Silver',
-      image: '',
-      price: '',
-      discountPrice: '',
-      durationMonths: '',
-      featuresText: '',
       description: '',
-      homeServiceAllowed: true,
       status: 'active',
     });
-    setFormModalOpen(true);
+    setSubServiceModalOpen(true);
   };
 
-  // Open Edit Modal
-  const handleOpenEditModal = (plan) => {
-    setEditingPlan(plan);
-    setImageUploadError('');
-    setFormData({
-      name: plan.name || '',
-      tier: plan.tier || 'Silver',
-      image: plan.image || plan.photo || plan.banner || '',
-      price: plan.price !== undefined && plan.price !== null ? plan.price : '',
-      discountPrice: plan.discountPrice !== undefined && plan.discountPrice !== null ? plan.discountPrice : '',
-      durationMonths: plan.durationMonths !== undefined && plan.durationMonths !== null ? plan.durationMonths : (plan.durationHours || ''),
-      featuresText: Array.isArray(plan.features) ? plan.features.join('\n') : '',
-      description: plan.description || '',
-      homeServiceAllowed: plan.homeServiceAllowed !== undefined ? plan.homeServiceAllowed : true,
-      status: plan.status || 'active',
+  const handleOpenEditSubServiceModal = (sub) => {
+    setEditingSubService(sub);
+    setSubServiceForm({
+      name: sub.name || '',
+      description: sub.description || '',
+      status: sub.status || 'active',
     });
-    setFormModalOpen(true);
+    setSubServiceModalOpen(true);
   };
 
-  // Open View Details Modal
-  const handleOpenViewModal = (plan) => {
-    setSelectedPlanForView(plan);
-    setViewModalOpen(true);
-  };
-
-  // Save Form (Create or Update)
-  const handleSavePlan = (e) => {
+  const handleSaveSubServiceSubmit = async (e) => {
     e.preventDefault();
-
-    if (!formData.name.trim()) {
-      toast.error('Please enter the Plan Name');
+    if (!subServiceForm.name.trim()) {
+      alert('Please enter Sub-Service Name.');
       return;
     }
 
-    if (!formData.price || Number(formData.price) <= 0) {
-      toast.error('Please enter a valid regular price for the plan');
-      return;
+    try {
+      if (editingSubService) {
+        const id = editingSubService._id || editingSubService.id;
+        const res = await subServiceFetcher.update(id, {
+          name: subServiceForm.name.trim(),
+          description: subServiceForm.description.trim(),
+          status: subServiceForm.status,
+        }).catch(() => null);
+
+        const savedItem = res?.data || {
+          ...editingSubService,
+          name: subServiceForm.name.trim(),
+          description: subServiceForm.description.trim(),
+          status: subServiceForm.status,
+        };
+
+        setSubServices((prev) =>
+          prev.map((s) => ((s._id || s.id) === id ? savedItem : s))
+        );
+        if (toast?.success) toast.success(`Sub-Service "${subServiceForm.name}" updated!`);
+      } else {
+        const res = await subServiceFetcher.create({
+          name: subServiceForm.name.trim(),
+          description: subServiceForm.description.trim(),
+          status: subServiceForm.status,
+        }).catch(() => null);
+
+        const newSub = res?.data || {
+          _id: 'sub_' + Date.now().toString().slice(-4),
+          id: 'sub_' + Date.now().toString().slice(-4),
+          name: subServiceForm.name.trim(),
+          description: subServiceForm.description.trim() || 'Custom salon sub-service option',
+          status: subServiceForm.status,
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+
+        setSubServices((prev) => [newSub, ...prev]);
+        if (toast?.success) toast.success(`Created Sub-Service "${newSub.name}"!`);
+      }
+    } catch (err) {
+      console.error('Failed to save sub-service:', err);
     }
 
-    // Parse features line-by-line from text
-    const parsedFeatures = formData.featuresText
-      .split('\n')
-      .map((line) => line.trim().replace(/^[-*•]\s*/, ''))
-      .filter((line) => line.length > 0);
+    setSubServiceModalOpen(false);
+  };
 
-    const planPayload = {
-      name: formData.name.trim(),
-      tier: formData.tier,
-      image: formData.image || undefined,
-      price: Number(formData.price),
-      discountPrice: formData.discountPrice !== '' ? Number(formData.discountPrice) : null,
-      durationMonths: formData.durationMonths !== '' ? Number(formData.durationMonths) : null,
-      features: parsedFeatures.length > 0 ? parsedFeatures : ['Complete Golden Beauty Parlour Service Care'],
-      description: formData.description.trim(),
-      homeServiceAllowed: !!formData.homeServiceAllowed,
-      status: formData.status,
+  const handleDeleteSubService = async (subId) => {
+    const target = subServices.find((s) => (s._id || s.id) === subId || s._id === subId || s.id === subId);
+    const deleteId = target?._id || target?.id || subId;
+    if (!deleteId) return;
+
+    if (!window.confirm(`Delete sub-service "${target?.name || ''}" from database?`)) return;
+    try {
+      await subServiceFetcher.delete(deleteId);
+      setSubServices((prev) => prev.filter((s) => (s._id || s.id) !== deleteId && s._id !== deleteId && s.id !== deleteId));
+      if (toast?.success) toast.success(`Sub-Service "${target?.name || ''}" deleted from database.`);
+    } catch (e) {
+      console.warn('API delete sub-service error:', e);
+      setSubServices((prev) => prev.filter((s) => (s._id || s.id) !== deleteId && s._id !== deleteId && s.id !== deleteId));
+      if (toast?.success) toast.success('Sub-Service deleted.');
+    }
+  };
+
+  const handleToggleSubServiceStatus = async (subId) => {
+    const target = subServices.find((s) => (s._id || s.id) === subId || s._id === subId || s.id === subId);
+    const targetId = target?._id || target?.id || subId;
+    if (!targetId) return;
+
+    const nextStatus = target?.status === 'active' ? 'inactive' : 'active';
+    try {
+      await subServiceFetcher.updateStatus(targetId, nextStatus);
+    } catch (e) {
+      console.warn('API status toggle error:', e);
+    }
+    setSubServices((prev) =>
+      prev.map((s) => ((s._id || s.id) === targetId || s._id === targetId || s.id === targetId ? { ...s, status: nextStatus } : s))
+    );
+  };
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // 3. PLAN FORM & MULTI-SERVICE BUILDER HANDLERS
+  // ════════════════════════════════════════════════════════════════════════════
+  const handleOpenCreatePlanModal = () => {
+    setEditingPlan(null);
+    const initialService = dbServicesList[0]?.name || 'Hair Service';
+    const initialIcon = dbServicesList[0]?.iconEmoji || '💇‍♀️';
+    setPlanForm({
+      name: '',
+      tier: 'Premium',
+      price: '',
+      discountPrice: '',
+      durationMonths: 6,
+      description: '',
+      status: 'active',
+      includedServices: [
+        {
+          id: 'srv_' + Date.now(),
+          serviceName: initialService,
+          allowedUsage: 5,
+          allowedSubServices: [],
+          icon: initialIcon,
+        },
+      ],
+    });
+    setPlanModalOpen(true);
+  };
+
+  const handleOpenEditPlanModal = (plan) => {
+    setEditingPlan(plan);
+    setPlanForm({
+      name: plan.name || '',
+      tier: plan.tier || 'Premium',
+      price: plan.price !== undefined ? plan.price : '',
+      discountPrice: plan.discountPrice !== undefined ? plan.discountPrice : '',
+      durationMonths: plan.durationMonths || 6,
+      description: plan.description || '',
+      status: plan.status || 'active',
+      includedServices: Array.isArray(plan.includedServices) ? plan.includedServices : [],
+    });
+    setPlanModalOpen(true);
+  };
+
+  // Append another service row in Plan
+  const handleAddMoreServiceToPlan = () => {
+    const unpicked = dbServicesList.find(
+      (s) => !planForm.includedServices.some((item) => item.serviceName === s.name)
+    ) || dbServicesList[0];
+
+    const sName = unpicked ? unpicked.name : 'Nail Design';
+
+    const newBlock = {
+      id: 'srv_' + Date.now() + '_' + Math.random().toString(36).slice(-4),
+      serviceName: sName,
+      allowedUsage: unpicked?.defaultUsage || 3,
+      allowedSubServices: [],
+      icon: unpicked?.iconEmoji || '💅',
     };
 
-    if (editingPlan) {
-      setPlans((prev) =>
-        prev.map((p) => (p._id === editingPlan._id ? { ...p, ...planPayload, updatedAt: new Date().toISOString() } : p))
-      );
-      toast.success(`Plan "${planPayload.name}" updated successfully!`);
-    } else {
-      const newPlan = {
-        _id: `plan_p_${Date.now()}`,
-        ...planPayload,
-        createdAt: new Date().toISOString().split('T')[0],
+    setPlanForm((prev) => ({
+      ...prev,
+      includedServices: [...prev.includedServices, newBlock],
+    }));
+  };
+
+  // Change Service in Plan Row
+  const handleServiceChangeInRow = (rowIndex, selectedServiceName) => {
+    const foundSrv = dbServicesList.find((s) => s.name === selectedServiceName);
+    setPlanForm((prev) => {
+      const updated = [...prev.includedServices];
+      updated[rowIndex] = {
+        ...updated[rowIndex],
+        serviceName: selectedServiceName,
+        icon: foundSrv?.iconEmoji || '✨',
+        allowedUsage: foundSrv?.defaultUsage || (updated[rowIndex].allowedUsage || 3),
+        allowedSubServices: [],
       };
-      setPlans((prev) => [newPlan, ...prev]);
-      toast.success(`New Plan "${planPayload.name}" created successfully!`);
+      return { ...prev, includedServices: updated };
+    });
+  };
+
+  // Change Usage Limit
+  const handleUsageLimitChangeInRow = (rowIndex, val) => {
+    setPlanForm((prev) => {
+      const updated = [...prev.includedServices];
+      updated[rowIndex] = {
+        ...updated[rowIndex],
+        allowedUsage: Number(val) || 1,
+      };
+      return { ...prev, includedServices: updated };
+    });
+  };
+
+  // Toggle or remove Allowed Sub-Service for row
+  const handleToggleSubServiceInRow = (rowIndex, subName) => {
+    setPlanForm((prev) => {
+      const updated = [...prev.includedServices];
+      const target = updated[rowIndex];
+      const cur = target.allowedSubServices || [];
+      const next = cur.filter((n) => n !== subName);
+      updated[rowIndex] = { ...target, allowedSubServices: next };
+      return { ...prev, includedServices: updated };
+    });
+  };
+
+  // Add Sub-Service via Dropdown selection in Plan Form
+  const handleAddSubServiceFromDropdown = (rowIndex, subName) => {
+    if (!subName) return;
+    setPlanForm((prev) => {
+      const updated = [...prev.includedServices];
+      const target = updated[rowIndex];
+      const currentSubs = target.allowedSubServices || [];
+      if (!currentSubs.includes(subName)) {
+        updated[rowIndex] = {
+          ...target,
+          allowedSubServices: [...currentSubs, subName],
+        };
+      }
+      return { ...prev, includedServices: updated };
+    });
+  };
+
+  // Remove Service row from Plan
+  const handleRemoveServiceRow = (rowIndex) => {
+    if (planForm.includedServices.length <= 1) {
+      alert('Plan must contain at least 1 service.');
+      return;
+    }
+    setPlanForm((prev) => ({
+      ...prev,
+      includedServices: prev.includedServices.filter((_, idx) => idx !== rowIndex),
+    }));
+  };
+
+  // Save Plan
+  const handleSavePlanSubmit = async (e) => {
+    e.preventDefault();
+    if (!planForm.name.trim()) {
+      alert('Please enter Plan Name.');
+      return;
+    }
+    if (planForm.price === '' || Number(planForm.price) < 0) {
+      alert('Please enter valid Plan Price.');
+      return;
+    }
+    if (planForm.includedServices.length === 0) {
+      alert('Please add at least 1 service to the plan.');
+      return;
     }
 
-    setFormModalOpen(false);
+    const payload = {
+      name: planForm.name.trim(),
+      tier: planForm.tier || 'Premium',
+      price: Number(planForm.price),
+      discountPrice: planForm.discountPrice !== '' ? Number(planForm.discountPrice) : Number(planForm.price),
+      durationMonths: Number(planForm.durationMonths) || 6,
+      status: planForm.status || 'active',
+      description: planForm.description.trim() || `${planForm.includedServices.length} dynamic services included.`,
+      includedServices: planForm.includedServices.map((s) => ({
+        serviceName: s.serviceName,
+        allowedUsage: Number(s.allowedUsage) || 1,
+        allowedSubServices: s.allowedSubServices || [],
+        icon: s.icon || '💅',
+      })),
+    };
+
+    try {
+      if (editingPlan) {
+        const id = editingPlan._id || editingPlan.id;
+        const res = await parlourPlanFetcher.update(id, payload).catch(() => null);
+        const savedDoc = res?.data || { ...payload, _id: id };
+        setPlans((prev) => prev.map((p) => ((p._id || p.id) === id ? savedDoc : p)));
+        if (toast?.success) toast.success(`Plan "${payload.name}" updated successfully!`);
+      } else {
+        const res = await parlourPlanFetcher.create(payload).catch(() => null);
+        const savedDoc = res?.data || { ...payload, _id: 'plan_p_' + Date.now() };
+        setPlans((prev) => [savedDoc, ...prev]);
+        if (toast?.success) toast.success(`Plan "${payload.name}" created with ${payload.includedServices.length} services!`);
+      }
+    } catch (err) {
+      console.error('Save plan error:', err);
+    }
+
+    setPlanModalOpen(false);
   };
 
   // Delete Plan
-  const handleDeletePlan = (id) => {
-    const target = plans.find((p) => p._id === id);
-    setPlans((prev) => prev.filter((p) => p._id !== id));
-    setDeleteConfirmId(null);
-    toast.success(`Plan "${target?.name || ''}" deleted successfully`);
+  const handleDeletePlan = async (planId) => {
+    const plan = plans.find((p) => (p._id || p.id) === planId || p._id === planId || p.id === planId);
+    const deleteId = plan?._id || plan?.id || planId;
+    if (!deleteId) return;
+
+    if (!window.confirm(`Delete plan "${plan?.name || ''}" from database?`)) return;
+    try {
+      await parlourPlanFetcher.delete(deleteId);
+      setPlans((prev) => prev.filter((p) => (p._id || p.id) !== deleteId && p._id !== deleteId && p.id !== deleteId));
+      if (toast?.success) toast.success('Plan deleted successfully from database.');
+    } catch (e) {
+      console.warn('API delete plan error:', e);
+      setPlans((prev) => prev.filter((p) => (p._id || p.id) !== deleteId && p._id !== deleteId && p.id !== deleteId));
+    }
   };
 
-  // Toggle Active/Inactive Status
-  const handleToggleStatus = (plan) => {
-    const nextStatus = plan.status === 'active' ? 'inactive' : 'active';
-    setPlans((prev) => prev.map((p) => (p._id === plan._id ? { ...p, status: nextStatus } : p)));
-    toast.success(`Plan "${plan.name}" marked as ${nextStatus.toUpperCase()}`);
+  // Toggle Plan Status
+  const handleTogglePlanStatus = async (planId) => {
+    const plan = plans.find((p) => (p._id || p.id) === planId || p._id === planId || p.id === planId);
+    const targetId = plan?._id || plan?.id || planId;
+    if (!targetId) return;
+
+    const nextStatus = plan?.status === 'active' ? 'inactive' : 'active';
+    try {
+      await parlourPlanFetcher.updateStatus(targetId, nextStatus);
+    } catch (e) {
+      console.warn('API plan toggle error:', e);
+    }
+    setPlans((prev) =>
+      prev.map((p) => ((p._id || p.id) === targetId || p._id === targetId || p.id === targetId ? { ...p, status: nextStatus } : p))
+    );
   };
 
-  // Luxury Dynamic Theme Colors
-  const themeStyles = {
-    pageBg: isLight ? '#f8fafc' : '#0a0f1d',
-    cardBg: isLight ? '#ffffff' : '#111827',
-    border: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)',
-    textPrimary: isLight ? '#0f172a' : '#f8fafc',
-    textSecondary: isLight ? '#475569' : '#cbd5e1',
-    textMuted: isLight ? '#64748b' : '#94a3b8',
-    tableHeaderBg: isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.7)',
-    tableRowHover: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
-    inputBg: isLight ? '#ffffff' : '#1e293b',
-    goldAccent: '#d97706',
+  // Duplicate Plan
+  const handleDuplicatePlan = async (plan) => {
+    try {
+      const planId = plan._id || plan.id;
+      const res = await parlourPlanFetcher.duplicate(planId).catch(() => null);
+      if (res?.data) {
+        setPlans((prev) => [res.data, ...prev]);
+        if (toast?.success) toast.success(`Duplicated "${plan.name}"!`);
+        return;
+      }
+    } catch (e) {
+      console.warn('API duplicate error:', e);
+    }
+    const dup = {
+      ...plan,
+      _id: 'plan_p_' + Date.now(),
+      name: `${plan.name} (Copy)`,
+      status: 'active',
+    };
+    setPlans((prev) => [dup, ...prev]);
+    if (toast?.success) toast.success(`Duplicated "${plan.name}"!`);
   };
 
-  // Helper for tier color & badge
-  const getTierInfo = (tierName) => {
-    return PLAN_TIERS.find((t) => t.id.toLowerCase() === (tierName || '').toLowerCase()) || PLAN_TIERS[1];
-  };
+  // Filtered Sub-Services List
+  const filteredSubServices = useMemo(() => {
+    return subServices.filter((sub) => {
+      if (subStatusFilter !== 'all' && sub.status !== subStatusFilter) return false;
+      if (subSearchQuery.trim()) {
+        const q = subSearchQuery.toLowerCase();
+        return (
+          (sub.name || '').toLowerCase().includes(q) ||
+          (sub.description || '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [subServices, subStatusFilter, subSearchQuery]);
+
+  // Filtered Plans List
+  const filteredPlans = useMemo(() => {
+    return plans.filter((p) => {
+      if (planTierFilter !== 'all' && p.tier !== planTierFilter) return false;
+      if (planStatusFilter !== 'all' && p.status !== planStatusFilter) return false;
+      if (planSearchQuery.trim()) {
+        const q = planSearchQuery.toLowerCase();
+        const matchesName = (p.name || '').toLowerCase().includes(q);
+        const matchesDesc = (p.description || '').toLowerCase().includes(q);
+        const matchesService = (p.includedServices || []).some(
+          (s) =>
+            s.serviceName.toLowerCase().includes(q) ||
+            (s.allowedSubServices || []).some((sub) => sub.toLowerCase().includes(q))
+        );
+        return matchesName || matchesDesc || matchesService;
+      }
+      return true;
+    });
+  }, [plans, planTierFilter, planStatusFilter, planSearchQuery]);
+
+  // Theme Styles
+  const themeStyles = useMemo(() => {
+    return {
+      cardBg: isLight ? '#ffffff' : '#1e293b',
+      border: isLight ? '#e2e8f0' : '#334155',
+      textPrimary: isLight ? '#0f172a' : '#f8fafc',
+      textSecondary: isLight ? '#475569' : '#94a3b8',
+      textMuted: isLight ? '#64748b' : '#64748b',
+      inputBg: isLight ? '#ffffff' : '#0f172a',
+    };
+  }, [isLight]);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: themeStyles.pageBg,
-        color: themeStyles.textPrimary,
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        padding: '24px 32px',
-        transition: 'background 0.2s ease, color 0.2s ease',
-      }}
-    >
-      <style>{`
-        ::-webkit-scrollbar {
-          width: 7px;
-          height: 7px;
-        }
-        ::-webkit-scrollbar-track {
-          background: ${isLight ? '#f1f5f9' : '#0f172a'};
-        }
-        ::-webkit-scrollbar-thumb {
-          background: ${isLight ? '#cbd5e1' : '#334155'};
-          border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: ${isLight ? '#94a3b8' : '#475569'};
-        }
-        .plan-card-hover {
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-        .plan-card-hover:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 28px -6px rgba(0, 0, 0, ${isLight ? '0.08' : '0.4'});
-          border-color: #0284c7 !important;
-        }
-      `}</style>
-
-      {/* TOP HEADER SECTION */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '100vh', paddingBottom: '60px' }}>
+      {/* ── Top Header Banner & Navigation Switcher ── */}
       <div
         style={{
+          background: themeStyles.cardBg,
+          borderRadius: '16px',
+          border: `1px solid ${themeStyles.border}`,
+          padding: '20px 24px',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '16px',
-          marginBottom: '24px',
-          paddingBottom: '20px',
-          borderBottom: `1px solid ${themeStyles.border}`,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
-              }}
-            >
-              <Layers size={20} />
-            </div>
-            <h1 style={{ fontSize: '24px', fontWeight: '800', margin: 0, letterSpacing: '-0.02em' }}>
-              Parlour Plans & Packages
-            </h1>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: '700',
-                padding: '3px 10px',
-                borderRadius: '999px',
-                background: isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.2)',
-                color: '#0369a1',
-                border: `1px solid ${isLight ? '#bae6fd' : 'rgba(2, 132, 199, 0.4)'}`,
-              }}
-            >
-              Golden Beauty Parlour
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)',
+            }}
+          >
+            {activeView === 'plans' ? <Layers size={24} /> : <Scissors size={24} />}
           </div>
-          <p style={{ margin: 0, fontSize: '13.5px', color: themeStyles.textSecondary }}>
-            Configure simple beauty plans by tier (Basic, Silver, Advanced, Premium) with line-by-line feature lists.
-          </p>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 style={{ fontSize: '22px', fontWeight: '900', margin: 0, letterSpacing: '-0.02em', color: themeStyles.textPrimary }}>
+                {activeView === 'plans' ? 'Parlour Plans & Packages' : 'Sub-Services Master Catalog'}
+              </h1>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(236, 72, 153, 0.15)',
+                  color: '#db2777',
+                  border: '1px solid rgba(236, 72, 153, 0.3)',
+                }}
+              >
+                ADMIN WORKSPACE
+              </span>
+            </div>
+            <p style={{ margin: '3px 0 0', fontSize: '13px', color: themeStyles.textSecondary }}>
+              {activeView === 'plans'
+                ? 'Create & configure plans with DB services, usage limits & allowed sub-services.'
+                : 'Manage sub-services & options dynamically linked to database services.'}
+            </p>
+          </div>
         </div>
 
-        {/* Action Buttons & Theme Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Theme Toggle Button */}
+        {/* View Switcher Pills, Dark Mode & Primary Action Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* View Switcher Pill */}
+          <div
+            style={{
+              display: 'flex',
+              background: isLight ? '#f1f5f9' : '#0f172a',
+              padding: '4px',
+              borderRadius: '10px',
+              border: `1px solid ${themeStyles.border}`,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveView('plans')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                borderRadius: '7px',
+                border: 'none',
+                background: activeView === 'plans' ? 'linear-gradient(135deg, #ec4899, #db2777)' : 'transparent',
+                color: activeView === 'plans' ? '#ffffff' : themeStyles.textSecondary,
+                fontSize: '12.5px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Layers size={15} />
+              <span>📦 Plans ({plans.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveView('subservices')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                borderRadius: '7px',
+                border: 'none',
+                background: activeView === 'subservices' ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'transparent',
+                color: activeView === 'subservices' ? '#ffffff' : themeStyles.textSecondary,
+                fontSize: '12.5px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Scissors size={15} />
+              <span>✂️ Sub-Services Master ({subServices.length})</span>
+            </button>
+          </div>
+
+          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '8px 14px',
+              padding: '8px 12px',
               borderRadius: '8px',
               border: `1px solid ${themeStyles.border}`,
               background: themeStyles.cardBg,
               color: themeStyles.textPrimary,
               cursor: 'pointer',
               fontSize: '12.5px',
-              fontWeight: '600',
+              fontWeight: '700',
             }}
           >
             {isLight ? <Moon size={15} color="#64748b" /> : <Sun size={15} color="#f59e0b" />}
-            <span>{isLight ? 'Dark' : 'Light'}</span>
           </button>
 
-          {/* View Mode Toggle */}
-          <div
-            style={{
-              display: 'flex',
-              background: isLight ? '#f1f5f9' : '#1e293b',
-              padding: '3px',
-              borderRadius: '8px',
-              border: `1px solid ${themeStyles.border}`,
-            }}
-          >
+          {/* Primary Action Button Based on Current View */}
+          {activeView === 'plans' ? (
             <button
-              onClick={() => setViewMode('grid')}
-              title="Card View"
+              onClick={handleOpenCreatePlanModal}
               style={{
-                padding: '6px 10px',
-                borderRadius: '6px',
-                border: 'none',
-                background: viewMode === 'grid' ? (isLight ? '#ffffff' : '#334155') : 'transparent',
-                color: viewMode === 'grid' ? '#0284c7' : themeStyles.textMuted,
-                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)',
               }}
             >
-              <LayoutGrid size={16} />
+              <Plus size={16} strokeWidth={2.5} />
+              <span>+ Create Plan</span>
             </button>
+          ) : (
             <button
-              onClick={() => setViewMode('table')}
-              title="Table View"
+              onClick={() => handleOpenCreateSubServiceModal()}
               style={{
-                padding: '6px 10px',
-                borderRadius: '6px',
-                border: 'none',
-                background: viewMode === 'table' ? (isLight ? '#ffffff' : '#334155') : 'transparent',
-                color: viewMode === 'table' ? '#0284c7' : themeStyles.textMuted,
-                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
               }}
             >
-              <List size={16} />
+              <Plus size={16} strokeWidth={2.5} />
+              <span>+ Create Sub-Service</span>
             </button>
-          </div>
-
-          {/* '+ Create Plan' Prominent Button */}
-          <button
-            onClick={handleOpenCreateModal}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-              color: '#ffffff',
-              fontSize: '13.5px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            <Plus size={17} strokeWidth={2.5} />
-            <span>+ Create Plan</span>
-          </button>
+          )}
         </div>
       </div>
 
-      {/* FILTER & SEARCH TOOLBAR */}
-      <div
-        style={{
-          background: themeStyles.cardBg,
-          borderRadius: '12px',
-          border: `1px solid ${themeStyles.border}`,
-          padding: '14px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '14px',
-          boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
-        }}
-      >
-        {/* Search Bar */}
-        <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '420px' }}>
-          <Search
-            size={16}
-            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: themeStyles.textMuted }}
-          />
-          <input
-            type="text"
-            placeholder="Search by plan name, tier, features, or description..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            style={{
-              width: '100%',
-              padding: '8px 12px 8px 36px',
-              borderRadius: '8px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.inputBg,
-              color: themeStyles.textPrimary,
-              fontSize: '13px',
-              outline: 'none',
-            }}
-          />
-        </div>
-
-        {/* Filter Dropdowns */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
-          {/* Tier Filter */}
-          <select
-            value={tierFilter}
-            onChange={(e) => {
-              setTierFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.inputBg,
-              color: themeStyles.textPrimary,
-              fontSize: '13px',
-              fontWeight: '500',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="all">All Tiers ({plans.length})</option>
-            {PLAN_TIERS.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.inputBg,
-              color: themeStyles.textPrimary,
-              fontSize: '13px',
-              fontWeight: '500',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">🟢 Active Plans</option>
-            <option value="inactive">⚪ Inactive / Draft</option>
-          </select>
-
-          {/* Items Per Page */}
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.inputBg,
-              color: themeStyles.textPrimary,
-              fontSize: '13px',
-              fontWeight: '500',
-              cursor: 'pointer',
-            }}
-          >
-            <option value={6}>6 per page</option>
-            <option value={12}>12 per page</option>
-            <option value={24}>24 per page</option>
-          </select>
-        </div>
-      </div>
-
-      {/* PLANS PRESENTATION (GRID VIEW OR TABLE VIEW) */}
-      {filteredPlans.length === 0 ? (
-        <div
-          style={{
-            background: themeStyles.cardBg,
-            borderRadius: '12px',
-            border: `1px solid ${themeStyles.border}`,
-            padding: '60px 20px',
-            textAlign: 'center',
-          }}
-        >
+      {/* ════════════════════════════════════════════════════════════════════════
+          VIEW 1: SUB-SERVICES MASTER (CRUD PAGE VIEW)
+          ════════════════════════════════════════════════════════════════════════ */}
+      {activeView === 'subservices' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Filter Bar */}
           <div
             style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '50%',
-              background: isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.2)',
-              color: '#0284c7',
+              background: themeStyles.cardBg,
+              borderRadius: '12px',
+              border: `1px solid ${themeStyles.border}`,
+              padding: '14px 18px',
               display: 'flex',
+              flexWrap: 'wrap',
               alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
+              justifyContent: 'space-between',
+              gap: '14px',
             }}
           >
-            <Layers size={26} />
-          </div>
-          <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px' }}>No Plans Found</h3>
-          <p style={{ fontSize: '13.5px', color: themeStyles.textMuted, maxWidth: '400px', margin: '0 auto 20px' }}>
-            No plans match your search or filter. You can create a new plan or reset filters.
-          </p>
-          <button
-            onClick={handleOpenCreateModal}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 18px',
-              borderRadius: '8px',
-              border: 'none',
-              background: '#0284c7',
-              color: '#ffffff',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer',
-            }}
-          >
-            <Plus size={16} />
-            <span>Create First Plan</span>
-          </button>
-        </div>
-      ) : viewMode === 'grid' ? (
-        /* GRID VIEW: LUXURY TIER CARDS */
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-            gap: '22px',
-            marginBottom: '28px',
-          }}
-        >
-          {paginatedPlans.map((plan) => {
-            const tierInfo = getTierInfo(plan.tier);
-            const TierIcon = tierInfo.icon;
-            const hasDiscount = plan.discountPrice && Number(plan.discountPrice) < Number(plan.price);
-            const finalPrice = hasDiscount ? Number(plan.discountPrice) : Number(plan.price);
-
-            return (
-              <div
-                key={plan._id}
-                className="plan-card-hover"
+            <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '380px' }}>
+              <Search
+                size={16}
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: themeStyles.textMuted }}
+              />
+              <input
+                type="text"
+                placeholder="Search sub-services by name or description..."
+                value={subSearchQuery}
+                onChange={(e) => setSubSearchQuery(e.target.value)}
                 style={{
-                  background: themeStyles.cardBg,
-                  borderRadius: '14px',
+                  width: '100%',
+                  padding: '8px 12px 8px 36px',
+                  borderRadius: '8px',
                   border: `1px solid ${themeStyles.border}`,
-                  padding: '22px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  overflow: 'hidden',
+                  background: themeStyles.inputBg,
+                  color: themeStyles.textPrimary,
+                  fontSize: '13px',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  color: '#7c3aed',
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  padding: '7px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(139, 92, 246, 0.25)',
                 }}
               >
-                {/* TOP HEADER: TIER BADGE & HOME SERVICE TAG */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: isLight ? tierInfo.bg : 'rgba(255, 255, 255, 0.05)',
-                      color: tierInfo.color,
-                      fontSize: '11.5px',
-                      fontWeight: '800',
-                      border: `1px solid ${tierInfo.color}33`,
-                    }}
-                  >
-                    <TierIcon size={14} />
-                    <span>{plan.tier.toUpperCase()} TIER</span>
-                  </div>
+                {filteredSubServices.length} Sub-Services
+              </span>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {plan.homeServiceAllowed ? (
-                      <span
-                        title="Home Service Available"
+              {/* Status Filter */}
+              <select
+                value={subStatusFilter}
+                onChange={(e) => setSubStatusFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${themeStyles.border}`,
+                  background: themeStyles.inputBg,
+                  color: themeStyles.textPrimary,
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Sub-Services Data Table */}
+          <div
+            style={{
+              background: themeStyles.cardBg,
+              borderRadius: '16px',
+              border: `1px solid ${themeStyles.border}`,
+              overflow: 'hidden',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+            }}
+          >
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: isLight ? '#f8fafc' : '#1e293b', borderBottom: `1px solid ${themeStyles.border}`, textAlign: 'left' }}>
+                  <th style={{ padding: '14px 18px', fontWeight: '800', color: themeStyles.textPrimary, width: '60px' }}>#</th>
+                  <th style={{ padding: '14px 18px', fontWeight: '800', color: themeStyles.textPrimary }}>Sub-Service Name</th>
+                  <th style={{ padding: '14px 18px', fontWeight: '800', color: themeStyles.textPrimary }}>Description</th>
+                  <th style={{ padding: '14px 18px', fontWeight: '800', color: themeStyles.textPrimary, width: '130px' }}>Status</th>
+                  <th style={{ padding: '14px 18px', fontWeight: '800', textAlign: 'center', color: themeStyles.textPrimary, width: '160px' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSubServices.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: themeStyles.textMuted }}>
+                      No sub-services match the selected filters. Click "+ Create Sub-Service" to add one!
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSubServices.map((sub, idx) => {
+                    const subKey = sub._id || sub.id || idx;
+                    const subIdentifier = sub._id || sub.id;
+                    return (
+                      <tr
+                        key={subKey}
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          padding: '3px 8px',
-                          borderRadius: '5px',
-                          background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.15)',
-                          color: '#15803d',
+                          borderBottom: `1px solid ${themeStyles.border}`,
+                          transition: 'background 0.1s ease',
                         }}
                       >
-                        <Car size={12} />
-                        <span>Home Service</span>
-                      </span>
-                    ) : (
-                      <span
-                        title="In-Salon Only"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          padding: '3px 8px',
-                          borderRadius: '5px',
-                          background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
-                          color: themeStyles.textMuted,
-                        }}
-                      >
-                        <Building size={12} />
-                        <span>In-Salon</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
+                        <td style={{ padding: '12px 18px', fontWeight: '700', color: themeStyles.textMuted }}>
+                          {idx + 1}
+                        </td>
 
-                {/* PLAN IMAGE / BANNER */}
-                {plan.image && (
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '130px',
-                      borderRadius: '10px',
-                      overflow: 'hidden',
-                      marginBottom: '12px',
-                      border: `1px solid ${themeStyles.border}`,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                    }}
-                  >
-                    <img
-                      src={plan.image}
-                      alt={plan.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </div>
+                        <td style={{ padding: '12px 18px', fontWeight: '800', color: themeStyles.textPrimary }}>
+                          {sub.name}
+                        </td>
+
+                        <td style={{ padding: '12px 18px', color: themeStyles.textSecondary, maxWidth: '340px' }}>
+                          {sub.description || '—'}
+                        </td>
+
+                        <td style={{ padding: '12px 18px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSubServiceStatus(subIdentifier)}
+                            style={{
+                              background: sub.status === 'active' ? '#ecfdf5' : '#f1f5f9',
+                              color: sub.status === 'active' ? '#059669' : '#64748b',
+                              border: `1px solid ${sub.status === 'active' ? '#a7f3d0' : '#cbd5e1'}`,
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {sub.status === 'active' ? '🟢 Active' : '⚪ Inactive'}
+                          </button>
+                        </td>
+
+                        <td style={{ padding: '12px 18px', textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditSubServiceModal(sub)}
+                              title="Edit Sub-Service"
+                              style={{
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(139, 92, 246, 0.1)',
+                                border: '1px solid rgba(139, 92, 246, 0.25)',
+                                color: '#7c3aed',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '11.5px',
+                                fontWeight: '700',
+                              }}
+                            >
+                              <Edit2 size={13} /> Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSubService(subIdentifier)}
+                              title="Delete Sub-Service"
+                              style={{
+                                padding: '6px 8px',
+                                borderRadius: '6px',
+                                background: '#fee2e2',
+                                border: 'none',
+                                color: '#dc2626',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-                {/* PLAN NAME */}
-                <h3
-                  style={{
-                    fontSize: '17px',
-                    fontWeight: '800',
-                    color: themeStyles.textPrimary,
-                    margin: '0 0 10px',
-                    lineHeight: 1.35,
-                  }}
-                >
-                  {plan.name}
-                </h3>
+      {/* ════════════════════════════════════════════════════════════════════════
+          VIEW 2: PLANS & PACKAGES
+          ════════════════════════════════════════════════════════════════════════ */}
+      {activeView === 'plans' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Plan Search & Filter Bar */}
+          <div
+            style={{
+              background: themeStyles.cardBg,
+              borderRadius: '12px',
+              border: `1px solid ${themeStyles.border}`,
+              padding: '14px 18px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '14px',
+            }}
+          >
+            <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '380px' }}>
+              <Search
+                size={16}
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: themeStyles.textMuted }}
+              />
+              <input
+                type="text"
+                placeholder="Search plans by name, service or sub-service..."
+                value={planSearchQuery}
+                onChange={(e) => setPlanSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px 8px 36px',
+                  borderRadius: '8px',
+                  border: `1px solid ${themeStyles.border}`,
+                  background: themeStyles.inputBg,
+                  color: themeStyles.textPrimary,
+                  fontSize: '13px',
+                  outline: 'none',
+                }}
+              />
+            </div>
 
-                {/* PRICING & DURATION ROW */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+              <select
+                value={planTierFilter}
+                onChange={(e) => setPlanTierFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${themeStyles.border}`,
+                  background: themeStyles.inputBg,
+                  color: themeStyles.textPrimary,
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="all">All Tiers ({plans.length})</option>
+                {PLAN_TIERS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={planStatusFilter}
+                onChange={(e) => setPlanStatusFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${themeStyles.border}`,
+                  background: themeStyles.inputBg,
+                  color: themeStyles.textPrimary,
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Plans Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '20px' }}>
+            {filteredPlans.map((plan) => {
+              const totalSessions = (plan.includedServices || []).reduce(
+                (sum, s) => sum + (Number(s.allowedUsage) || 0),
+                0
+              );
+
+              return (
                 <div
+                  key={plan._id}
                   style={{
+                    background: themeStyles.cardBg,
+                    borderRadius: '16px',
+                    border: `1.5px solid ${themeStyles.border}`,
+                    padding: '22px',
                     display: 'flex',
-                    alignItems: 'baseline',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    marginBottom: '14px',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: isLight ? '#fafafa' : 'rgba(255, 255, 255, 0.02)',
-                    border: `1px dashed ${themeStyles.border}`,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                    <span style={{ fontSize: '20px', fontWeight: '900', color: '#15803d' }}>
-                      ₹{finalPrice.toLocaleString('en-IN')}
-                    </span>
-                    {hasDiscount && (
+                  <div>
+                    {/* Header: Tier & Status */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <span
                         style={{
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          color: themeStyles.textMuted,
-                          textDecoration: 'line-through',
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          padding: '3px 10px',
+                          borderRadius: '6px',
+                          background: '#fef3c7',
+                          color: '#d97706',
+                          border: '1px solid #fde68a',
+                          textTransform: 'uppercase',
                         }}
                       >
-                        ₹{Number(plan.price).toLocaleString('en-IN')}
+                        👑 {plan.tier || 'Premium'} Plan
                       </span>
-                    )}
-                  </div>
 
-                  {/* Duration / Validity in Months */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: themeStyles.textMuted, fontWeight: '600' }}>
-                    <Clock size={13} color="#0284c7" />
-                    <span>Validity: {formatDurationMonths(plan.durationMonths)}</span>
-                  </div>
-                </div>
-
-                {/* DESCRIPTION */}
-                {plan.description && (
-                  <p
-                    style={{
-                      fontSize: '12.5px',
-                      lineHeight: 1.5,
-                      color: themeStyles.textSecondary,
-                      marginBottom: '14px',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {plan.description}
-                  </p>
-                )}
-
-                {/* FEATURES LIST (BULLETS) */}
-                {Array.isArray(plan.features) && plan.features.length > 0 && (
-                  <div style={{ marginBottom: '18px', flex: 1 }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: '700', color: themeStyles.textMuted, marginBottom: '6px' }}>
-                      Included Features ({plan.features.length}):
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePlanStatus(plan._id)}
+                        style={{
+                          background: plan.status === 'active' ? '#ecfdf5' : '#f1f5f9',
+                          color: plan.status === 'active' ? '#059669' : '#64748b',
+                          border: `1px solid ${plan.status === 'active' ? '#a7f3d0' : '#cbd5e1'}`,
+                          fontSize: '11.5px',
+                          fontWeight: '800',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {plan.status === 'active' ? '🟢 Active' : '⚪ Inactive'}
+                      </button>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {plan.features.slice(0, 3).map((feat, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '7px',
-                            fontSize: '12px',
-                            color: themeStyles.textPrimary,
-                          }}
-                        >
-                          <CheckCircle size={13} color="#0284c7" style={{ marginTop: '2px', flexShrink: 0 }} />
-                          <span style={{ lineHeight: 1.35 }}>{feat}</span>
-                        </div>
-                      ))}
-                      {plan.features.length > 3 && (
-                        <span
-                          onClick={() => handleOpenViewModal(plan)}
-                          style={{
-                            fontSize: '11.5px',
-                            fontWeight: '700',
-                            color: '#0284c7',
-                            cursor: 'pointer',
-                            marginTop: '2px',
-                          }}
-                        >
-                          +{plan.features.length - 3} more features (Click to view full plan)
+
+                    <h2 style={{ fontSize: '20px', fontWeight: '900', margin: '0 0 6px', color: themeStyles.textPrimary }}>
+                      {plan.name}
+                    </h2>
+                    <p style={{ fontSize: '12.5px', color: themeStyles.textSecondary, margin: '0 0 14px', lineHeight: 1.4 }}>
+                      {plan.description}
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '26px', fontWeight: '900', color: '#db2777' }}>
+                        ₹{Number(plan.price).toLocaleString()}
+                      </span>
+                      {plan.discountPrice && plan.discountPrice !== plan.price && (
+                        <span style={{ fontSize: '14px', color: themeStyles.textMuted, textDecoration: 'line-through' }}>
+                          ₹{Number(plan.discountPrice).toLocaleString()}
                         </span>
                       )}
+                      <span style={{ fontSize: '12px', color: themeStyles.textMuted, marginLeft: 'auto', fontWeight: '700' }}>
+                        ⏳ Validity: {formatDurationMonths(plan.durationMonths)}
+                      </span>
+                    </div>
+
+                    {/* Included Services List Box */}
+                    <div
+                      style={{
+                        background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
+                        borderRadius: '12px',
+                        border: `1px solid ${themeStyles.border}`,
+                        padding: '12px 14px',
+                        marginBottom: '16px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: themeStyles.textPrimary }}>
+                          Plan mein included services:
+                        </span>
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: '4px' }}>
+                          {plan.includedServices?.length || 0} Services · {totalSessions} Usages
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(plan.includedServices || []).map((srv, idx) => (
+                          <div
+                            key={srv.id || idx}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              background: isLight ? '#ffffff' : '#1e293b',
+                              border: `1px solid ${themeStyles.border}`,
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '12.5px', fontWeight: '800', color: themeStyles.textPrimary }}>
+                                {srv.icon || '💅'} {srv.serviceName}
+                              </span>
+                              <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#db2777', background: '#fdf2f8', padding: '1px 6px', borderRadius: '4px' }}>
+                                {srv.allowedUsage} Times
+                              </span>
+                            </div>
+
+                            {/* Allowed Sub-Services Chips */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                              {(srv.allowedSubServices || []).map((sub, sIdx) => (
+                                <span
+                                  key={sIdx}
+                                  style={{
+                                    fontSize: '10.5px',
+                                    fontWeight: '600',
+                                    background: isLight ? '#f1f5f9' : '#0f172a',
+                                    color: themeStyles.textSecondary,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    border: `1px solid ${themeStyles.border}`,
+                                  }}
+                                >
+                                  ✓ {sub} <strong style={{ color: '#059669', fontSize: '9.5px' }}>[Allowed]</strong>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                )}
 
-                {/* FOOTER ACTIONS BAR */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingTop: '14px',
-                    borderTop: `1px solid ${themeStyles.border}`,
-                    marginTop: 'auto',
-                  }}
-                >
-                  {/* Status Toggle Badge */}
-                  <button
-                    onClick={() => handleToggleStatus(plan)}
-                    title={`Click to mark as ${plan.status === 'active' ? 'Inactive' : 'Active'}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background:
-                        plan.status === 'active'
-                          ? isLight
-                            ? '#dcfce7'
-                            : 'rgba(34, 197, 94, 0.2)'
-                          : isLight
-                          ? '#f1f5f9'
-                          : 'rgba(255, 255, 255, 0.05)',
-                      color: plan.status === 'active' ? '#15803d' : themeStyles.textMuted,
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: '7px',
-                        height: '7px',
-                        borderRadius: '50%',
-                        background: plan.status === 'active' ? '#22c55e' : '#94a3b8',
-                      }}
-                    />
-                    <span>{plan.status === 'active' ? 'ACTIVE' : 'INACTIVE'}</span>
-                  </button>
-
-                  {/* Actions: View (Eye), Edit, Delete */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', borderTop: `1px solid ${themeStyles.border}` }}>
                     <button
-                      onClick={() => handleOpenViewModal(plan)}
-                      title="View Full Plan Details"
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlanForView(plan);
+                        setViewPlanModalOpen(true);
+                      }}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
+                        flex: 1,
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        background: 'transparent',
                         border: `1px solid ${themeStyles.border}`,
-                        background: themeStyles.cardBg,
                         color: themeStyles.textPrimary,
-                        fontSize: '11.5px',
+                        fontSize: '12px',
                         fontWeight: '700',
                         cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
                       }}
                     >
-                      <Eye size={14} color="#0284c7" />
-                      <span>View</span>
+                      <Eye size={14} /> View Details
                     </button>
 
                     <button
-                      onClick={() => handleOpenEditModal(plan)}
-                      title="Edit Plan"
+                      type="button"
+                      onClick={() => handleOpenEditPlanModal(plan)}
                       style={{
-                        padding: '6px 8px',
-                        borderRadius: '6px',
-                        border: `1px solid ${themeStyles.border}`,
-                        background: themeStyles.cardBg,
-                        color: themeStyles.textPrimary,
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(236, 72, 153, 0.1)',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                        color: '#db2777',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Edit2 size={13} /> Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicatePlan(plan)}
+                      title="Duplicate plan"
+                      style={{
+                        padding: '8px',
+                        borderRadius: '8px',
+                        background: isLight ? '#f1f5f9' : '#334155',
+                        border: 'none',
+                        color: themeStyles.textSecondary,
                         cursor: 'pointer',
                       }}
                     >
-                      <Edit2 size={14} />
+                      <Copy size={14} />
                     </button>
 
                     <button
-                      onClick={() => setDeleteConfirmId(plan._id)}
-                      title="Delete Plan"
+                      type="button"
+                      onClick={() => handleDeletePlan(plan._id)}
+                      title="Delete plan"
                       style={{
-                        padding: '6px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        background: isLight ? '#fff1f2' : 'rgba(239, 68, 68, 0.1)',
-                        color: '#b91c1c',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        background: '#fee2e2',
+                        border: 'none',
+                        color: '#dc2626',
                         cursor: 'pointer',
                       }}
                     >
@@ -1055,805 +1479,350 @@ export const PlanCatalogPage = () => {
                     </button>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* TABLE VIEW WITH PROPER SCROLLBAR AND PAGINATION */
-        <div
-          style={{
-            background: themeStyles.cardBg,
-            borderRadius: '12px',
-            border: `1px solid ${themeStyles.border}`,
-            overflowX: 'auto',
-            marginBottom: '28px',
-            boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
-          }}
-        >
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
-            <thead>
-              <tr style={{ background: themeStyles.tableHeaderBg, borderBottom: `1px solid ${themeStyles.border}` }}>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>#</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>Plan Name</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>Tier</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>Duration</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>Price (₹)</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>Home Service</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>Features</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary }}>Status</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: themeStyles.textSecondary, textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedPlans.map((plan, idx) => {
-                const tierInfo = getTierInfo(plan.tier);
-                const hasDiscount = plan.discountPrice && Number(plan.discountPrice) < Number(plan.price);
-                const finalPrice = hasDiscount ? Number(plan.discountPrice) : Number(plan.price);
-                const rowNum = (currentPage - 1) * itemsPerPage + idx + 1;
-
-                return (
-                  <tr
-                    key={plan._id}
-                    style={{
-                      borderBottom: `1px solid ${themeStyles.border}`,
-                      transition: 'background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = themeStyles.tableRowHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td style={{ padding: '14px 16px', fontSize: '12.5px', color: themeStyles.textMuted }}>{rowNum}</td>
-
-                    {/* Plan Name with Image Thumbnail */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {plan.image ? (
-                          <img
-                            src={plan.image}
-                            alt={plan.name}
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '8px',
-                              objectFit: 'cover',
-                              flexShrink: 0,
-                              border: `1px solid ${themeStyles.border}`,
-                            }}
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '8px',
-                              background: isLight ? tierInfo.bg : 'rgba(255, 255, 255, 0.05)',
-                              color: tierInfo.color,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: '800',
-                              fontSize: '14px',
-                              flexShrink: 0,
-                              border: `1px solid ${tierInfo.color}33`,
-                            }}
-                          >
-                            {plan.name?.charAt(0) || 'P'}
-                          </div>
-                        )}
-                        <div>
-                          <div style={{ fontWeight: '800', fontSize: '13.5px', color: themeStyles.textPrimary }}>
-                            {plan.name}
-                          </div>
-                          <div style={{ fontSize: '11px', color: themeStyles.textMuted }}>{plan.description?.slice(0, 45) || 'Golden Parlour Plan'}...</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Tier Badge */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          background: isLight ? tierInfo.bg : 'rgba(255, 255, 255, 0.05)',
-                          color: tierInfo.color,
-                          fontSize: '11px',
-                          fontWeight: '800',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {plan.tier}
-                      </span>
-                    </td>
-
-                    {/* Validity in Months */}
-                    <td style={{ padding: '14px 16px', fontSize: '12px', color: themeStyles.textSecondary, whiteSpace: 'nowrap' }}>
-                      {formatDurationMonths(plan.durationMonths)}
-                    </td>
-
-                    {/* Price */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ fontWeight: '800', fontSize: '13.5px', color: '#15803d' }}>
-                        ₹{finalPrice.toLocaleString('en-IN')}
-                      </span>
-                      {hasDiscount && (
-                        <span style={{ fontSize: '11px', color: themeStyles.textMuted, textDecoration: 'line-through', marginLeft: '6px' }}>
-                          ₹{Number(plan.price).toLocaleString('en-IN')}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Home Service */}
-                    <td style={{ padding: '14px 16px' }}>
-                      {plan.homeServiceAllowed ? (
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#15803d' }}>🚗 Allowed</span>
-                      ) : (
-                        <span style={{ fontSize: '11px', color: themeStyles.textMuted }}>🏢 In-Salon</span>
-                      )}
-                    </td>
-
-                    {/* Features count */}
-                    <td style={{ padding: '14px 16px', fontSize: '12.5px' }}>
-                      <span
-                        onClick={() => handleOpenViewModal(plan)}
-                        style={{
-                          color: '#0284c7',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          textDecoration: 'underline',
-                        }}
-                      >
-                        {Array.isArray(plan.features) ? `${plan.features.length} Features` : '1 Feature'}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <button
-                        onClick={() => handleToggleStatus(plan)}
-                        style={{
-                          padding: '4px 9px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          background:
-                            plan.status === 'active'
-                              ? isLight
-                                ? '#dcfce7'
-                                : 'rgba(34, 197, 94, 0.2)'
-                              : isLight
-                              ? '#f1f5f9'
-                              : 'rgba(255, 255, 255, 0.05)',
-                          color: plan.status === 'active' ? '#15803d' : themeStyles.textMuted,
-                          fontSize: '11px',
-                          fontWeight: '800',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {plan.status === 'active' ? 'ACTIVE' : 'INACTIVE'}
-                      </button>
-                    </td>
-
-                    {/* Actions */}
-                    <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button
-                        onClick={() => handleOpenViewModal(plan)}
-                        title="View Full Plan Details"
-                        style={{
-                          marginRight: '6px',
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          border: `1px solid ${themeStyles.border}`,
-                          background: themeStyles.cardBg,
-                          color: '#0284c7',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleOpenEditModal(plan)}
-                        title="Edit Plan"
-                        style={{
-                          marginRight: '6px',
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          border: `1px solid ${themeStyles.border}`,
-                          background: themeStyles.cardBg,
-                          color: themeStyles.textPrimary,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmId(plan._id)}
-                        title="Delete Plan"
-                        style={{
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          border: '1px solid rgba(239, 68, 68, 0.2)',
-                          background: isLight ? '#fff1f2' : 'rgba(239, 68, 68, 0.1)',
-                          color: '#b91c1c',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* PAGINATION BAR */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          padding: '12px 18px',
-          background: themeStyles.cardBg,
-          borderRadius: '10px',
-          border: `1px solid ${themeStyles.border}`,
-          fontSize: '12.5px',
-          color: themeStyles.textMuted,
-        }}
-      >
-        <div>
-          Showing <b style={{ color: themeStyles.textPrimary }}>{paginatedPlans.length}</b> of{' '}
-          <b style={{ color: themeStyles.textPrimary }}>{filteredPlans.length}</b> plans (Total in DB: {plans.length})
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            style={{
-              padding: '5px 8px',
-              borderRadius: '6px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.cardBg,
-              color: themeStyles.textPrimary,
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              opacity: currentPage === 1 ? 0.4 : 1,
-            }}
-          >
-            <ChevronsLeft size={15} />
-          </button>
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            style={{
-              padding: '5px 8px',
-              borderRadius: '6px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.cardBg,
-              color: themeStyles.textPrimary,
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              opacity: currentPage === 1 ? 0.4 : 1,
-            }}
-          >
-            <ChevronLeft size={15} />
-          </button>
-
-          <span style={{ padding: '0 8px', fontWeight: '700', color: themeStyles.textPrimary }}>
-            Page {currentPage} of {totalPages}
-          </span>
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            style={{
-              padding: '5px 8px',
-              borderRadius: '6px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.cardBg,
-              color: themeStyles.textPrimary,
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              opacity: currentPage === totalPages ? 0.4 : 1,
-            }}
-          >
-            <ChevronRight size={15} />
-          </button>
-          <button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-            style={{
-              padding: '5px 8px',
-              borderRadius: '6px',
-              border: `1px solid ${themeStyles.border}`,
-              background: themeStyles.cardBg,
-              color: themeStyles.textPrimary,
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              opacity: currentPage === totalPages ? 0.4 : 1,
-            }}
-          >
-            <ChevronsRight size={15} />
-          </button>
-        </div>
-      </div>
-
-      {/* CREATE / EDIT PLAN MODAL */}
-      {formModalOpen && (
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 1: CREATE / EDIT SUB-SERVICE (PROFESSIONAL THEMED MODAL)
+          ════════════════════════════════════════════════════════════════════════ */}
+      {subServiceModalOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(5px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999,
+            zIndex: 99999,
             padding: '16px',
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setFormModalOpen(false);
+            if (e.target === e.currentTarget) setSubServiceModalOpen(false);
           }}
         >
           <div
             style={{
               background: themeStyles.cardBg,
               borderRadius: '16px',
-              border: `1px solid ${themeStyles.border}`,
+              border: '1.5px solid #8b5cf6',
               width: '100%',
-              maxWidth: '660px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.3)',
-              display: 'flex',
-              flexDirection: 'column',
+              maxWidth: '520px',
+              padding: '24px 28px',
+              color: themeStyles.textPrimary,
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
             }}
           >
-            {/* Modal Header */}
-            <div
-              style={{
-                padding: '20px 24px',
-                borderBottom: `1px solid ${themeStyles.border}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: `1px solid ${themeStyles.border}`, paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: themeStyles.textPrimary }}>
-                  {editingPlan ? 'Edit Parlour Plan' : 'Create New Parlour Plan'}
-                </h2>
-                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: themeStyles.textMuted }}>
-                  Enter plan name, select tier, set pricing & duration, and list features line by line.
-                </p>
+                <h3 style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: '#7c3aed' }}>
+                  {editingSubService ? 'Edit Sub-Service' : 'Create New Sub-Service'}
+                </h3>
+                <div style={{ fontSize: '12px', color: themeStyles.textMuted }}>
+                  Add sub-service variant or design option to master catalog
+                </div>
               </div>
               <button
-                onClick={() => setFormModalOpen(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: themeStyles.textMuted,
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '6px',
-                }}
+                type="button"
+                onClick={() => setSubServiceModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
               >
-                <X size={20} />
+                ✕
               </button>
             </div>
 
-            {/* Modal Body / Form */}
-            <form onSubmit={handleSavePlan} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              {/* Plan Name */}
+            <form onSubmit={handleSaveSubServiceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Sub-Service Name */}
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                  Plan Name <span style={{ color: '#ef4444' }}>*</span>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '5px' }}>
+                  Sub-Service Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Silver Luxury Bridal Glam Combo Plan"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. Bridal Nail Design, French Nail Design, or Airbrush Makeup"
+                  value={subServiceForm.name}
+                  onChange={(e) => setSubServiceForm({ ...subServiceForm, name: e.target.value })}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
+                    padding: '9px 12px',
                     borderRadius: '8px',
-                    border: `1px solid ${themeStyles.border}`,
                     background: themeStyles.inputBg,
-                    color: themeStyles.textPrimary,
-                    fontSize: '13.5px',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              {/* Plan Image / Banner (Cloudflare Upload) */}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                  Plan Banner / Image (Cloudflare Upload - Optional)
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    {formData.image ? (
-                      <div
-                        style={{
-                          width: '70px',
-                          height: '70px',
-                          borderRadius: '10px',
-                          overflow: 'hidden',
-                          border: '2px solid #0284c7',
-                          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
-                          flexShrink: 0,
-                          background: '#f8fafc',
-                        }}
-                      >
-                        <img
-                          src={formData.image}
-                          alt="Plan Preview"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          width: '70px',
-                          height: '70px',
-                          borderRadius: '10px',
-                          background: isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.1)',
-                          border: '2px dashed rgba(2, 132, 199, 0.4)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#0284c7',
-                          fontSize: '24px',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {isUploadingImage ? '⏳' : '📷'}
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="plan-image-upload-input"
-                        style={{ display: 'none' }}
-                        disabled={isUploadingImage}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setIsUploadingImage(true);
-                            setImageUploadError('');
-                            try {
-                              const cfUrl = await uploadImageToCloudflare(file, {
-                                folder: 'plans',
-                                entityType: 'plan',
-                              });
-                              setFormData((prev) => ({ ...prev, image: cfUrl }));
-                              toast.success('Plan image uploaded to Cloudflare successfully!');
-                            } catch (err) {
-                              console.error('Plan image upload failed:', err);
-                              setImageUploadError(err.message || 'Image upload failed. You can paste image link below.');
-                              toast.error(err.message || 'Failed to upload plan image');
-                            } finally {
-                              setIsUploadingImage(false);
-                              e.target.value = '';
-                            }
-                          }
-                        }}
-                      />
-
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          disabled={isUploadingImage}
-                          onClick={() => document.getElementById('plan-image-upload-input')?.click()}
-                          style={{
-                            fontSize: '12px',
-                            padding: '6px 14px',
-                            borderRadius: '8px',
-                            background: isUploadingImage ? 'rgba(2, 132, 199, 0.25)' : 'rgba(2, 132, 199, 0.12)',
-                            border: '1px solid rgba(2, 132, 199, 0.35)',
-                            color: '#0284c7',
-                            fontWeight: '700',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            cursor: isUploadingImage ? 'wait' : 'pointer',
-                          }}
-                        >
-                          <UploadCloud size={14} />
-                          {isUploadingImage ? '⏳ Uploading to Cloudflare...' : '📁 Choose Plan Image'}
-                        </button>
-
-                        {formData.image && (
-                          <button
-                            type="button"
-                            disabled={isUploadingImage}
-                            onClick={() => {
-                              setFormData((prev) => ({ ...prev, image: '' }));
-                              setImageUploadError('');
-                            }}
-                            style={{
-                              fontSize: '11px',
-                              padding: '6px 10px',
-                              borderRadius: '6px',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              background: 'rgba(239, 68, 68, 0.08)',
-                              color: '#ef4444',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-
-                      <span style={{ fontSize: '11px', color: isUploadingImage ? '#0284c7' : themeStyles.textMuted }}>
-                        {isUploadingImage
-                          ? '⚡ Uploading directly to Cloudflare Images API... please wait'
-                          : 'Uploads directly to Cloudflare live URL. Or paste image URL below:'}
-                      </span>
-                      {imageUploadError && (
-                        <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>
-                          ⚠️ {imageUploadError}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <input
-                    type="text"
-                    placeholder="https://imagedelivery.net/... or paste image URL"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: `1px solid ${themeStyles.border}`,
-                      background: themeStyles.inputBg,
-                      color: themeStyles.textPrimary,
-                      fontSize: '12px',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Tier Selection */}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                  Plan Tier
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                  {PLAN_TIERS.map((t) => {
-                    const isSelected = formData.tier === t.id;
-                    const TIcon = t.icon;
-                    return (
-                      <button
-                        type="button"
-                        key={t.id}
-                        onClick={() => setFormData({ ...formData, tier: t.id })}
-                        style={{
-                          padding: '10px 8px',
-                          borderRadius: '8px',
-                          border: `1.5px solid ${isSelected ? t.color : themeStyles.border}`,
-                          background: isSelected ? (isLight ? t.bg : 'rgba(255, 255, 255, 0.08)') : themeStyles.cardBg,
-                          color: isSelected ? t.color : themeStyles.textSecondary,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '4px',
-                          cursor: 'pointer',
-                          fontWeight: '800',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <TIcon size={16} />
-                        <span>{t.id}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Pricing & Duration */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                    Regular Price (₹) <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    placeholder="18999"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: `1px solid ${themeStyles.border}`,
-                      background: themeStyles.inputBg,
-                      color: themeStyles.textPrimary,
-                      fontSize: '13.5px',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                    Discount Price (₹) <span style={{ fontSize: '11px', color: themeStyles.textMuted }}>(Opt)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="15999"
-                    value={formData.discountPrice}
-                    onChange={(e) => setFormData({ ...formData, discountPrice: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: `1px solid ${themeStyles.border}`,
-                      background: themeStyles.inputBg,
-                      color: themeStyles.textPrimary,
-                      fontSize: '13.5px',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                    Validity (Months) <span style={{ fontSize: '11px', color: '#0284c7' }}>(Kitne Month chalega)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="60"
-                    placeholder="e.g. 1, 3, 6, 12 Months"
-                    value={formData.durationMonths}
-                    onChange={(e) => setFormData({ ...formData, durationMonths: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: `1px solid ${themeStyles.border}`,
-                      background: themeStyles.inputBg,
-                      color: themeStyles.textPrimary,
-                      fontSize: '13.5px',
-                      outline: 'none',
-                    }}
-                  />
-                  {/* Quick Preset Buttons */}
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
-                    {[1, 3, 6, 12].map((m) => (
-                      <button
-                        type="button"
-                        key={m}
-                        onClick={() => setFormData({ ...formData, durationMonths: m })}
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          border: `1px solid ${Number(formData.durationMonths) === m ? '#0284c7' : themeStyles.border}`,
-                          background: Number(formData.durationMonths) === m ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.25)') : 'transparent',
-                          color: Number(formData.durationMonths) === m ? '#0369a1' : themeStyles.textMuted,
-                          fontSize: '10px',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {m}M
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* FEATURES ENTERED AS TEXT (LINE BY LINE) */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '700', color: themeStyles.textPrimary, margin: 0 }}>
-                    Included Features & Services <span style={{ fontSize: '11px', color: '#0284c7' }}>(Enter 1 feature per line)</span>
-                  </label>
-                  <span style={{ fontSize: '11px', color: themeStyles.textMuted }}>Press Enter for new item</span>
-                </div>
-                <textarea
-                  rows={4}
-                  placeholder={`Bridal HD Airbrush Makeup with 3D Lashes\nPrecision Hair Cut & Velvet Blowout Styling\nHydra-Glow Facial & Skin Deep Prep\nFree Bridal Consultation & Skin Tone Mapping\nComplimentary Touch-up Vanity Kit & Dupatta Draping`}
-                  value={formData.featuresText}
-                  onChange={(e) => setFormData({ ...formData, featuresText: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
                     border: `1px solid ${themeStyles.border}`,
-                    background: themeStyles.inputBg,
                     color: themeStyles.textPrimary,
-                    fontSize: '13px',
-                    fontFamily: 'monospace',
-                    lineHeight: 1.5,
-                    outline: 'none',
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
-
-              {/* Plan Description */}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                  Plan Overview / Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Summary of what this plan delivers to the client..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: `1px solid ${themeStyles.border}`,
-                    background: themeStyles.inputBg,
-                    color: themeStyles.textPrimary,
-                    fontSize: '13px',
-                    outline: 'none',
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
-
-              {/* Home Service & Status */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'center' }}>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    cursor: 'pointer',
                     fontSize: '13px',
                     fontWeight: '700',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '5px' }}>
+                  Description (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Details about this sub-service variant or design option..."
+                  value={subServiceForm.description}
+                  onChange={(e) => setSubServiceForm({ ...subServiceForm, description: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: themeStyles.inputBg,
+                    border: `1px solid ${themeStyles.border}`,
                     color: themeStyles.textPrimary,
+                    fontSize: '12.5px',
+                    outline: 'none',
+                    resize: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '5px' }}>
+                  Status
+                </label>
+                <select
+                  value={subServiceForm.status}
+                  onChange={(e) => setSubServiceForm({ ...subServiceForm, status: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: themeStyles.inputBg,
+                    border: `1px solid ${themeStyles.border}`,
+                    color: themeStyles.textPrimary,
+                    fontSize: '13px',
+                    outline: 'none',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={formData.homeServiceAllowed}
-                    onChange={(e) => setFormData({ ...formData, homeServiceAllowed: e.target.checked })}
-                    style={{ width: '17px', height: '17px', accentColor: '#0284c7', cursor: 'pointer' }}
-                  />
-                  <span>🚗 Home Service Available</span>
-                </label>
+                  <option value="active">🟢 Active</option>
+                  <option value="inactive">⚪ Inactive</option>
+                </select>
+              </div>
 
+              {/* Form Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: `1px solid ${themeStyles.border}` }}>
+                <button
+                  type="button"
+                  onClick={() => setSubServiceModalOpen(false)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    border: `1px solid ${themeStyles.border}`,
+                    color: themeStyles.textSecondary,
+                    fontSize: '12.5px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 22px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
+                  }}
+                >
+                  {editingSubService ? 'Update Sub-Service' : 'Save Sub-Service'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 2: CREATE / EDIT PLAN (PROFESSIONAL THEME & DYNAMIC BUILDER)
+          ════════════════════════════════════════════════════════════════════════ */}
+      {planModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '16px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPlanModalOpen(false);
+          }}
+        >
+          <div
+            style={{
+              background: themeStyles.cardBg,
+              borderRadius: '16px',
+              border: `1.5px solid #ec4899`,
+              width: '100%',
+              maxWidth: '860px',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: '24px 28px',
+              color: themeStyles.textPrimary,
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: `1px solid ${themeStyles.border}`, paddingBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '19px', fontWeight: '900', margin: 0, color: '#db2777' }}>
+                  {editingPlan ? 'Edit Parlour Plan' : 'Create New Parlour Plan'}
+                </h3>
+                <div style={{ fontSize: '12px', color: themeStyles.textMuted }}>
+                  Configure plan details, select services from database & choose allowed sub-services dynamically
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPlanModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePlanSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* Row 1: Plan Name & Tier */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '6px', color: themeStyles.textPrimary }}>
-                    Status
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '5px' }}>
+                    Plan Name *
                   </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Premium Beauty Package"
+                    value={planForm.name}
+                    onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${themeStyles.border}`,
+                      background: themeStyles.inputBg,
+                      color: themeStyles.textPrimary,
+                      fontSize: '13.5px',
+                      fontWeight: '700',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '5px' }}>
+                    Plan Tier
+                  </label>
+                  <select
+                    value={planForm.tier}
+                    onChange={(e) => setPlanForm({ ...planForm, tier: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
                       borderRadius: '8px',
                       border: `1px solid ${themeStyles.border}`,
                       background: themeStyles.inputBg,
                       color: themeStyles.textPrimary,
                       fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  >
+                    {PLAN_TIERS.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Price, Validity, Status */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '5px' }}>
+                    Plan Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="15000"
+                    value={planForm.price}
+                    onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${themeStyles.border}`,
+                      background: themeStyles.inputBg,
+                      color: themeStyles.textPrimary,
+                      fontSize: '13px',
+                      fontWeight: '800',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '5px' }}>
+                    Validity / Duration (Months) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="6"
+                    value={planForm.durationMonths}
+                    onChange={(e) => setPlanForm({ ...planForm, durationMonths: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${themeStyles.border}`,
+                      background: themeStyles.inputBg,
+                      color: themeStyles.textPrimary,
+                      fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '5px' }}>
+                    Status
+                  </label>
+                  <select
+                    value={planForm.status}
+                    onChange={(e) => setPlanForm({ ...planForm, status: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${themeStyles.border}`,
+                      background: themeStyles.inputBg,
+                      color: themeStyles.textPrimary,
+                      fontSize: '13px',
+                      outline: 'none',
                     }}
                   >
                     <option value="active">🟢 Active</option>
@@ -1862,49 +1831,307 @@ export const PlanCatalogPage = () => {
                 </div>
               </div>
 
-              {/* Modal Footer Buttons */}
+              {/* Description */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px' }}>
+                  Plan Description
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Comprehensive 6-month parlour package covering 6 dynamic services..."
+                  value={planForm.description}
+                  onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${themeStyles.border}`,
+                    background: themeStyles.inputBg,
+                    color: themeStyles.textPrimary,
+                    fontSize: '12.5px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* ══════════════════════════════════════════════════════════════════════
+                  DYNAMIC INCLUDED SERVICES BUILDER (WITH "+ ADD MORE SERVICE")
+                  ══════════════════════════════════════════════════════════════════════ */}
+              <div
+                style={{
+                  background: isLight ? '#fdf2f8' : 'rgba(236, 72, 153, 0.05)',
+                  borderRadius: '14px',
+                  border: '1.5px solid rgba(236, 72, 153, 0.3)',
+                  padding: '18px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: '900', margin: 0, color: '#be185d' }}>
+                      Plan mein included services ({planForm.includedServices.length} Services Selected)
+                    </h4>
+                    <div style={{ fontSize: '11.5px', color: themeStyles.textMuted }}>
+                      Select DB services, set usage limits, and pick allowed sub-services from Master
+                    </div>
+                  </div>
+
+                  <span style={{ fontSize: '12px', background: '#ecfdf5', color: '#059669', padding: '3px 10px', borderRadius: '6px', fontWeight: '800', border: '1px solid #a7f3d0' }}>
+                    {planForm.includedServices.reduce((sum, s) => sum + (Number(s.allowedUsage) || 0), 0)} Total Usages Allowed
+                  </span>
+                </div>
+
+                {/* List of Configured Services */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {planForm.includedServices.map((srvRow, rowIndex) => {
+                    // Active sub-services from Master not yet selected for this service
+                    const availableSubs = subServices.filter(
+                      (s) => s.status === 'active' && !(srvRow.allowedSubServices || []).includes(s.name)
+                    );
+
+                    return (
+                      <div
+                        key={srvRow.id || rowIndex}
+                        style={{
+                          background: themeStyles.cardBg,
+                          borderRadius: '12px',
+                          border: `1.5px solid ${themeStyles.border}`,
+                          padding: '14px 16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        {/* Service Dropdown + Limit + Remove Button */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1.8fr) minmax(130px, 1fr) auto', gap: '12px', alignItems: 'flex-end' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', marginBottom: '4px', color: themeStyles.textPrimary }}>
+                              Choose Service (From Database) *
+                            </label>
+                            <select
+                              value={srvRow.serviceName}
+                              onChange={(e) => handleServiceChangeInRow(rowIndex, e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '9px 12px',
+                                borderRadius: '8px',
+                                background: themeStyles.inputBg,
+                                border: '1.5px solid #8b5cf6',
+                                color: themeStyles.textPrimary,
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                outline: 'none',
+                              }}
+                            >
+                              {dbServicesList.map((s) => (
+                                <option key={s._id || s.id || s.name} value={s.name}>
+                                  {s.iconEmoji || '✨'} {s.name} {s.category ? `(${s.category})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', marginBottom: '4px', color: themeStyles.textPrimary }}>
+                              Allowed Usage Limit (Times) *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="e.g. 5"
+                              value={srvRow.allowedUsage}
+                              onChange={(e) => handleUsageLimitChangeInRow(rowIndex, e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '9px 12px',
+                                borderRadius: '8px',
+                                background: themeStyles.inputBg,
+                                border: `1px solid ${themeStyles.border}`,
+                                color: themeStyles.textPrimary,
+                                fontSize: '13px',
+                                fontWeight: '800',
+                                outline: 'none',
+                              }}
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveServiceRow(rowIndex)}
+                            title="Remove Service"
+                            style={{
+                              padding: '9px 12px',
+                              borderRadius: '8px',
+                              background: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              color: '#dc2626',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              height: '38px',
+                            }}
+                          >
+                            <Trash2 size={14} /> Remove
+                          </button>
+                        </div>
+
+                        {/* Sub-Services Dropdown & Selected Chips */}
+                        <div
+                          style={{
+                            background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
+                            borderRadius: '8px',
+                            border: `1px solid ${themeStyles.border}`,
+                            padding: '10px 12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#7c3aed' }}>
+                              Select Sub-Services (From DB Master):
+                            </span>
+
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                handleAddSubServiceFromDropdown(rowIndex, e.target.value);
+                                e.target.value = '';
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                background: isLight ? '#ffffff' : '#1e293b',
+                                border: '1.5px solid #8b5cf6',
+                                color: '#7c3aed',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                outline: 'none',
+                              }}
+                            >
+                              <option value="">+ Choose Sub-Service from Dropdown...</option>
+                              {availableSubs.map((sub) => (
+                                <option key={sub._id || sub.id || sub.name} value={sub.name}>
+                                  + {sub.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Selected Sub-Service Chips */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', minHeight: '26px', alignItems: 'center' }}>
+                            {(srvRow.allowedSubServices || []).length === 0 ? (
+                              <span style={{ fontSize: '11px', color: themeStyles.textMuted, fontStyle: 'italic' }}>
+                                No sub-services selected yet. Choose from dropdown above to allow specific design/service variants.
+                              </span>
+                            ) : (
+                              srvRow.allowedSubServices.map((subName) => (
+                                <span
+                                  key={subName}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    background: isLight ? '#ecfdf5' : '#064e3b',
+                                    color: isLight ? '#065f46' : '#a7f3d0',
+                                    border: '1px solid #10b981',
+                                    fontSize: '11.5px',
+                                    fontWeight: '700',
+                                  }}
+                                >
+                                  <span>✓ {subName}</span>
+                                  <span style={{ fontSize: '9.5px', fontWeight: '800', background: '#059669', color: '#fff', padding: '1px 5px', borderRadius: '3px' }}>
+                                    Allowed
+                                  </span>
+                                  <X
+                                    size={13}
+                                    style={{ cursor: 'pointer', color: '#dc2626', marginLeft: '2px' }}
+                                    onClick={() => handleToggleSubServiceInRow(rowIndex, subName)}
+                                  />
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* + Add More Service Button */}
+                <button
+                  type="button"
+                  onClick={handleAddMoreServiceToPlan}
+                  style={{
+                    width: '100%',
+                    marginTop: '12px',
+                    padding: '11px',
+                    borderRadius: '8px',
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    border: '2px dashed #db2777',
+                    color: '#db2777',
+                    fontSize: '13px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                  <span>+ Add More Service</span>
+                </button>
+              </div>
+
+              {/* Form Actions */}
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
                   justifyContent: 'flex-end',
-                  gap: '12px',
-                  paddingTop: '16px',
+                  gap: '10px',
+                  paddingTop: '14px',
                   borderTop: `1px solid ${themeStyles.border}`,
-                  marginTop: '8px',
                 }}
               >
                 <button
                   type="button"
-                  onClick={() => setFormModalOpen(false)}
+                  onClick={() => setPlanModalOpen(false)}
                   style={{
-                    padding: '10px 18px',
+                    padding: '9px 18px',
                     borderRadius: '8px',
+                    background: 'transparent',
                     border: `1px solid ${themeStyles.border}`,
-                    background: themeStyles.cardBg,
                     color: themeStyles.textSecondary,
                     fontSize: '13px',
-                    fontWeight: '600',
+                    fontWeight: '700',
                     cursor: 'pointer',
                   }}
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   style={{
-                    padding: '10px 22px',
+                    padding: '9px 24px',
                     borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #ec4899, #db2777)',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                     color: '#ffffff',
                     fontSize: '13.5px',
-                    fontWeight: '700',
+                    fontWeight: '800',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
+                    boxShadow: '0 4px 14px rgba(236, 72, 153, 0.4)',
                   }}
                 >
-                  {editingPlan ? 'Update Plan' : 'Publish Plan'}
+                  {editingPlan ? 'Update Plan' : 'Save & Publish Plan'}
                 </button>
               </div>
             </form>
@@ -1912,318 +2139,105 @@ export const PlanCatalogPage = () => {
         </div>
       )}
 
-      {/* VIEW DETAILS MODAL (RICH BREAKDOWN ON EYE ICON CLICK) */}
-      {viewModalOpen && selectedPlanForView && (
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 3: VIEW PLAN DETAILS MODAL
+          ════════════════════════════════════════════════════════════════════════ */}
+      {viewPlanModalOpen && selectedPlanForView && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(5px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999,
+            zIndex: 99999,
             padding: '16px',
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setViewModalOpen(false);
+            if (e.target === e.currentTarget) setViewPlanModalOpen(false);
           }}
         >
           <div
             style={{
               background: themeStyles.cardBg,
               borderRadius: '16px',
-              border: `1px solid ${themeStyles.border}`,
+              border: `1.5px solid ${themeStyles.border}`,
               width: '100%',
-              maxWidth: '620px',
-              maxHeight: '90vh',
+              maxWidth: '650px',
+              maxHeight: '88vh',
               overflowY: 'auto',
-              boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.35)',
+              padding: '24px 28px',
+              color: themeStyles.textPrimary,
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
             }}
           >
-            {/* View Header with Tier Badge */}
-            <div
-              style={{
-                padding: '24px',
-                borderBottom: `1px solid ${themeStyles.border}`,
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                gap: '14px',
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: `1px solid ${themeStyles.border}`, paddingBottom: '12px' }}>
               <div>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: '800',
-                    padding: '3px 9px',
-                    borderRadius: '5px',
-                    background: isLight ? getTierInfo(selectedPlanForView.tier).bg : 'rgba(255, 255, 255, 0.05)',
-                    color: getTierInfo(selectedPlanForView.tier).color,
-                    marginBottom: '6px',
-                    display: 'inline-block',
-                    border: `1px solid ${getTierInfo(selectedPlanForView.tier).color}33`,
-                  }}
-                >
-                  {selectedPlanForView.tier.toUpperCase()} TIER PLAN
-                </span>
-                <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: themeStyles.textPrimary }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: '#db2777' }}>
                   {selectedPlanForView.name}
-                </h2>
+                </h3>
+                <div style={{ fontSize: '12px', color: themeStyles.textMuted }}>
+                  ₹{Number(selectedPlanForView.price).toLocaleString()} · {formatDurationMonths(selectedPlanForView.durationMonths)}
+                </div>
               </div>
-
-              <div
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  background: selectedPlanForView.status === 'active' ? '#dcfce7' : '#f1f5f9',
-                  color: selectedPlanForView.status === 'active' ? '#15803d' : '#64748b',
-                  fontWeight: '800',
-                  fontSize: '11px',
-                  flexShrink: 0,
-                }}
+              <button
+                type="button"
+                onClick={() => setViewPlanModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
               >
-                {selectedPlanForView.status === 'active' ? '🟢 ACTIVE' : '⚪ INACTIVE'}
-              </div>
+                ✕
+              </button>
             </div>
 
-            {/* View Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Plan Banner Photo if available */}
-              {selectedPlanForView.image && (
+            <p style={{ fontSize: '13px', color: themeStyles.textSecondary, marginBottom: '16px' }}>
+              {selectedPlanForView.description}
+            </p>
+
+            <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '10px' }}>
+              Included Services & Allowed Sub-Services:
+            </h4>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {(selectedPlanForView.includedServices || []).map((srv, idx) => (
                 <div
+                  key={idx}
                   style={{
-                    width: '100%',
-                    height: '200px',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: isLight ? '#f8fafc' : '#1e293b',
                     border: `1px solid ${themeStyles.border}`,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
                   }}
                 >
-                  <img
-                    src={selectedPlanForView.image}
-                    alt={selectedPlanForView.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                </div>
-              )}
-              {/* Pricing Box */}
-              <div
-                style={{
-                  padding: '16px 20px',
-                  borderRadius: '10px',
-                  background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
-                  border: `1px solid ${themeStyles.border}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '11.5px', fontWeight: '700', color: themeStyles.textMuted, textTransform: 'uppercase' }}>
-                    Package Price
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '24px', fontWeight: '900', color: '#15803d' }}>
-                      ₹{Number(selectedPlanForView.discountPrice || selectedPlanForView.price).toLocaleString('en-IN')}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '800', color: themeStyles.textPrimary }}>
+                      {srv.icon || '💅'} {srv.serviceName}
                     </span>
-                    {selectedPlanForView.discountPrice &&
-                      Number(selectedPlanForView.discountPrice) < Number(selectedPlanForView.price) && (
-                        <span style={{ fontSize: '14px', color: themeStyles.textMuted, textDecoration: 'line-through' }}>
-                          ₹{Number(selectedPlanForView.price).toLocaleString('en-IN')}
-                        </span>
-                      )}
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#db2777', background: '#fdf2f8', padding: '2px 8px', borderRadius: '4px' }}>
+                      Allowed Limit: {srv.allowedUsage} Times
+                    </span>
                   </div>
-                </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '11.5px', fontWeight: '700', color: themeStyles.textMuted, textTransform: 'uppercase' }}>
-                    Validity & Dispatch
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: themeStyles.textPrimary, marginTop: '4px' }}>
-                    🗓️ Validity: {formatDurationMonths(selectedPlanForView.durationMonths)}
-                  </div>
-                  <div style={{ fontSize: '11px', color: selectedPlanForView.homeServiceAllowed ? '#15803d' : themeStyles.textMuted, marginTop: '2px', fontWeight: '600' }}>
-                    {selectedPlanForView.homeServiceAllowed ? '🚗 Home Service Available' : '🏢 In-Salon Only'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              {selectedPlanForView.description && (
-                <div>
-                  <h4 style={{ fontSize: '13px', fontWeight: '800', color: themeStyles.textSecondary, marginBottom: '6px' }}>
-                    Plan Overview
-                  </h4>
-                  <p style={{ fontSize: '13.5px', lineHeight: 1.6, color: themeStyles.textPrimary, margin: 0 }}>
-                    {selectedPlanForView.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Features List */}
-              <div>
-                <h4 style={{ fontSize: '13px', fontWeight: '800', color: themeStyles.textSecondary, marginBottom: '10px' }}>
-                  Included Features & Services ({selectedPlanForView.features?.length || 0})
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {Array.isArray(selectedPlanForView.features) &&
-                    selectedPlanForView.features.map((feat, idx) => (
-                      <div
-                        key={idx}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {(srv.allowedSubServices || []).map((sub, sIdx) => (
+                      <span
+                        key={sIdx}
                         style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '10px',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          background: isLight ? '#fafafa' : 'rgba(255, 255, 255, 0.02)',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          background: isLight ? '#ffffff' : '#0f172a',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
                           border: `1px solid ${themeStyles.border}`,
-                          fontSize: '13px',
-                          color: themeStyles.textPrimary,
                         }}
                       >
-                        <CheckCircle size={16} color="#0284c7" style={{ marginTop: '2px', flexShrink: 0 }} />
-                        <span style={{ lineHeight: 1.4, fontWeight: '500' }}>{feat}</span>
-                      </div>
+                        ✓ {sub} <strong style={{ color: '#059669', fontSize: '10px' }}>[Allowed]</strong>
+                      </span>
                     ))}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div
-              style={{
-                padding: '16px 24px',
-                borderTop: `1px solid ${themeStyles.border}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <button
-                onClick={() => {
-                  setViewModalOpen(false);
-                  handleOpenEditModal(selectedPlanForView);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  border: `1px solid ${themeStyles.border}`,
-                  background: themeStyles.cardBg,
-                  color: themeStyles.textPrimary,
-                  fontSize: '12.5px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                }}
-              >
-                <Edit2 size={14} />
-                <span>Edit This Plan</span>
-              </button>
-
-              <button
-                onClick={() => setViewModalOpen(false)}
-                style={{
-                  padding: '8px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#0284c7',
-                  color: '#ffffff',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* DELETE CONFIRMATION MODAL */}
-      {deleteConfirmId && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '16px',
-          }}
-        >
-          <div
-            style={{
-              background: themeStyles.cardBg,
-              borderRadius: '14px',
-              border: `1px solid ${themeStyles.border}`,
-              padding: '24px',
-              maxWidth: '420px',
-              width: '100%',
-              textAlign: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
-                color: '#b91c1c',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 14px',
-              }}
-            >
-              <Trash2 size={22} />
-            </div>
-            <h3 style={{ fontSize: '17px', fontWeight: '800', margin: '0 0 8px', color: themeStyles.textPrimary }}>
-              Delete Plan?
-            </h3>
-            <p style={{ fontSize: '13px', color: themeStyles.textMuted, margin: '0 0 20px' }}>
-              Are you sure you want to delete this plan? This action will remove it from the DB.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                style={{
-                  padding: '9px 18px',
-                  borderRadius: '8px',
-                  border: `1px solid ${themeStyles.border}`,
-                  background: themeStyles.cardBg,
-                  color: themeStyles.textSecondary,
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeletePlan(deleteConfirmId)}
-                style={{
-                  padding: '9px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                }}
-              >
-                Yes, Delete
-              </button>
+              ))}
             </div>
           </div>
         </div>

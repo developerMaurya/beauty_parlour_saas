@@ -380,27 +380,84 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
     );
   }, [studentPracticalTracker, selectedStudentForPracticals]);
 
+  // Unified practicals/services list supporting both legacy practicals and modern dynamic services with variants
+  const practicalsList = useMemo(() => {
+    if (!currentStudentData) return [];
+    if (Array.isArray(currentStudentData.services) && currentStudentData.services.length > 0) {
+      return currentStudentData.services.map((s) => ({
+        id: s.id,
+        serviceName: s.serviceName,
+        totalQuota: s.allowedUsage ?? s.totalQuota ?? 1,
+        completed: s.usedCount ?? s.completed ?? 0,
+        remaining: s.remainingCount ?? Math.max(0, (s.allowedUsage ?? s.totalQuota ?? 1) - (s.usedCount ?? s.completed ?? 0)),
+        variants: s.variants || [],
+        issuedMaterials: s.issuedMaterials || (s.variants?.length ? `Allowed Options: ${s.variants.join(', ')}` : 'Assigned Station Materials & Products'),
+        icon: s.icon || '✨',
+        history: s.history || [],
+      }));
+    }
+    if (Array.isArray(currentStudentData.practicals)) {
+      return currentStudentData.practicals.map((p) => ({
+        ...p,
+        remaining: Math.max(0, p.totalQuota - p.completed),
+        variants: p.variants || [],
+      }));
+    }
+    return [];
+  }, [currentStudentData]);
+
   // Overall student practical completion stats
   const overallProgress = useMemo(() => {
-    if (!currentStudentData || !currentStudentData.practicals) return { total: 0, done: 0, percent: 0 };
-    const total = currentStudentData.practicals.reduce((sum, p) => sum + p.totalQuota, 0);
-    const done = currentStudentData.practicals.reduce((sum, p) => sum + p.completed, 0);
+    if (!practicalsList || practicalsList.length === 0) return { total: 0, done: 0, percent: 0 };
+    const total = practicalsList.reduce((sum, p) => sum + p.totalQuota, 0);
+    const done = practicalsList.reduce((sum, p) => sum + p.completed, 0);
     const percent = total > 0 ? Math.round((done / total) * 100) : 0;
     return { total, done, percent };
-  }, [currentStudentData]);
+  }, [practicalsList]);
 
   // Tick / Log completed practical session
   const handleIncrementPractical = (practicalId) => {
     const updatedTracker = studentPracticalTracker.map((student) => {
       if (student.studentId === currentStudentData.studentId) {
-        const updatedPracticals = student.practicals.map((p) => {
-          if (p.id === practicalId) {
-            const nextVal = Math.min(p.totalQuota, p.completed + 1);
-            return { ...p, completed: nextVal };
-          }
-          return p;
-        });
-        return { ...student, practicals: updatedPracticals };
+        let updatedServices = student.services
+          ? student.services.map((s) => {
+              if (s.id === practicalId) {
+                const nextUsed = Math.min(s.allowedUsage, (s.usedCount ?? 0) + 1);
+                return {
+                  ...s,
+                  usedCount: nextUsed,
+                  remainingCount: Math.max(0, s.allowedUsage - nextUsed),
+                  history: [
+                    {
+                      id: 'LOG-' + Date.now(),
+                      date: new Date().toISOString().split('T')[0],
+                      variant: s.variants?.[0] || 'Standard Practice',
+                      staffOrTrainer: 'Admin / Lead Trainer',
+                      notes: 'Session logged via Parlour Dashboard',
+                    },
+                    ...(s.history || []),
+                  ],
+                };
+              }
+              return s;
+            })
+          : undefined;
+
+        let updatedPracticals = student.practicals
+          ? student.practicals.map((p) => {
+              if (p.id === practicalId) {
+                const nextVal = Math.min(p.totalQuota, p.completed + 1);
+                return { ...p, completed: nextVal };
+              }
+              return p;
+            })
+          : undefined;
+
+        return {
+          ...student,
+          ...(updatedServices ? { services: updatedServices } : {}),
+          ...(updatedPracticals ? { practicals: updatedPracticals } : {}),
+        };
       }
       return student;
     });
@@ -414,20 +471,43 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
   const handleDecrementPractical = (practicalId) => {
     const updatedTracker = studentPracticalTracker.map((student) => {
       if (student.studentId === currentStudentData.studentId) {
-        const updatedPracticals = student.practicals.map((p) => {
-          if (p.id === practicalId) {
-            const nextVal = Math.max(0, p.completed - 1);
-            return { ...p, completed: nextVal };
-          }
-          return p;
-        });
-        return { ...student, practicals: updatedPracticals };
+        let updatedServices = student.services
+          ? student.services.map((s) => {
+              if (s.id === practicalId) {
+                const nextUsed = Math.max(0, (s.usedCount ?? 0) - 1);
+                return {
+                  ...s,
+                  usedCount: nextUsed,
+                  remainingCount: Math.max(0, s.allowedUsage - nextUsed),
+                  history: (s.history || []).slice(1),
+                };
+              }
+              return s;
+            })
+          : undefined;
+
+        let updatedPracticals = student.practicals
+          ? student.practicals.map((p) => {
+              if (p.id === practicalId) {
+                const nextVal = Math.max(0, p.completed - 1);
+                return { ...p, completed: nextVal };
+              }
+              return p;
+            })
+          : undefined;
+
+        return {
+          ...student,
+          ...(updatedServices ? { services: updatedServices } : {}),
+          ...(updatedPracticals ? { practicals: updatedPracticals } : {}),
+        };
       }
       return student;
     });
 
     setStudentPracticalTracker(updatedTracker);
     localStorage.setItem('parlour_student_practicals_tracker', JSON.stringify(updatedTracker));
+    if (showToast) showToast('Session log reverted.');
   };
 
   // Add Custom Practical Quota to Student
@@ -439,7 +519,12 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
       id: 'PRAC-' + Date.now().toString().slice(-4),
       serviceName: newQuotaForm.serviceName,
       totalQuota: Number(newQuotaForm.totalQuota),
+      allowedUsage: Number(newQuotaForm.totalQuota),
       completed: 0,
+      usedCount: 0,
+      remainingCount: Number(newQuotaForm.totalQuota),
+      variants: ['Standard Service Variant'],
+      history: [],
       issuedMaterials: newQuotaForm.issuedMaterials || 'Assigned Station Materials',
       icon: '💅',
     };
@@ -448,7 +533,8 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
       if (student.studentId === currentStudentData.studentId) {
         return {
           ...student,
-          practicals: [...student.practicals, newPrac],
+          practicals: [...(student.practicals || []), newPrac],
+          ...(student.services ? { services: [...student.services, newPrac] } : {}),
         };
       }
       return student;
@@ -940,7 +1026,7 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
 
           {/* Practical Services Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-            {currentStudentData?.practicals?.map((prac) => {
+            {practicalsList.map((prac) => {
               const isComplete = prac.completed >= prac.totalQuota;
               const remaining = Math.max(0, prac.totalQuota - prac.completed);
               const pct = Math.round((prac.completed / prac.totalQuota) * 100);
@@ -992,17 +1078,37 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
                       </h3>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div style={{ margin: '10px 0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>
-                        <span style={{ color: '#475569' }}>
-                          Practical Sessions: {prac.completed} of {prac.totalQuota}
-                        </span>
-                        <span style={{ color: isComplete ? '#059669' : '#db2777' }}>
-                          {remaining === 0 ? '✨ Done' : `${remaining} Remaining`}
-                        </span>
+                    {/* Prominent Usage Numbers */}
+                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', margin: '10px 0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <div>
+                          <div style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
+                            {prac.completed}/{prac.totalQuota} Used
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
+                            Practical Sessions Done
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: remaining === 0 ? '#ecfdf5' : '#fdf2f8',
+                              color: remaining === 0 ? '#059669' : '#db2777',
+                              border: `1px solid ${remaining === 0 ? '#a7f3d0' : '#fbcfe8'}`,
+                            }}
+                          >
+                            {remaining === 0 ? '✨ Done' : `${remaining} Remaining`}
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
+
+                      {/* Progress Bar */}
+                      <div style={{ width: '100%', height: '7px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden', marginTop: '8px' }}>
                         <div
                           style={{
                             width: `${pct}%`,
@@ -1015,10 +1121,51 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
                       </div>
                     </div>
 
-                    {/* Assigned Salon Materials for this practical */}
-                    <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Assigned Salon Materials:</div>
-                      <div style={{ fontSize: '12px', color: '#1e293b', fontWeight: 600, marginTop: '2px' }}>
+                    {/* 2. Service ke andar bhi Sub-Service / Variants */}
+                    {prac.variants && prac.variants.length > 0 && (
+                      <div style={{ background: '#fdf4ff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #f0abfc', marginTop: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#7c3aed' }}>
+                            2. Service ke andar Sub-Service / Variants:
+                          </span>
+                          <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#6b21a8' }}>
+                            Total allowed usage: {prac.totalQuota}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {prac.variants.map((v, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '5px 8px',
+                                borderRadius: '6px',
+                                background: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: '#1e293b',
+                              }}
+                            >
+                              <span>{v}</span>
+                              <span style={{ fontSize: '10px', background: '#ecfdf5', color: '#059669', padding: '1px 6px', borderRadius: '4px', border: '1px solid #a7f3d0', fontWeight: 800 }}>
+                                Allowed
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#7c3aed', marginTop: '6px', fontStyle: 'italic' }}>
+                          * Student inmein se koi bhi design select kar sakta hai, lekin total {prac.totalQuota} appointments hi use kar sakta hai.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assigned Salon Materials */}
+                    <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '8px' }}>
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#64748b' }}>Assigned Salon Materials:</div>
+                      <div style={{ fontSize: '11.5px', color: '#1e293b', fontWeight: 600, marginTop: '2px' }}>
                         {prac.issuedMaterials}
                       </div>
                     </div>

@@ -35,6 +35,7 @@ import webCtrl from '../modules/admin/website/website.controller.js';
 import dashCtrl from '../modules/admin/dashboard/dashboard.controller.js';
 import repCtrl from '../modules/admin/reports/report.controller.js';
 import setCtrl from '../modules/admin/settings/settings.controller.js';
+import planCtrl from '../modules/admin/plans/parlourPlan.controller.js';
 
 const router = Router();
 
@@ -331,7 +332,27 @@ router.patch('/services/:serviceId/addons/:addonId', requirePermission('service.
 router.delete('/services/:serviceId/addons/:addonId', requirePermission('service.update'), servCtrl.deleteServiceAddon);
 
 // ==========================================
-// 12. PACKAGES, OFFERS, COUPONS
+// 12. PARLOUR SUB-SERVICES MASTER & PARLOUR PLANS
+// ==========================================
+// Sub-Services Master (Independent Catalog)
+router.post('/sub-services', planCtrl.createSubService);
+router.get('/sub-services', planCtrl.getSubServices);
+router.get('/sub-services/:subServiceId', planCtrl.getSubServiceById);
+router.patch('/sub-services/:subServiceId', planCtrl.updateSubService);
+router.delete('/sub-services/:subServiceId', planCtrl.deleteSubService);
+router.patch('/sub-services/:subServiceId/status', planCtrl.updateSubServiceStatus);
+
+// Parlour Plans & Training Packages
+router.post('/parlour-plans', planCtrl.createParlourPlan);
+router.get('/parlour-plans', planCtrl.getParlourPlans);
+router.get('/parlour-plans/:planId', planCtrl.getParlourPlanById);
+router.patch('/parlour-plans/:planId', planCtrl.updateParlourPlan);
+router.delete('/parlour-plans/:planId', planCtrl.deleteParlourPlan);
+router.patch('/parlour-plans/:planId/status', planCtrl.updateParlourPlanStatus);
+router.post('/parlour-plans/:planId/duplicate', planCtrl.duplicateParlourPlan);
+
+// ==========================================
+// 13. PACKAGES, OFFERS, COUPONS
 // ==========================================
 router.post('/packages', requirePermission('package.create'), pkgCtrl.createPackage);
 router.get('/packages', pkgCtrl.getPackages);

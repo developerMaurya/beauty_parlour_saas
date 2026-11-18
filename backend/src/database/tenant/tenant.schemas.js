@@ -3048,6 +3048,46 @@ export const CustomerTimelineSchema = new Schema(
   { timestamps: true }
 );
 
+/**
+ * 106. SubService Schema (Independent Salon & Academy Sub-Service Variants / Designs)
+ */
+export const SubServiceSchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  },
+  { timestamps: true }
+);
+SubServiceSchema.index({ tenantId: 1, name: 1 });
+
+/**
+ * 107. ParlourPlan Schema (Multi-Service Salon & Training Packages with Dynamic Allowed Usages)
+ */
+export const ParlourPlanSchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    tier: { type: String, enum: ['Basic', 'Silver', 'Advanced', 'Premium'], default: 'Premium' },
+    price: { type: Number, required: true },
+    discountPrice: { type: Number, default: 0 },
+    durationMonths: { type: Number, default: 6 },
+    description: { type: String, default: '' },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    includedServices: [
+      {
+        serviceName: { type: String, required: true },
+        allowedUsage: { type: Number, default: 1 },
+        allowedSubServices: [{ type: String }],
+        icon: { type: String, default: '✨' },
+      },
+    ],
+  },
+  { timestamps: true }
+);
+ParlourPlanSchema.index({ tenantId: 1, name: 1 });
+
 
 
 

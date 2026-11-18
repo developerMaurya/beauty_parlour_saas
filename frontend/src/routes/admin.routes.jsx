@@ -132,10 +132,12 @@ export const AdminRoutes = (
       <Route path="services" element={<ServiceCatalogPage />} />
       <Route path="parlour-offers" element={<AdminOfferCatalogPage />} />
       <Route path="offers" element={<AdminOfferCatalogPage />} />
-      <Route path="parlour-plans" element={<AdminPlanCatalogPage />} />
-      <Route path="parlour-packages" element={<AdminPlanCatalogPage />} />
-      <Route path="plans" element={<AdminPlanCatalogPage />} />
-      <Route path="packages" element={<AdminPlanCatalogPage />} />
+      <Route path="parlour-plans" element={<AdminPlanCatalogPage initialView="plans" />} />
+      <Route path="parlour-packages" element={<AdminPlanCatalogPage initialView="plans" />} />
+      <Route path="plans" element={<AdminPlanCatalogPage initialView="plans" />} />
+      <Route path="packages" element={<AdminPlanCatalogPage initialView="plans" />} />
+      <Route path="parlour-subservices" element={<AdminPlanCatalogPage initialView="subservices" />} />
+      <Route path="subservices" element={<AdminPlanCatalogPage initialView="subservices" />} />
       <Route path="parlour-billing" element={<BillingPOSPage />} />
       <Route path="crm" element={<CRMPage />} />
       <Route path="support" element={<SupportCenterPage />} />

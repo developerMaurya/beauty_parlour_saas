@@ -125,6 +125,8 @@ const MODEL_SCHEMA_MAP = {
   CustomerChatMessage: schemas.CustomerChatMessageSchema,
   CustomerSettings: schemas.CustomerSettingsSchema,
   CustomerTimeline: schemas.CustomerTimelineSchema,
+  SubService: schemas.SubServiceSchema,
+  ParlourPlan: schemas.ParlourPlanSchema,
 };
 
 /**

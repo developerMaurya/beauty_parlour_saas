@@ -49,8 +49,141 @@ import { uploadImageToCloudflare } from '../../../services/uploadService.js';
 // Pre-seeded Master Parlour Services (Golden Beauty Parlour - Only 1 Single Master Service)
 const INITIAL_PARLOUR_SERVICES = [
   {
-    _id: 'srv_p_101',
+    _id: 'srv_p_hair',
     code: 'SRV-P-101',
+    name: 'Hair Service',
+    category: 'Hair & Styling',
+    categoryName: 'Hair & Styling',
+    iconEmoji: '💇‍♀️',
+    price: 1500,
+    discountPrice: 1200,
+    durationHours: 1,
+    duration: 60,
+    durationMinutes: 60,
+    gender: 'female',
+    homeServiceAllowed: false,
+    status: 'active',
+    features: ['Haircut & Layer Styling', 'Ozone Steam Hair Spa', 'Ammonia-free Global Color', 'Keratin Protein Wash'],
+    description: 'Professional haircuts, hair spa, smoothing, rebonding, and global color treatments.',
+    createdAt: '2026-11-01',
+  },
+  {
+    _id: 'srv_p_makeup',
+    code: 'SRV-P-102',
+    name: 'Makeup Service',
+    category: 'Makeup & Bridal',
+    categoryName: 'Makeup & Bridal',
+    iconEmoji: '💄',
+    price: 4500,
+    discountPrice: 3800,
+    durationHours: 1.5,
+    duration: 90,
+    durationMinutes: 90,
+    gender: 'female',
+    homeServiceAllowed: true,
+    status: 'active',
+    features: ['HD Base Foundation', '3D Mink Lashes & Liner', 'Soft Pastel Dewy Finish', 'Waterproof 18-hr Hold'],
+    description: 'High definition, airbrush, engagement and party glam makeup by expert artists.',
+    createdAt: '2026-11-01',
+  },
+  {
+    _id: 'srv_p_nail',
+    code: 'SRV-P-103',
+    name: 'Nail Design',
+    category: 'Nail Art & Spa',
+    categoryName: 'Nail Art & Spa',
+    iconEmoji: '💅',
+    price: 1200,
+    discountPrice: 999,
+    durationHours: 0.8,
+    duration: 45,
+    durationMinutes: 45,
+    gender: 'female',
+    homeServiceAllowed: false,
+    status: 'active',
+    features: ['Simple Single Tone Art', 'French Ombre Tips', 'Cat-Eye Velvet Finish', 'UV Gel Extensions'],
+    description: 'Custom gel nail art, French manicure smile-lines, cat-eye finish, and 3D bridal stone designs.',
+    createdAt: '2026-11-01',
+  },
+  {
+    _id: 'srv_p_facial',
+    code: 'SRV-P-104',
+    name: 'Facial',
+    category: 'Skin & Facial',
+    categoryName: 'Skin & Facial',
+    iconEmoji: '✨',
+    price: 1800,
+    discountPrice: 1500,
+    durationHours: 1,
+    duration: 60,
+    durationMinutes: 60,
+    gender: 'female',
+    homeServiceAllowed: true,
+    status: 'active',
+    features: ['O3+ Bridal Whitening Pack', 'Hydra Hyaluronic Serum', 'Botanical Fruit Clean-up', 'Sun Tan Removal'],
+    description: 'Oxygenating whitening facials, hydra deep pore extraction, organic clean-up and de-tan glow packs.',
+    createdAt: '2026-11-01',
+  },
+  {
+    _id: 'srv_p_threading',
+    code: 'SRV-P-105',
+    name: 'Threading',
+    category: 'Salon Grooming',
+    categoryName: 'Salon Grooming',
+    iconEmoji: '✂️',
+    price: 200,
+    discountPrice: 150,
+    durationHours: 0.3,
+    duration: 20,
+    durationMinutes: 20,
+    gender: 'female',
+    homeServiceAllowed: false,
+    status: 'active',
+    features: ['Precision Arch Shaping', 'Sanitised Threading Thread', 'Aloe Vera Post-thread Gel', 'Full Face Alignment'],
+    description: 'Precise eyebrow arch shaping, upper lip, chin and full face sanitised threading.',
+    createdAt: '2026-11-01',
+  },
+  {
+    _id: 'srv_p_waxing',
+    code: 'SRV-P-106',
+    name: 'Waxing',
+    category: 'Body Care & Waxing',
+    categoryName: 'Body Care & Waxing',
+    iconEmoji: '🍯',
+    price: 800,
+    discountPrice: 650,
+    durationHours: 0.7,
+    duration: 40,
+    durationMinutes: 40,
+    gender: 'female',
+    homeServiceAllowed: false,
+    status: 'active',
+    features: ['Rica Painless Underarms', 'Chocolate Full Arms', 'Half Legs Smooth Wax', 'Post-wax Soothing Lotion'],
+    description: 'Chocolate, Rica and sensitive peel waxing for smooth, hair-free, tan-free skin.',
+    createdAt: '2026-11-01',
+  },
+  {
+    _id: 'srv_p_mehendi',
+    code: 'SRV-P-107',
+    name: 'Mehendi & Draping',
+    category: 'Bridal Art & Draping',
+    categoryName: 'Bridal Art & Draping',
+    iconEmoji: '🥻',
+    price: 2500,
+    discountPrice: 2000,
+    durationHours: 1.5,
+    duration: 90,
+    durationMinutes: 90,
+    gender: 'female',
+    homeServiceAllowed: true,
+    status: 'active',
+    features: ['Pleated Saree Draping', 'Double Dupatta Head Pin-up', 'Organic Henna Leaf Cone', 'Floral & Mandala Patterns'],
+    description: 'Designer bridal saree pleating, cancan styling, dupatta head setting and organic Arabic mehendi art.',
+    createdAt: '2026-11-01',
+  },
+  {
+    _id: 'srv_p_101',
+    code: 'SRV-P-108',
     name: 'Bridal HD Airbrush Makeup',
     category: 'Makeup & Bridal',
     categoryName: 'Makeup & Bridal',
@@ -88,13 +221,13 @@ export const formatDurationHours = (durationInHoursOrMins) => {
 };
 
 // Helper to access LocalStorage with fallback
-const STORAGE_KEY = 'parlour_services_db_v3';
+const STORAGE_KEY = 'parlour_services_db_v4';
 
 const loadStoredServices = () => {
   try {
-    // Clear previous storage keys that contained multiple demo services
     localStorage.removeItem('parlour_services_db_v1');
     localStorage.removeItem('parlour_services_db_v2');
+    localStorage.removeItem('parlour_services_db_v3');
 
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -102,7 +235,7 @@ const loadStoredServices = () => {
       return INITIAL_PARLOUR_SERVICES;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_PARLOUR_SERVICES;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_PARLOUR_SERVICES;
   } catch {
     return INITIAL_PARLOUR_SERVICES;
   }

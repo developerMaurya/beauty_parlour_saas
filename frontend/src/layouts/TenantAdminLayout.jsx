@@ -280,6 +280,7 @@ export const TenantAdminLayout = () => {
         { label: 'Salary', path: '/admin/parlour-salary', icon: Users, badge: 'Salary' },
         { label: 'Certificate Generator', path: '/admin/parlour-certificates', icon: Award, badge: 'Certificate' },
         { label: 'Parlour Services', path: '/admin/parlour-services', icon: Scissors, badge: 'Services' },
+        { label: 'Sub-Services Master', path: '/admin/parlour-subservices', icon: Scissors, badge: 'Master' },
         { label: 'Parlour Plans & Packages', path: '/admin/parlour-plans', icon: Layers, badge: 'Plans' },
         { label: 'Parlour Offers & Coupons', path: '/admin/parlour-offers', icon: Tag, badge: 'Offers' },
         { label: 'Parlour Academy Students', path: '/admin/parlour-students', icon: GraduationCap, badge: 'Academy' },

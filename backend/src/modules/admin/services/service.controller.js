@@ -11,6 +11,111 @@ import { sendSuccess, sendError, sendListResponse } from '../../../utils/respons
 import { getPagination, getSort, buildTenantFilter } from '../../../utils/query.utils.js';
 import { recordAuditLog } from '../../../utils/audit.utils.js';
 
+// Standard Dynamic Parlour Services for Salon & Academy
+const STANDARD_PARLOUR_SERVICES = [
+  {
+    name: 'Hair Service',
+    categoryName: 'Hair & Styling',
+    icon: '💇‍♀️',
+    price: 1500,
+    discountPrice: 1200,
+    durationMinutes: 60,
+    gender: 'female',
+    homeServiceAllowed: false,
+    description: 'Professional haircuts, hair spa, smoothing, rebonding, and global color treatments.',
+    features: ['Haircut & Layer Styling', 'Ozone Steam Hair Spa', 'Ammonia-free Global Color', 'Keratin Protein Wash'],
+  },
+  {
+    name: 'Makeup Service',
+    categoryName: 'Makeup & Bridal',
+    icon: '💄',
+    price: 4500,
+    discountPrice: 3800,
+    durationMinutes: 90,
+    gender: 'female',
+    homeServiceAllowed: true,
+    description: 'High definition, airbrush, engagement and party glam makeup by expert artists.',
+    features: ['HD Base Foundation', '3D Mink Lashes & Liner', 'Soft Pastel Dewy Finish', 'Waterproof 18-hr Hold'],
+  },
+  {
+    name: 'Nail Design',
+    categoryName: 'Nail Art & Spa',
+    icon: '💅',
+    price: 1200,
+    discountPrice: 999,
+    durationMinutes: 45,
+    gender: 'female',
+    homeServiceAllowed: false,
+    description: 'Custom gel nail art, French manicure smile-lines, cat-eye finish, and 3D bridal stone designs.',
+    features: ['Simple Single Tone Art', 'French Ombre Tips', 'Cat-Eye Velvet Finish', 'UV Gel Extensions'],
+  },
+  {
+    name: 'Facial',
+    categoryName: 'Skin & Facial',
+    icon: '✨',
+    price: 1800,
+    discountPrice: 1500,
+    durationMinutes: 60,
+    gender: 'female',
+    homeServiceAllowed: true,
+    description: 'Oxygenating whitening facials, hydra deep pore extraction, organic clean-up and de-tan glow packs.',
+    features: ['O3+ Bridal Whitening Pack', 'Hydra Hyaluronic Serum', 'Botanical Fruit Clean-up', 'Sun Tan Removal'],
+  },
+  {
+    name: 'Threading',
+    categoryName: 'Salon Grooming',
+    icon: '✂️',
+    price: 200,
+    discountPrice: 150,
+    durationMinutes: 20,
+    gender: 'female',
+    homeServiceAllowed: false,
+    description: 'Precise eyebrow arch shaping, upper lip, chin and full face sanitised threading.',
+    features: ['Precision Arch Shaping', 'Sanitised Threading Thread', 'Aloe Vera Post-thread Gel', 'Full Face Alignment'],
+  },
+  {
+    name: 'Waxing',
+    categoryName: 'Body Care & Waxing',
+    icon: '🍯',
+    price: 800,
+    discountPrice: 650,
+    durationMinutes: 40,
+    gender: 'female',
+    homeServiceAllowed: false,
+    description: 'Chocolate, Rica and sensitive peel waxing for smooth, hair-free, tan-free skin.',
+    features: ['Rica Painless Underarms', 'Chocolate Full Arms', 'Half Legs Smooth Wax', 'Post-wax Soothing Lotion'],
+  },
+  {
+    name: 'Mehendi & Draping',
+    categoryName: 'Bridal Art & Draping',
+    icon: '🥻',
+    price: 2500,
+    discountPrice: 2000,
+    durationMinutes: 90,
+    gender: 'female',
+    homeServiceAllowed: true,
+    description: 'Designer bridal saree pleating, cancan styling, dupatta head setting and organic Arabic mehendi art.',
+    features: ['Pleated Saree Draping', 'Double Dupatta Head Pin-up', 'Organic Henna Leaf Cone', 'Floral & Mandala Patterns'],
+  },
+  {
+    name: 'Bridal HD Airbrush Makeup',
+    categoryName: 'Makeup & Bridal',
+    icon: '💄',
+    price: 14999,
+    discountPrice: 12999,
+    durationMinutes: 120,
+    gender: 'female',
+    homeServiceAllowed: true,
+    description: 'Ultra-flawless bridal airbrush artistry curated for destination weddings, royal photography, and long ceremonies.',
+    features: [
+      'International cosmetics (MAC, Huda Beauty, Kryolan)',
+      'High-Definition waterproof 18-hour hold',
+      'Includes eyelashes, lenses & luxury dupatta draping',
+      'Pre-makeup deep skin hydration prep',
+    ],
+  },
+];
+
 // ==========================================
 // 1. SERVICE CATEGORIES
 // ==========================================
@@ -241,6 +346,43 @@ export const createService = async (req, res) => {
 export const getServices = async (req, res) => {
   try {
     const Service = getTenantModel(req, 'Service');
+    const ServiceCategory = getTenantModel(req, 'ServiceCategory');
+
+    // Auto-seed standard parlour services if tenant has fewer than 5 services in DB
+    const totalCount = await Service.countDocuments({ tenantId: req.tenantId });
+    if (totalCount < 5 && !req.query.search && (!req.query.status || req.query.status === 'all')) {
+      for (const item of STANDARD_PARLOUR_SERVICES) {
+        const slug = item.categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        let cat = await ServiceCategory.findOne({ tenantId: req.tenantId, name: item.categoryName });
+        if (!cat) {
+          cat = await ServiceCategory.create({
+            tenantId: req.tenantId,
+            name: item.categoryName,
+            slug,
+            icon: item.icon,
+            status: 'active',
+          });
+        }
+
+        const exists = await Service.findOne({ tenantId: req.tenantId, name: item.name });
+        if (!exists) {
+          await Service.create({
+            tenantId: req.tenantId,
+            name: item.name,
+            categoryId: cat._id,
+            price: item.price,
+            discountPrice: item.discountPrice,
+            durationMinutes: item.durationMinutes,
+            gender: item.gender,
+            homeServiceAllowed: item.homeServiceAllowed,
+            description: item.description,
+            features: item.features,
+            status: 'active',
+          });
+        }
+      }
+    }
+
     const { page, limit, skip } = getPagination(req.query);
     const sort = getSort(req.query, 'name');
     const filter = { tenantId: req.tenantId };

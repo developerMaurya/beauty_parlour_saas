@@ -677,6 +677,27 @@ export const systemConfigFetcher = {
   updateCloudStorage: (data) => adminAxiosClient.put('/admin/system-config/cloud-storage', data),
 };
 
+// 55. Parlour Sub-Services Master Fetcher
+export const subServiceFetcher = {
+  list: (params) => adminAxiosClient.get('/admin/sub-services', { params: buildParams(params) }),
+  get: (id) => adminAxiosClient.get(`/admin/sub-services/${id}`),
+  create: (data) => adminAxiosClient.post('/admin/sub-services', data),
+  update: (id, data) => adminAxiosClient.patch(`/admin/sub-services/${id}`, data),
+  delete: (id) => adminAxiosClient.delete(`/admin/sub-services/${id}`),
+  updateStatus: (id, status) => adminAxiosClient.patch(`/admin/sub-services/${id}/status`, { status }),
+};
+
+// 56. Parlour Plans Fetcher
+export const parlourPlanFetcher = {
+  list: (params) => adminAxiosClient.get('/admin/parlour-plans', { params: buildParams(params) }),
+  get: (id) => adminAxiosClient.get(`/admin/parlour-plans/${id}`),
+  create: (data) => adminAxiosClient.post('/admin/parlour-plans', data),
+  update: (id, data) => adminAxiosClient.patch(`/admin/parlour-plans/${id}`, data),
+  delete: (id) => adminAxiosClient.delete(`/admin/parlour-plans/${id}`),
+  updateStatus: (id, status) => adminAxiosClient.patch(`/admin/parlour-plans/${id}/status`, { status }),
+  duplicate: (id) => adminAxiosClient.post(`/admin/parlour-plans/${id}/duplicate`),
+};
+
 // 54. Public Customer/Visitor Fetcher
 export const publicFetcher = {
   getBusiness: (tenant) => adminAxiosClient.get('/public/business', { headers: { 'x-tenant-id': tenant } }),
