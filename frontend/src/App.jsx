@@ -5,19 +5,19 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { TenantAdminProvider } from './context/TenantAdminContext';
-import { StaffProvider } from './context/StaffContext';
-import { StudentProvider } from './context/StudentContext';
-import { CustomerProvider } from './context/CustomerContext';
-import { ToastProvider } from './context/ToastContext';
-import { ThemeProvider } from './context/ThemeContext';
-import AdminRoutes from './routes/admin.routes';
-import StaffRoutes from './routes/staff.routes';
-import StudentRoutes from './routes/student.routes';
-import CustomerRoutes from './routes/customer.routes';
-import PublicRoutes from './routes/public.routes';
-import DomainSuspendedPage from './pages/DomainSuspendedPage';
-import ErrorBoundary from './components/ErrorBoundary';
+import { TenantAdminProvider } from './context/TenantAdminContext.jsx';
+import { StaffProvider } from './context/StaffContext.jsx';
+import { StudentProvider } from './context/StudentContext.jsx';
+import { CustomerProvider } from './context/CustomerContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
+import AdminRoutes from './routes/admin.routes.jsx';
+import StaffRoutes from './routes/staff.routes.jsx';
+import StudentRoutes from './routes/student.routes.jsx';
+import CustomerRoutes from './routes/customer.routes.jsx';
+import PublicRoutes from './routes/public.routes.jsx';
+import DomainSuspendedPage from './pages/DomainSuspendedPage.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import './styles/index.css';
 
 export function App() {

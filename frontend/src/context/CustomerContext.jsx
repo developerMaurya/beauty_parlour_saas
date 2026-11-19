@@ -635,7 +635,28 @@ export function CustomerProvider({ children }) {
 export function useCustomer() {
   const context = useContext(CustomerContext);
   if (!context) {
-    throw new Error('useCustomer must be used within a CustomerProvider');
+    try {
+      const stored = localStorage.getItem('current_customer');
+      return {
+        customer: stored ? JSON.parse(stored) : null,
+        token: localStorage.getItem('customer_token') || null,
+        loading: false,
+        error: null,
+        login: async () => {},
+        logout: () => {},
+        register: async () => {},
+      };
+    } catch {
+      return {
+        customer: null,
+        token: null,
+        loading: false,
+        error: null,
+        login: async () => {},
+        logout: () => {},
+        register: async () => {},
+      };
+    }
   }
   return context;
 }

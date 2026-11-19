@@ -144,7 +144,6 @@ export const UserManagementPage = () => {
   const [roles, setRoles] = useState(() => getDynamicRoles());
   const [userTypes, setUserTypes] = useState(() => getDynamicUserTypes());
   const [businessTargets, setBusinessTargets] = useState(BUSINESS_TARGETS);
-  const [branches, setBranches] = useState([]);
 
   // Filters
   const [targetBusinessFilter, setTargetBusinessFilter] = useState(businessParam);
@@ -152,7 +151,7 @@ export const UserManagementPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
 
   // Sync targetBusinessFilter when URL query param changes
@@ -193,21 +192,31 @@ export const UserManagementPage = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [uRes, rRes, bTargets, bRes] = await Promise.allSettled([
+      const [uRes, rRes, bTargets] = await Promise.allSettled([
         userFetcher.list({
           role: roleFilter || undefined,
           targetBusiness: targetBusinessFilter !== 'ALL' ? targetBusinessFilter : undefined,
-          branchId: selectedBranchId || undefined,
+          limit: 200,
         }),
         fetchDynamicRoles(),
         fetchDynamicBusinessTargets(),
-        branchFetcher.list(),
       ]);
 
-      if (uRes.status === 'fulfilled' && uRes.value.data && Array.isArray(uRes.value.data) && uRes.value.data.length > 0) {
-        setUsers(uRes.value.data);
-      } else {
-        setUsers(DEFAULT_USERS);
+      if (uRes.status === 'fulfilled') {
+        const raw = uRes.value?.data;
+        const items = Array.isArray(raw?.data)
+          ? raw.data
+          : Array.isArray(raw?.items)
+          ? raw.items
+          : Array.isArray(raw)
+          ? raw
+          : [];
+
+        if (items.length > 0) {
+          setUsers(items);
+        } else if (users.length === 0) {
+          setUsers(DEFAULT_USERS);
+        }
       }
 
       if (rRes.status === 'fulfilled' && Array.isArray(rRes.value) && rRes.value.length > 0) {
@@ -215,9 +224,6 @@ export const UserManagementPage = () => {
       }
       if (bTargets.status === 'fulfilled' && Array.isArray(bTargets.value) && bTargets.value.length > 0) {
         setBusinessTargets(bTargets.value);
-      }
-      if (bRes.status === 'fulfilled') {
-        setBranches(bRes.value.data || []);
       }
     } catch (err) {
       setUsers((prev) => (prev.length > 0 ? prev : DEFAULT_USERS));
@@ -277,6 +283,10 @@ export const UserManagementPage = () => {
           toast.success(`User account registered`);
         }
       }
+      try {
+        localStorage.removeItem('parlour_db_staff_cache');
+        window.dispatchEvent(new CustomEvent('parlour_staff_updated'));
+      } catch {}
       setModalOpen(false);
       setEditingUser(null);
       await loadData();
@@ -355,27 +365,42 @@ export const UserManagementPage = () => {
       const phone = (u.phone || '').toLowerCase();
       const role = (u.role || '').toLowerCase();
       const userType = (u.userType || '').toLowerCase();
-      const q = searchQuery.toLowerCase();
+      const designation = (u.designation || '').toLowerCase();
+      const username = (u.username || '').toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
 
       const matchesSearch =
+        !q ||
         name.includes(q) ||
         email.includes(q) ||
         phone.includes(q) ||
         role.includes(q) ||
-        userType.includes(q);
+        userType.includes(q) ||
+        designation.includes(q) ||
+        username.includes(q);
 
+      const uBusiness = (u.targetBusiness || '').toUpperCase();
       const matchesTarget =
         targetBusinessFilter === 'ALL'
           ? true
-          : (u.targetBusiness || '').toUpperCase() === targetBusinessFilter.toUpperCase();
+          : uBusiness === targetBusinessFilter.toUpperCase() || uBusiness === 'ALL';
 
       const matchesRole = !roleFilter || (u.role || u.userType || '').toUpperCase() === roleFilter.toUpperCase();
-      const matchesStatus = !statusFilter || u.status === statusFilter;
+      const matchesStatus = !statusFilter || (u.status || '').toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesTarget && matchesRole && matchesStatus;
     });
   }, [users, searchQuery, targetBusinessFilter, roleFilter, statusFilter]);
 
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage) || 1);
+
+  // Auto-bound currentPage if filter reduces count
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
   const paginatedUsers = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredUsers.slice(start, start + itemsPerPage);
@@ -448,7 +473,11 @@ export const UserManagementPage = () => {
       header: 'User Account',
       accessor: 'name',
       render: (row) => {
-        const displayName = row.name || row.username || (row.email ? row.email.split('@')[0] : 'User');
+        let displayName = (row.name && row.name.trim().length > 0) ? row.name.trim() : '';
+        if (!displayName) {
+          const raw = row.username || (row.email ? row.email.split('@')[0] : 'User');
+          displayName = raw.replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        }
         const displaySub = row.email || row.phone || `@${row.username}`;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -757,11 +786,18 @@ export const UserManagementPage = () => {
           </div>
         }
         pagination={{
+          page: currentPage,
           currentPage,
-          totalPages,
-          totalItems: filteredUsers.length,
+          limit: itemsPerPage,
           itemsPerPage,
-          onPageChange: (page) => setCurrentPage(page),
+          total: totalItems,
+          totalItems,
+          totalPages,
+          onPageChange: (newPage) => setCurrentPage(Math.max(1, Math.min(totalPages, newPage))),
+          onLimitChange: (newLimit) => {
+            setItemsPerPage(newLimit);
+            setCurrentPage(1);
+          },
         }}
       />
 

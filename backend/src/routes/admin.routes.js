@@ -36,6 +36,7 @@ import dashCtrl from '../modules/admin/dashboard/dashboard.controller.js';
 import repCtrl from '../modules/admin/reports/report.controller.js';
 import setCtrl from '../modules/admin/settings/settings.controller.js';
 import planCtrl from '../modules/admin/plans/parlourPlan.controller.js';
+import inquiryCtrl from '../modules/admin/inquiries/inquiry.controller.js';
 
 const router = Router();
 
@@ -55,6 +56,21 @@ router.post('/auth/switch-branch', authenticateTenantUser, authCtrl.switchBranch
 router.use(authenticateTenantUser);
 router.use(branchContextMiddleware);
 
+// Universal query & body synchronization: Any filter/search/pagination parameter sent in req.body
+// is automatically merged into req.query without reassigning getter-only property!
+router.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+    try {
+      if (req.query && typeof req.query === 'object') {
+        Object.assign(req.query, req.body);
+      }
+    } catch (e) {
+      // ignore read-only descriptors
+    }
+  }
+  next();
+});
+
 // ==========================================
 // 2. DASHBOARD
 // ==========================================
@@ -62,7 +78,13 @@ router.get('/dashboard', requirePermission('dashboard.view'), dashCtrl.getDashbo
 router.get('/dashboard/overview', requirePermission('dashboard.view'), dashCtrl.getDashboardOverview);
 router.get('/dashboard/business-overview', requirePermission('dashboard.view'), dashCtrl.getBusinessOverview);
 router.get('/dashboard/operations-queue', requirePermission('dashboard.view'), dashCtrl.getOperationsQueue);
+router.get('/dashboard/assigned-products', requirePermission('inventory.view'), dashCtrl.getAssignedProducts);
+router.post('/dashboard/assigned-products/list', requirePermission('inventory.view'), dashCtrl.getAssignedProducts);
 router.post('/dashboard/assign-product', requirePermission('inventory.update'), dashCtrl.assignProductToStaff);
+router.patch('/dashboard/assigned-products/:assignmentId/status', requirePermission('inventory.update'), dashCtrl.updateProductAssignmentStatus);
+router.post('/dashboard/assigned-products/update-status', requirePermission('inventory.update'), dashCtrl.updateProductAssignmentStatus);
+router.delete('/dashboard/assigned-products/:assignmentId', requirePermission('inventory.update'), dashCtrl.deleteProductAssignment);
+router.post('/dashboard/assigned-products/delete', requirePermission('inventory.update'), dashCtrl.deleteProductAssignment);
 router.patch('/dashboard/home-services/:appointmentId/status', requirePermission('appointments.update'), dashCtrl.updateHomeServiceStatus);
 router.post('/dashboard/attendance/punch', requirePermission('attendance.create'), dashCtrl.punchAttendance);
 router.get('/dashboard/live-queue', requirePermission('dashboard.view'), dashCtrl.getLiveQueueStatus);
@@ -75,6 +97,7 @@ router.patch('/dashboard/live-queue/:tokenId/status', requirePermission('dashboa
 // ==========================================
 router.post('/departments', requirePermission('staff.create'), structCtrl.createDepartment);
 router.get('/departments', structCtrl.getDepartments);
+router.post('/departments/filter', structCtrl.getDepartments);
 router.get('/departments/:departmentId', structCtrl.getDepartmentById);
 router.patch('/departments/:departmentId', requirePermission('staff.update'), structCtrl.updateDepartment);
 router.delete('/departments/:departmentId', requirePermission('staff.delete'), structCtrl.deleteDepartment);
@@ -82,6 +105,7 @@ router.patch('/departments/:departmentId/status', requirePermission('staff.updat
 
 router.post('/designations', requirePermission('staff.create'), structCtrl.createDesignation);
 router.get('/designations', structCtrl.getDesignations);
+router.post('/designations/filter', structCtrl.getDesignations);
 router.get('/designations/:designationId', structCtrl.getDesignationById);
 router.patch('/designations/:designationId', requirePermission('staff.update'), structCtrl.updateDesignation);
 router.delete('/designations/:designationId', requirePermission('staff.delete'), structCtrl.deleteDesignation);
@@ -89,6 +113,7 @@ router.patch('/designations/:designationId/status', requirePermission('staff.upd
 
 router.post('/skills', requirePermission('staff.create'), structCtrl.createSkill);
 router.get('/skills', structCtrl.getSkills);
+router.post('/skills/filter', structCtrl.getSkills);
 router.get('/skills/:skillId', structCtrl.getSkillById);
 router.patch('/skills/:skillId', requirePermission('staff.update'), structCtrl.updateSkill);
 router.delete('/skills/:skillId', requirePermission('staff.delete'), structCtrl.deleteSkill);
@@ -101,6 +126,7 @@ router.get('/permissions/grouped', roleCtrl.getGroupedPermissions);
 
 router.post('/roles', roleCtrl.createRole);
 router.get('/roles', roleCtrl.getRoles);
+router.post('/roles/filter', roleCtrl.getRoles);
 router.get('/roles/:roleId', roleCtrl.getRoleById);
 router.patch('/roles/:roleId', roleCtrl.updateRole);
 router.delete('/roles/:roleId', roleCtrl.deleteRole);
@@ -112,6 +138,7 @@ router.put('/roles/:roleId/permissions', roleCtrl.updateRolePermissions);
 // ==========================================
 router.post('/user-types', userTypeCtrl.createUserType);
 router.get('/user-types', userTypeCtrl.getUserTypes);
+router.post('/user-types/filter', userTypeCtrl.getUserTypes);
 router.get('/user-types/:typeId', userTypeCtrl.getUserTypeById);
 router.patch('/user-types/:typeId', userTypeCtrl.updateUserType);
 router.delete('/user-types/:typeId', userTypeCtrl.deleteUserType);
@@ -121,6 +148,7 @@ router.delete('/user-types/:typeId', userTypeCtrl.deleteUserType);
 // ==========================================
 router.post('/business-targets', busTargetCtrl.createBusinessTarget);
 router.get('/business-targets', busTargetCtrl.getBusinessTargets);
+router.post('/business-targets/filter', busTargetCtrl.getBusinessTargets);
 router.get('/business-targets/:targetId', busTargetCtrl.getBusinessTargetById);
 router.patch('/business-targets/:targetId', busTargetCtrl.updateBusinessTarget);
 router.delete('/business-targets/:targetId', busTargetCtrl.deleteBusinessTarget);
@@ -130,6 +158,7 @@ router.delete('/business-targets/:targetId', busTargetCtrl.deleteBusinessTarget)
 // ==========================================
 router.post('/users', userCtrl.createUser);
 router.get('/users', userCtrl.getUsers);
+router.post('/users/filter', userCtrl.getUsers);
 router.get('/users/:userId', userCtrl.getUserById);
 router.patch('/users/:userId', userCtrl.updateUser);
 router.delete('/users/:userId', userCtrl.deleteUser);
@@ -144,6 +173,7 @@ router.post('/users/:userId/revoke-sessions', userCtrl.revokeUserSessions);
 // ==========================================
 router.post('/branches', requireTenantAdmin, checkPlanLimit('branches'), branchCtrl.createBranch);
 router.get('/branches', branchCtrl.getBranches);
+router.post('/branches/filter', branchCtrl.getBranches);
 router.get('/branches/:branchId', branchCtrl.getBranchById);
 router.patch('/branches/:branchId', requireTenantAdmin, branchCtrl.updateBranch);
 router.delete('/branches/:branchId', requireTenantAdmin, branchCtrl.deleteBranch);
@@ -162,6 +192,7 @@ router.patch('/business/hours', requireTenantAdmin, branchCtrl.updateBusinessHou
 // ==========================================
 router.post('/staff', requirePermission('staff.create'), checkPlanLimit('staff'), staffCtrl.createStaff);
 router.get('/staff', requirePermission('staff.view'), staffCtrl.getStaffList);
+router.post('/staff/filter', requirePermission('staff.view'), staffCtrl.getStaffList);
 router.get('/staff/:staffId', requirePermission('staff.view'), staffCtrl.getStaffById);
 router.patch('/staff/:staffId', requirePermission('staff.update'), staffCtrl.updateStaff);
 router.delete('/staff/:staffId', requirePermission('staff.delete'), staffCtrl.deleteStaff);
@@ -231,6 +262,7 @@ router.delete('/holidays/:holidayId', requirePermission('settings.update'), attC
 // ==========================================
 router.post('/students', requirePermission('student.create'), checkPlanLimit('students'), stuCtrl.createStudent);
 router.get('/students', requirePermission('student.view'), stuCtrl.getStudents);
+router.post('/students/filter', requirePermission('student.view'), stuCtrl.getStudents);
 router.get('/students/:studentId', requirePermission('student.view'), stuCtrl.getStudentById);
 router.patch('/students/:studentId', requirePermission('student.update'), stuCtrl.updateStudent);
 router.delete('/students/:studentId', requirePermission('student.delete'), stuCtrl.deleteStudent);
@@ -242,6 +274,7 @@ router.post('/students/:studentId/unblock', requirePermission('student.update'),
 // Student Plans
 router.post('/student-plans', requirePermission('student.create'), stuCtrl.createStudentPlan);
 router.get('/student-plans', stuCtrl.getStudentPlans);
+router.post('/student-plans/filter', stuCtrl.getStudentPlans);
 router.get('/student-plans/:planId', stuCtrl.getStudentPlanById);
 router.patch('/student-plans/:planId', requirePermission('student.update'), stuCtrl.updateStudentPlan);
 router.delete('/student-plans/:planId', requirePermission('student.delete'), stuCtrl.deleteStudentPlan);
@@ -251,6 +284,7 @@ router.patch('/student-plans/:planId/status', requirePermission('student.update'
 router.post('/students/:studentId/enrollments', requirePermission('student.create'), stuCtrl.createEnrollment);
 router.get('/students/:studentId/enrollments', stuCtrl.getStudentEnrollments);
 router.get('/enrollments', requirePermission('student.view'), stuCtrl.getAllEnrollments);
+router.post('/enrollments/filter', requirePermission('student.view'), stuCtrl.getAllEnrollments);
 router.get('/enrollments/:enrollmentId', stuCtrl.getEnrollmentById);
 router.patch('/enrollments/:enrollmentId', requirePermission('student.update'), stuCtrl.updateEnrollment);
 router.delete('/enrollments/:enrollmentId', requirePermission('student.delete'), stuCtrl.deleteEnrollment);
@@ -259,6 +293,7 @@ router.delete('/enrollments/:enrollmentId', requirePermission('student.delete'),
 router.post('/student-attendance/check-in', stuCtrl.studentCheckIn);
 router.post('/student-attendance/check-out', stuCtrl.studentCheckOut);
 router.get('/student-attendance', stuCtrl.getStudentAttendanceList);
+router.post('/student-attendance/filter', stuCtrl.getStudentAttendanceList);
 router.get('/students/:studentId/attendance', stuCtrl.getStudentAttendanceHistory);
 router.get('/student-attendance/reports', stuCtrl.getStudentAttendanceReports);
 
@@ -272,6 +307,7 @@ router.delete('/students/:studentId/certificates/:certificateId', requirePermiss
 // Course Materials & PDF Uploader (DB Based)
 router.get('/course-materials', requirePermission('student.view'), stuCtrl.getCourseMaterials);
 router.post('/course-materials', requirePermission('student.create'), stuCtrl.createCourseMaterial);
+router.post('/course-materials/filter', requirePermission('student.view'), stuCtrl.getCourseMaterials);
 router.patch('/course-materials/:id', requirePermission('student.update'), stuCtrl.updateCourseMaterial);
 router.delete('/course-materials/:id', requirePermission('student.delete'), stuCtrl.deleteCourseMaterial);
 
@@ -280,6 +316,7 @@ router.delete('/course-materials/:id', requirePermission('student.delete'), stuC
 // ==========================================
 router.post('/customers', requirePermission('customer.create'), checkPlanLimit('customers'), custCtrl.createCustomer);
 router.get('/customers', requirePermission('customer.view'), custCtrl.getCustomers);
+router.post('/customers/filter', requirePermission('customer.view'), custCtrl.getCustomers);
 router.get('/customers/:customerId', requirePermission('customer.view'), custCtrl.getCustomerById);
 router.patch('/customers/:customerId', requirePermission('customer.update'), custCtrl.updateCustomer);
 router.delete('/customers/:customerId', requirePermission('customer.delete'), custCtrl.deleteCustomer);
@@ -301,18 +338,21 @@ router.get('/customers/:customerId/activity', custCtrl.getCustomerActivity);
 // ==========================================
 router.post('/service-categories', requirePermission('service.create'), servCtrl.createServiceCategory);
 router.get('/service-categories', servCtrl.getServiceCategories);
+router.post('/service-categories/filter', servCtrl.getServiceCategories);
 router.get('/service-categories/:categoryId', servCtrl.getServiceCategoryById);
 router.patch('/service-categories/:categoryId', requirePermission('service.update'), servCtrl.updateServiceCategory);
 router.delete('/service-categories/:categoryId', requirePermission('service.delete'), servCtrl.deleteServiceCategory);
 
 router.post('/service-subcategories', requirePermission('service.create'), servCtrl.createServiceSubcategory);
 router.get('/service-subcategories', servCtrl.getServiceSubcategories);
+router.post('/service-subcategories/filter', servCtrl.getServiceSubcategories);
 router.get('/service-subcategories/:subcategoryId', servCtrl.getServiceSubcategoryById);
 router.patch('/service-subcategories/:subcategoryId', requirePermission('service.update'), servCtrl.updateServiceSubcategory);
 router.delete('/service-subcategories/:subcategoryId', requirePermission('service.delete'), servCtrl.deleteServiceSubcategory);
 
 router.post('/services', requirePermission('service.create'), checkPlanLimit('services'), servCtrl.createService);
 router.get('/services', servCtrl.getServices);
+router.post('/services/filter', servCtrl.getServices);
 router.get('/services/:serviceId', servCtrl.getServiceById);
 router.patch('/services/:serviceId', requirePermission('service.update'), servCtrl.updateService);
 router.delete('/services/:serviceId', requirePermission('service.delete'), servCtrl.deleteService);
@@ -337,6 +377,7 @@ router.delete('/services/:serviceId/addons/:addonId', requirePermission('service
 // Sub-Services Master (Independent Catalog)
 router.post('/sub-services', planCtrl.createSubService);
 router.get('/sub-services', planCtrl.getSubServices);
+router.post('/sub-services/filter', planCtrl.getSubServices);
 router.get('/sub-services/:subServiceId', planCtrl.getSubServiceById);
 router.patch('/sub-services/:subServiceId', planCtrl.updateSubService);
 router.delete('/sub-services/:subServiceId', planCtrl.deleteSubService);
@@ -345,6 +386,7 @@ router.patch('/sub-services/:subServiceId/status', planCtrl.updateSubServiceStat
 // Parlour Plans & Training Packages
 router.post('/parlour-plans', planCtrl.createParlourPlan);
 router.get('/parlour-plans', planCtrl.getParlourPlans);
+router.post('/parlour-plans/filter', planCtrl.getParlourPlans);
 router.get('/parlour-plans/:planId', planCtrl.getParlourPlanById);
 router.patch('/parlour-plans/:planId', planCtrl.updateParlourPlan);
 router.delete('/parlour-plans/:planId', planCtrl.deleteParlourPlan);
@@ -356,6 +398,7 @@ router.post('/parlour-plans/:planId/duplicate', planCtrl.duplicateParlourPlan);
 // ==========================================
 router.post('/packages', requirePermission('package.create'), pkgCtrl.createPackage);
 router.get('/packages', pkgCtrl.getPackages);
+router.post('/packages/filter', pkgCtrl.getPackages);
 router.get('/packages/:packageId', pkgCtrl.getPackageById);
 router.patch('/packages/:packageId', requirePermission('package.update'), pkgCtrl.updatePackage);
 router.delete('/packages/:packageId', requirePermission('package.delete'), pkgCtrl.deletePackage);
@@ -364,6 +407,7 @@ router.post('/packages/:packageId/duplicate', requirePermission('package.create'
 
 router.post('/offers', requirePermission('package.create'), pkgCtrl.createOffer);
 router.get('/offers', pkgCtrl.getOffers);
+router.post('/offers/filter', pkgCtrl.getOffers);
 router.get('/offers/:offerId', pkgCtrl.getOfferById);
 router.patch('/offers/:offerId', requirePermission('package.update'), pkgCtrl.updateOffer);
 router.delete('/offers/:offerId', requirePermission('package.delete'), pkgCtrl.deleteOffer);
@@ -372,6 +416,7 @@ router.post('/offers/:offerId/deactivate', requirePermission('package.update'), 
 
 router.post('/coupons', requirePermission('package.create'), pkgCtrl.createCoupon);
 router.get('/coupons', pkgCtrl.getCoupons);
+router.post('/coupons/filter', pkgCtrl.getCoupons);
 router.get('/coupons/:couponId', pkgCtrl.getCouponById);
 router.patch('/coupons/:couponId', requirePermission('package.update'), pkgCtrl.updateCoupon);
 router.delete('/coupons/:couponId', requirePermission('package.delete'), pkgCtrl.deleteCoupon);
@@ -386,20 +431,34 @@ router.get('/staff/:staffId/availability', aptCtrl.getStaffAvailability);
 
 router.post('/appointments', requirePermission('appointment.create'), aptCtrl.createAppointment);
 router.get('/appointments', requirePermission('appointment.view'), aptCtrl.getAppointments);
+router.post('/appointments/filter', requirePermission('appointment.view'), aptCtrl.getAppointments);
 router.get('/appointments/:appointmentId', requirePermission('appointment.view'), aptCtrl.getAppointmentById);
 router.patch('/appointments/:appointmentId', requirePermission('appointment.update'), aptCtrl.updateAppointment);
 router.delete('/appointments/:appointmentId', requirePermission('appointment.delete'), aptCtrl.deleteAppointment);
 
 // 13-stage actions
 router.post('/appointments/:appointmentId/confirm', requirePermission('appointment.update'), aptCtrl.confirmAppointment);
+router.post('/appointments/approve', requirePermission('appointment.update'), aptCtrl.confirmAppointment);
 router.post('/appointments/:appointmentId/check-in', requirePermission('appointment.update'), aptCtrl.checkInAppointment);
 router.post('/appointments/:appointmentId/start', requirePermission('appointment.update'), aptCtrl.startAppointment);
 router.post('/appointments/:appointmentId/pause', requirePermission('appointment.update'), aptCtrl.pauseAppointment);
 router.post('/appointments/:appointmentId/resume', requirePermission('appointment.update'), aptCtrl.resumeAppointment);
 router.post('/appointments/:appointmentId/complete', requirePermission('appointment.update'), aptCtrl.completeAppointment);
 router.post('/appointments/:appointmentId/cancel', requirePermission('appointment.delete'), aptCtrl.cancelAppointment);
+router.post('/appointments/cancel', requirePermission('appointment.delete'), aptCtrl.cancelAppointment);
 router.post('/appointments/:appointmentId/no-show', requirePermission('appointment.update'), aptCtrl.noShowAppointment);
 router.post('/appointments/:appointmentId/reschedule', requirePermission('appointment.update'), aptCtrl.rescheduleAppointment);
+
+// ==========================================
+// 13B. PARLOUR INQUIRIES & LEADS MANAGEMENT
+// ==========================================
+router.post('/inquiries', inquiryCtrl.createInquiry);
+router.get('/inquiries', inquiryCtrl.getInquiries);
+router.post('/inquiries/filter', inquiryCtrl.getInquiries);
+router.patch('/inquiries/:inquiryId', inquiryCtrl.updateInquiry);
+router.post('/inquiries/update', inquiryCtrl.updateInquiry);
+router.delete('/inquiries/:inquiryId', inquiryCtrl.deleteInquiry);
+router.post('/inquiries/delete', inquiryCtrl.deleteInquiry);
 
 // ==========================================
 // 14. HOME SERVICES & LIVE DISPATCH
@@ -447,11 +506,13 @@ router.post('/payment-gateways/:gatewayId/deactivate', requireTenantAdmin, billC
 // ==========================================
 router.post('/products', requirePermission('inventory.create'), checkPlanLimit('products'), invCtrl.createProduct);
 router.get('/products', requirePermission('inventory.view'), invCtrl.getProducts);
+router.post('/products/filter', requirePermission('inventory.view'), invCtrl.getProducts);
 router.get('/products/:productId', requirePermission('inventory.view'), invCtrl.getProductById);
 router.patch('/products/:productId', requirePermission('inventory.update'), invCtrl.updateProduct);
 router.delete('/products/:productId', requirePermission('inventory.update'), invCtrl.deleteProduct);
 
 router.get('/inventory', requirePermission('inventory.view'), invCtrl.getInventoryOverview);
+router.post('/inventory/filter', requirePermission('inventory.view'), invCtrl.getInventoryOverview);
 router.get('/inventory/low-stock', requirePermission('inventory.view'), invCtrl.getLowStockProducts);
 router.post('/inventory/stock-in', requirePermission('inventory.create'), invCtrl.stockIn);
 router.post('/inventory/stock-out', requirePermission('inventory.update'), invCtrl.stockOut);

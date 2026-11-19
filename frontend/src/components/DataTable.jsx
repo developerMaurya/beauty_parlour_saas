@@ -250,80 +250,91 @@ export const DataTable = ({
       </div>
 
       {/* Pagination Footer */}
-      {pagination && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.5rem 0.25rem',
-            fontSize: '0.825rem',
-            color: 'var(--text-secondary)',
-            flexWrap: 'wrap',
-            gap: '0.75rem',
-          }}
-        >
-          <div>
-            Showing{' '}
-            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-              {Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total || 0)}
-            </span>{' '}
-            to{' '}
-            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-              {Math.min(pagination.page * pagination.limit, pagination.total || 0)}
-            </span>{' '}
-            of{' '}
-            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-              {pagination.total || 0}
-            </span>{' '}
-            entries
-            {sortColumn && (
-              <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 500 }}>
-                (Sorted by {sortColumn} {sortDirection.toUpperCase()})
+      {pagination && (() => {
+        const curPage = Math.max(1, Number(pagination.page ?? pagination.currentPage) || 1);
+        const curLimit = Math.max(1, Number(pagination.limit ?? pagination.itemsPerPage) || 10);
+        const totalItems = Math.max(
+          0,
+          Number(pagination.total !== undefined ? pagination.total : (pagination.totalItems !== undefined ? pagination.totalItems : (data?.length || 0))) || 0
+        );
+        const totalPagesCount = Math.max(1, Number(pagination.totalPages) || Math.ceil(totalItems / curLimit) || 1);
+        const fromIndex = totalItems === 0 ? 0 : (curPage - 1) * curLimit + 1;
+        const toIndex = Math.min(curPage * curLimit, totalItems);
+
+        return (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.5rem 0.25rem',
+              fontSize: '0.825rem',
+              color: 'var(--text-secondary)',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div>
+              Showing{' '}
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {fromIndex}
+              </span>{' '}
+              to{' '}
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {toIndex}
+              </span>{' '}
+              of{' '}
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {totalItems}
+              </span>{' '}
+              entries
+              {sortColumn && (
+                <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 500 }}>
+                  (Sorted by {sortColumn} {sortDirection.toUpperCase()})
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {pagination.onLimitChange && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Show:</span>
+                  <select
+                    className="form-select form-select-sm"
+                    style={{ width: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.8rem', height: '28px' }}
+                    value={curLimit}
+                    onChange={(e) => pagination.onLimitChange(Number(e.target.value))}
+                  >
+                    <option value={8}>8</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              )}
+
+              <button
+                className="btn btn-secondary btn-sm"
+                disabled={curPage <= 1 || isLoading}
+                onClick={() => pagination.onPageChange(curPage - 1)}
+              >
+                <ChevronLeft className="w-4 h-4" /> Previous
+              </button>
+              <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>
+                Page {curPage} of {totalPagesCount}
               </span>
-            )}
+              <button
+                className="btn btn-secondary btn-sm"
+                disabled={curPage >= totalPagesCount || isLoading}
+                onClick={() => pagination.onPageChange(curPage + 1)}
+              >
+                Next <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {pagination.onLimitChange && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Show:</span>
-                <select
-                  className="form-select form-select-sm"
-                  style={{ width: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.8rem', height: '28px' }}
-                  value={pagination.limit || 10}
-                  onChange={(e) => pagination.onLimitChange(Number(e.target.value))}
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-            )}
-
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={pagination.page <= 1 || isLoading}
-              onClick={() => pagination.onPageChange(pagination.page - 1)}
-            >
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </button>
-            <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>
-              Page {pagination.page} of {Math.ceil((pagination.total || 1) / (pagination.limit || 10)) || 1}
-            </span>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={
-                pagination.page >= Math.ceil((pagination.total || 0) / (pagination.limit || 10)) || isLoading
-              }
-              onClick={() => pagination.onPageChange(pagination.page + 1)}
-            >
-              Next <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

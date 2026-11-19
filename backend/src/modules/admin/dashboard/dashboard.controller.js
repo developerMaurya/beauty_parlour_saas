@@ -5,6 +5,7 @@
  * @module backend/src/modules/admin/dashboard/dashboard.controller
  */
 
+import mongoose from 'mongoose';
 import { getTenantModel } from '../../../database/tenant/tenantModels.js';
 import { sendSuccess, sendError } from '../../../utils/response.utils.js';
 import { recordAuditLog } from '../../../utils/audit.utils.js';
@@ -688,12 +689,30 @@ export const getOperationsQueue = async (req, res) => {
 };
 
 /**
+ * GET /api/v1/admin/dashboard/assigned-products
+ * Retrieves dynamic list of all products issued to staff from MongoDB
+ */
+export const getAssignedProducts = async (req, res) => {
+  try {
+    const ProductAssignment = getTenantModel(req, 'ProductAssignment');
+    const params = { ...req.query, ...(req.body || {}) };
+    const filter = { tenantId: req.tenantId };
+    if (params.staffId) filter.staffId = params.staffId;
+    if (params.status && params.status !== 'ALL') filter.status = params.status;
+    const assignments = await ProductAssignment.find(filter).sort({ createdAt: -1 });
+    return sendSuccess(res, 'Assigned products retrieved successfully', assignments);
+  } catch (error) {
+    return sendError(res, `Failed to retrieve product assignments: ${error.message}`, [], 500);
+  }
+};
+
+/**
  * POST /api/v1/admin/dashboard/assign-product
- * Assigns products (creams, powders, hair serums) to staff members with issuance tracking
+ * Assigns products (creams, powders, hair serums) to staff members with issuance tracking & MongoDB persistence
  */
 export const assignProductToStaff = async (req, res) => {
   try {
-    const { staffId, staffName, productId, productName, quantity, purpose, notes } = req.body;
+    const { staffId, staffName, staffRole, productId, productName, quantity, qty, purpose, notes, date } = req.body;
 
     if (!staffName && !staffId) {
       return sendError(res, 'Staff member is required', [], 400);
@@ -704,13 +723,20 @@ export const assignProductToStaff = async (req, res) => {
 
     const Product = getTenantModel(req, 'Product');
     const InventoryTransaction = getTenantModel(req, 'InventoryTransaction');
+    const ProductAssignment = getTenantModel(req, 'ProductAssignment');
+
+    const qtyNum = Number(qty || quantity) || 1;
 
     // If productId provided, update stock
     let targetProduct = null;
     if (productId) {
-      targetProduct = await Product.findOne({ tenantId: req.tenantId, _id: productId });
+      const isObjectId = mongoose.Types.ObjectId.isValid(productId);
+      targetProduct = await Product.findOne({
+        tenantId: req.tenantId,
+        $or: isObjectId ? [{ _id: productId }, { sku: productId }] : [{ sku: productId }],
+      });
+
       if (targetProduct) {
-        const qtyNum = Number(quantity) || 1;
         targetProduct.stockQuantity = Math.max(0, (targetProduct.stockQuantity || 0) - qtyNum);
         await targetProduct.save();
 
@@ -727,25 +753,114 @@ export const assignProductToStaff = async (req, res) => {
       }
     }
 
+    // Persist real assignment in MongoDB
+    const assignment = await ProductAssignment.create({
+      tenantId: req.tenantId,
+      branchId: req.branchId || null,
+      staffId: staffId || null,
+      staffName,
+      staffRole: staffRole || 'Parlour Stylist',
+      productId: targetProduct ? targetProduct._id.toString() : productId,
+      productName: productName || targetProduct?.name,
+      qty: qtyNum,
+      date: date || new Date().toISOString().split('T')[0],
+      purpose: purpose || 'Salon Client Service / Styling Station',
+      status: 'ACTIVE',
+      notes: notes || '',
+    });
+
     await recordAuditLog({
       tenantId: req.tenantId,
       action: 'PRODUCT_ASSIGNED_TO_STAFF',
-      entity: 'Product',
-      entityId: targetProduct?._id || null,
-      metadata: { staffName, productName, quantity, purpose },
+      entity: 'ProductAssignment',
+      entityId: assignment._id,
+      metadata: { staffName, productName: assignment.productName, qty: qtyNum, purpose },
     });
 
-    return sendSuccess(res, `"${productName || targetProduct?.name}" successfully assigned to ${staffName}!`, {
-      assignmentId: `mat_${Date.now()}`,
-      staffName,
-      productName: productName || targetProduct?.name,
-      quantity: quantity || 1,
-      purpose: purpose || 'Bridal & Salon Artistry',
-      assignedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      remainingStock: targetProduct ? targetProduct.stockQuantity : undefined,
-    });
+    return sendSuccess(res, `"${assignment.productName}" successfully assigned to ${staffName}!`, assignment);
   } catch (error) {
     return sendError(res, `Failed to assign product: ${error.message}`, [], 500);
+  }
+};
+
+/**
+ * PATCH /api/v1/admin/dashboard/assigned-products/:assignmentId/status
+ * Updates assignment status (ACTIVE, RETURNED, CONSUMED) and restores stock if returned
+ */
+export const updateProductAssignmentStatus = async (req, res) => {
+  try {
+    const assignmentId = req.params.assignmentId || req.body.assignmentId || req.body.id;
+    const { status } = req.body;
+
+    const ProductAssignment = getTenantModel(req, 'ProductAssignment');
+    const Product = getTenantModel(req, 'Product');
+    const InventoryTransaction = getTenantModel(req, 'InventoryTransaction');
+
+    const isObjectId = mongoose.Types.ObjectId.isValid(assignmentId);
+    const assignment = await ProductAssignment.findOne({
+      tenantId: req.tenantId,
+      $or: isObjectId ? [{ _id: assignmentId }] : [{ _id: null }],
+    });
+
+    if (!assignment) {
+      return sendError(res, 'Product assignment record not found', [], 404);
+    }
+
+    const prevStatus = assignment.status;
+    assignment.status = status;
+    await assignment.save();
+
+    // If returning to stock, restore units back to Product inventory
+    if (status === 'RETURNED' && prevStatus !== 'RETURNED') {
+      if (assignment.productId) {
+        const isProdObjectId = mongoose.Types.ObjectId.isValid(assignment.productId);
+        const prod = await Product.findOne({
+          tenantId: req.tenantId,
+          $or: isProdObjectId ? [{ _id: assignment.productId }] : [{ sku: assignment.productId }],
+        });
+
+        if (prod) {
+          prod.stockQuantity = (prod.stockQuantity || 0) + (assignment.qty || 1);
+          await prod.save();
+
+          await InventoryTransaction.create({
+            tenantId: req.tenantId,
+            productId: prod._id,
+            branchId: req.branchId || null,
+            type: 'STOCK_IN',
+            quantity: assignment.qty || 1,
+            currentStock: prod.stockQuantity,
+            reason: `Restored from ${assignment.staffName} to Salon Inventory`,
+            performedBy: req.user?._id || null,
+          });
+        }
+      }
+    }
+
+    return sendSuccess(res, `Status updated to ${status}`, assignment);
+  } catch (error) {
+    return sendError(res, `Failed to update assignment status: ${error.message}`, [], 500);
+  }
+};
+
+/**
+ * DELETE /api/v1/admin/dashboard/assigned-products/:assignmentId
+ * Permanently deletes product assignment record from MongoDB
+ */
+export const deleteProductAssignment = async (req, res) => {
+  try {
+    const assignmentId = req.params.assignmentId || req.body.assignmentId || req.body.id;
+    const ProductAssignment = getTenantModel(req, 'ProductAssignment');
+
+    const isObjectId = mongoose.Types.ObjectId.isValid(assignmentId);
+    await ProductAssignment.findOneAndDelete({
+      tenantId: req.tenantId,
+      $or: isObjectId ? [{ _id: assignmentId }] : [{ _id: null }],
+    });
+
+    return sendSuccess(res, 'Assignment record deleted permanently from Database', { id: assignmentId });
+  } catch (error) {
+    return sendError(res, `Failed to delete assignment: ${error.message}`, [], 500);
   }
 };
 
@@ -1350,7 +1465,10 @@ export default {
   getDashboardOverview,
   getBusinessOverview,
   getOperationsQueue,
+  getAssignedProducts,
   assignProductToStaff,
+  updateProductAssignmentStatus,
+  deleteProductAssignment,
   updateHomeServiceStatus,
   punchAttendance,
   getLiveQueueStatus,

@@ -146,23 +146,24 @@ export const createStaff = async (req, res) => {
 export const getStaffList = async (req, res) => {
   try {
     const Staff = getTenantModel(req, 'Staff');
-    const { page, limit, skip } = getPagination(req.query);
-    const sort = getSort(req.query, 'name');
+    const params = { ...req.query, ...(req.body || {}) };
+    const { page, limit, skip } = getPagination(params);
+    const sort = getSort(params, 'name');
     const filter = { tenantId: req.tenantId };
-    if (req.query.branchId && req.query.branchId !== 'all') {
-      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    if (params.branchId && params.branchId !== 'all') {
+      filter.$or = [{ branchId: params.branchId }, { branchId: null }];
     }
 
-    if (req.query.departmentId) filter.departmentId = req.query.departmentId;
-    if (req.query.designationId) filter.designationId = req.query.designationId;
-    if (req.query.businessVertical) filter.businessVertical = req.query.businessVertical.toUpperCase();
-    if (req.query.verticalRole) filter.verticalRole = req.query.verticalRole.toUpperCase();
+    if (params.departmentId) filter.departmentId = params.departmentId;
+    if (params.designationId) filter.designationId = params.designationId;
+    if (params.businessVertical) filter.businessVertical = params.businessVertical.toUpperCase();
+    if (params.verticalRole) filter.verticalRole = params.verticalRole.toUpperCase();
 
-    if (req.query.search) {
+    if (params.search) {
       filter.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { phone: { $regex: req.query.search, $options: 'i' } },
-        { employeeId: { $regex: req.query.search, $options: 'i' } },
+        { name: { $regex: params.search, $options: 'i' } },
+        { phone: { $regex: params.search, $options: 'i' } },
+        { employeeId: { $regex: params.search, $options: 'i' } },
       ];
     }
 

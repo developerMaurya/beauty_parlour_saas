@@ -4191,10 +4191,12 @@ export const StudentAcademyPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(430px, 1fr))', gap: '1rem' }}>
                   {filteredQuotas.map((srv) => {
                     const originalIndex = roadmapQuotas.findIndex((item) => item.serviceName === srv.serviceName);
-                    const isCompleted = srv.usedCount >= srv.allowedUsage;
-                    const isStarted = srv.usedCount > 0 && !isCompleted;
-                    const remaining = Math.max(0, srv.allowedUsage - srv.usedCount);
-                    const usagePercent = Math.min(100, Math.round((srv.usedCount / srv.allowedUsage) * 100));
+                    const allowed = Math.max(1, Number(srv.allowedUsage) || 1);
+                    const used = Math.max(0, Number(srv.usedCount) || 0);
+                    const isCompleted = used >= allowed;
+                    const isStarted = used > 0 && !isCompleted;
+                    const remaining = Math.max(0, allowed - used);
+                    const usagePercent = allowed > 0 ? Math.min(100, Math.round((used / allowed) * 100)) : 0;
                     const isLoggingThis = loggingServiceIndex === originalIndex;
                     const isHistoryExpanded = expandedHistoryIndex === originalIndex;
 

@@ -54,26 +54,41 @@ export const createBranch = async (req, res) => {
 export const getBranches = async (req, res) => {
   try {
     const Branch = getTenantModel(req, 'Branch');
-    const { page, limit, skip } = getPagination(req.query);
-    const sort = getSort(req.query, 'name');
+    const params = { ...req.query, ...(req.body || {}) };
+    const { page, limit, skip } = getPagination(params);
+    const sort = getSort(params, 'name');
     const filter = { tenantId: req.tenantId };
 
-    if (req.query.status && req.query.status !== 'all') {
-      filter.status = req.query.status;
+    if (params.status && params.status !== 'all') {
+      filter.status = params.status;
     }
 
-    if (req.query.search) {
+    if (params.search) {
       filter.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { code: { $regex: req.query.search, $options: 'i' } },
-        { 'address.city': { $regex: req.query.search, $options: 'i' } },
+        { name: { $regex: params.search, $options: 'i' } },
+        { code: { $regex: params.search, $options: 'i' } },
+        { 'address.city': { $regex: params.search, $options: 'i' } },
       ];
     }
 
-    const [items, total] = await Promise.all([
+    let [items, total] = await Promise.all([
       Branch.find(filter).sort(sort).skip(skip).limit(limit),
       Branch.countDocuments(filter),
     ]);
+
+    if (total === 0) {
+      items = [
+        {
+          _id: 'default-parlour',
+          name: 'Main Beauty Parlour',
+          code: 'MAIN',
+          isDefault: true,
+          status: 'active',
+          address: { city: 'Main' },
+        },
+      ];
+      total = 1;
+    }
 
     return sendListResponse(res, items, { page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {

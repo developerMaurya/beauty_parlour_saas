@@ -127,7 +127,7 @@ export const AdminRoutes = (
       <Route path="parlour-users" element={<CustomerManagementPage />} />
       <Route path="parlour-staff" element={<StaffManagementPage />} />
       <Route path="parlour-students" element={<StudentAcademyPage />} />
-      <Route path="parlour-appointments" element={<AppointmentsCalendarPage />} />
+      <Route path="parlour-appointments" element={<AdminParlourDashboard defaultTab="appointments" />} />
       <Route path="parlour-services" element={<ServiceCatalogPage />} />
       <Route path="services" element={<ServiceCatalogPage />} />
       <Route path="parlour-offers" element={<AdminOfferCatalogPage />} />

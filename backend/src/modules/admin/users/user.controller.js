@@ -55,9 +55,15 @@ export const createUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    let cleanName = (name && name.trim().length > 0) ? name.trim() : '';
+    if (!cleanName) {
+      const raw = username || (email ? email.split('@')[0] : 'Staff Member');
+      cleanName = raw.replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+
     const user = await TenantUser.create({
       tenantId: req.tenantId,
-      name: name ? name.trim() : (username || ''),
+      name: cleanName,
       email: email ? email.trim().toLowerCase() : null,
       phone: phone ? phone.trim() : null,
       username: username ? username.trim().toLowerCase() : null,
@@ -91,33 +97,34 @@ export const createUser = async (req, res) => {
 export const getUsers = async (req, res) => {
   try {
     const TenantUser = getTenantModel(req, 'TenantUser');
-    const { page, limit, skip } = getPagination(req.query);
-    const sort = getSort(req.query, 'createdAt');
+    const params = { ...req.query, ...(req.body || {}) };
+    const { page, limit, skip } = getPagination(params);
+    const sort = getSort(params, 'createdAt');
     const filter = { tenantId: req.tenantId };
-    if (req.query.branchId && req.query.branchId !== 'all') {
-      filter.$or = [{ branchId: req.query.branchId }, { branchId: null }];
+    if (params.branchId && params.branchId !== 'all') {
+      filter.$or = [{ branchId: params.branchId }, { branchId: null }];
     }
 
-    if (req.query.targetBusiness && req.query.targetBusiness !== 'ALL') {
-      filter.targetBusiness = req.query.targetBusiness.toUpperCase();
+    if (params.targetBusiness && params.targetBusiness !== 'ALL') {
+      filter.targetBusiness = { $in: [params.targetBusiness.toUpperCase(), 'ALL'] };
     }
 
-    if (req.query.userType && req.query.userType !== 'all') {
-      filter.userType = req.query.userType.toUpperCase();
-    } else if (req.query.role && req.query.role !== 'all') {
-      filter.role = req.query.role.toUpperCase();
+    if (params.userType && params.userType !== 'all') {
+      filter.userType = params.userType.toUpperCase();
+    } else if (params.role && params.role !== 'all') {
+      filter.role = params.role.toUpperCase();
     }
 
-    if (req.query.status) {
-      filter.status = req.query.status;
+    if (params.status) {
+      filter.status = params.status;
     }
 
-    if (req.query.search) {
+    if (params.search) {
       filter.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { email: { $regex: req.query.search, $options: 'i' } },
-        { phone: { $regex: req.query.search, $options: 'i' } },
-        { username: { $regex: req.query.search, $options: 'i' } },
+        { name: { $regex: params.search, $options: 'i' } },
+        { email: { $regex: params.search, $options: 'i' } },
+        { phone: { $regex: params.search, $options: 'i' } },
+        { username: { $regex: params.search, $options: 'i' } },
       ];
     }
 
@@ -158,7 +165,60 @@ export const getUsers = async (req, res) => {
           passwordHash: defaultPwHash,
           targetBusiness: 'PARLOUR',
           userType: 'STAFF',
-          role: 'SENIOR_STYLIST',
+          role: 'STAFF',
+          designation: 'Beauty Stylist Lead',
+          status: 'active',
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Suman Sharma (Senior Bridal Stylist)',
+          email: 'suman.bridal@kashiservice.com',
+          phone: '+91 98765 43216',
+          username: 'suman.bridal',
+          passwordHash: defaultPwHash,
+          targetBusiness: 'PARLOUR',
+          userType: 'STAFF',
+          role: 'STAFF',
+          designation: 'Senior Bridal Stylist',
+          status: 'active',
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Kavita Singh (Hair Specialist & Colorist)',
+          email: 'kavita.hair@kashiservice.com',
+          phone: '+91 98765 43217',
+          username: 'kavita.hair',
+          passwordHash: defaultPwHash,
+          targetBusiness: 'PARLOUR',
+          userType: 'STAFF',
+          role: 'STAFF',
+          designation: 'Hair Specialist & Colorist',
+          status: 'active',
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Anjali Gupta (Nail Artist & Aesthetician)',
+          email: 'anjali.nail@kashiservice.com',
+          phone: '+91 98765 43218',
+          username: 'anjali.nail',
+          passwordHash: defaultPwHash,
+          targetBusiness: 'PARLOUR',
+          userType: 'STAFF',
+          role: 'STAFF',
+          designation: 'Nail Artist & Aesthetician',
+          status: 'active',
+        },
+        {
+          tenantId: req.tenantId,
+          name: 'Pooja Verma (HD Makeup Artist)',
+          email: 'pooja.makeup@kashiservice.com',
+          phone: '+91 98765 43219',
+          username: 'pooja.makeup',
+          passwordHash: defaultPwHash,
+          targetBusiness: 'PARLOUR',
+          userType: 'STAFF',
+          role: 'STAFF',
+          designation: 'HD Makeup Artist',
           status: 'active',
         },
       ];
@@ -173,7 +233,16 @@ export const getUsers = async (req, res) => {
       total = items.length;
     }
 
-    return sendListResponse(res, items, { page, limit, total, totalPages: Math.ceil(total / limit) });
+    const normalizedItems = (items || []).map((u) => {
+      const obj = u?.toObject ? u.toObject() : { ...u };
+      if (!obj.name || obj.name.trim().length === 0) {
+        const raw = obj.username || (obj.email ? obj.email.split('@')[0] : 'Staff Member');
+        obj.name = raw.replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+      return obj;
+    });
+
+    return sendListResponse(res, normalizedItems, { page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     return sendError(res, `Failed to retrieve users from DB: ${error.message}`, [], 500);
   }

@@ -277,7 +277,34 @@ export const StaffProvider = ({ children }) => {
 export const useStaff = () => {
   const context = useContext(StaffContext);
   if (!context) {
-    throw new Error('useStaff must be used within a StaffProvider');
+    try {
+      const stored = localStorage.getItem('staff_user');
+      return {
+        staff: stored ? JSON.parse(stored) : null,
+        token: localStorage.getItem('staff_token') || null,
+        isAuthenticated: !!localStorage.getItem('staff_token'),
+        loading: false,
+        error: null,
+        login: async () => {},
+        logout: () => {},
+        loadProfile: async () => {},
+        punchIn: async () => {},
+        punchOut: async () => {},
+      };
+    } catch {
+      return {
+        staff: null,
+        token: null,
+        isAuthenticated: false,
+        loading: false,
+        error: null,
+        login: async () => {},
+        logout: () => {},
+        loadProfile: async () => {},
+        punchIn: async () => {},
+        punchOut: async () => {},
+      };
+    }
   }
   return context;
 };

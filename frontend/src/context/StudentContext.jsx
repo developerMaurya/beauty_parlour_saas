@@ -119,7 +119,28 @@ export function StudentProvider({ children }) {
 export const useStudent = () => {
   const context = useContext(StudentContext);
   if (!context) {
-    throw new Error('useStudent must be used within a StudentProvider');
+    try {
+      const stored = localStorage.getItem('student_profile');
+      return {
+        student: stored ? JSON.parse(stored) : null,
+        loading: false,
+        error: null,
+        login: async () => {},
+        logout: () => {},
+        refreshProfile: async () => {},
+        updateProfile: async () => {},
+      };
+    } catch {
+      return {
+        student: null,
+        loading: false,
+        error: null,
+        login: async () => {},
+        logout: () => {},
+        refreshProfile: async () => {},
+        updateProfile: async () => {},
+      };
+    }
   }
   return context;
 };

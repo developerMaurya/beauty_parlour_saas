@@ -1,16 +1,14 @@
 /**
  * @file ParlourProductAssignments.jsx
- * @description Issue Salon Product & Student Practical Training Tracker for Golden Beauty Parlour.
+ * @description Issue Salon Products & Material Allocation strictly for Staff Members in Golden Beauty Parlour.
  * Features:
- *   - Tab 1: Issued Salon Products & Material Allocation (Staff & Students)
- *       * Issues salon products, creams, powders, styling kits to Staff or Students
- *       * Syncs with inventory stock (deducts stock on issue, restores on return)
- *       * Recipient selector loaded from DB Staff & DB Students
- *   - Tab 2: Student Practical Training & Service Quota Tracker
- *       * Tracks student practical services against their Enrolled Plan (e.g. 5 Makeup, 4 Hair Cuts, 4 Nail Art, 2 Hydra Facials)
- *       * Shows completed sessions, remaining sessions, and issued materials for each practical
- *       * 1-click tick to log completed practical sessions
- *       * Progress bar reaching 100% triggers "Ready for Certificate" status
+ *   - 100% Dedicated to Staff Members (Stylists, Beauticians, Makeup Artists, Hair Specialists).
+ *   - Live Inventory Stock Sync:
+ *       * Product dropdown displays available stock quantity clearly.
+ *       * Available Stock Card shows real-time units in inventory with status badges.
+ *       * Quantity validation prevents issuing more than available stock.
+ *       * Deducts stock upon assignment and restores stock on "Return to Stock".
+ *   - Fast, reactive, zero-NaN rendering with full offline resilience.
  * @module frontend/src/modules/admin/components/parlour/ParlourProductAssignments
  */
 
@@ -26,123 +24,268 @@ import {
   Trash2,
   X,
   Users,
-  GraduationCap,
   Sparkles,
   AlertCircle,
   Tag,
   Scissors,
-  Award,
-  Layers,
   Check,
-  ChevronRight,
   TrendingUp,
+  AlertTriangle,
+  ArrowRight,
+  ShieldCheck,
+  Box,
 } from 'lucide-react';
-import { staffFetcher, studentFetcher } from '../../../../services/api/admin/adminApi.js';
+import { staffFetcher, userFetcher, productFetcher, dashboardFetcher } from '../../../../services/api/admin/adminApi.js';
 
-export function ParlourProductAssignments({ products = [], setProducts, showToast }) {
-  const [activeTab, setActiveTab] = useState('ISSUED_PRODUCTS'); // 'ISSUED_PRODUCTS' | 'STUDENT_PRACTICALS'
-  const [filterType, setFilterType] = useState('ALL'); // 'ALL' | 'STAFF' | 'STUDENT' | 'ACTIVE' | 'RETURNED'
+export function ParlourProductAssignments({ products: externalProducts = [], setProducts: externalSetProducts, showToast }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [issueModalOpen, setIssueModalOpen] = useState(false);
 
-  // DB Lists
-  const [staffList, setStaffList] = useState([]);
-  const [studentList, setStudentList] = useState([]);
-
-  useEffect(() => {
-    // Load staff and students from database
-    const loadRosters = async () => {
-      try {
-        const [staffRes, stuRes] = await Promise.all([
-          staffFetcher.list({ limit: 100 }).catch(() => ({ data: [] })),
-          studentFetcher.list({ limit: 100 }).catch(() => ({ data: [] })),
-        ]);
-        const sData = staffRes?.data?.items || staffRes?.data || [];
-        const stData = stuRes?.data?.items || stuRes?.data || [];
-        setStaffList(sData);
-        setStudentList(stData);
-      } catch (e) {
-        console.warn('Error loading rosters:', e);
-      }
-    };
-    loadRosters();
-  }, []);
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // 1. ISSUED PRODUCTS STATE
-  // ════════════════════════════════════════════════════════════════════════════
-  const [assignments, setAssignments] = useState(() => {
+  // Internal fallback products if parent didn't pass or empty
+  const [localProducts, setLocalProducts] = useState(() => {
     try {
-      const stored = localStorage.getItem('parlour_product_assignments');
-      if (stored) return JSON.parse(stored);
-
-      const seed = [
-        {
-          id: 'ASG-101',
-          recipientType: 'STAFF',
-          recipientName: 'Suman Sharma',
-          recipientRole: 'Senior Bridal Stylist',
-          productId: 'PROD-01',
-          productName: 'O3+ Bridal Glow Facial Kit',
-          qty: 1,
-          date: '2026-11-12',
-          purpose: 'VIP Bridal Station Makeover',
-          status: 'ACTIVE', // 'ACTIVE' | 'RETURNED' | 'CONSUMED'
-          notes: 'Issued for Mrs. Gupta wedding booking',
-        },
-        {
-          id: 'ASG-102',
-          recipientType: 'STUDENT',
-          recipientName: 'Neha Verma',
-          recipientRole: 'Advance Bridal Trainee',
-          productId: 'PROD-03',
-          productName: 'Kryolan HD Micro Foundation Palette (18 Shades)',
-          qty: 1,
-          date: '2026-11-10',
-          purpose: 'Practical Makeup Session #2 (HD Bridal)',
-          status: 'ACTIVE',
-          notes: 'Academy Practical Kit Allocation',
-        },
-        {
-          id: 'ASG-103',
-          recipientType: 'STUDENT',
-          recipientName: 'Neha Verma',
-          recipientRole: 'Advance Bridal Trainee',
-          productId: 'PROD-02',
-          productName: 'Streax Canvoline Hair Straightening & Neutralizer Kit',
-          qty: 1,
-          date: '2026-11-14',
-          purpose: 'Hair Chemical Smoothening Practical #1',
-          status: 'CONSUMED',
-          notes: 'Chemical applied during live client model practice',
-        },
-        {
-          id: 'ASG-104',
-          recipientType: 'STAFF',
-          recipientName: 'Priya Patel',
-          recipientRole: 'Cosmetologist',
-          productId: 'PROD-04',
-          productName: 'L’Oréal Professionnel Mythic Oil Nourishing Serum',
-          qty: 2,
-          date: '2026-11-08',
-          purpose: 'Hair Spa Styling Booth',
-          status: 'RETURNED',
-          notes: 'Returned to storage after event shift',
-        },
-      ];
-      localStorage.setItem('parlour_product_assignments', JSON.stringify(seed));
-      return seed;
+      const stored = localStorage.getItem('parlour_products_inventory');
+      return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
     }
   });
 
-  // Issue Product Form State
+  const products = externalProducts && externalProducts.length > 0 ? externalProducts : localProducts;
+  const setProducts = externalSetProducts || setLocalProducts;
+
+  // Background fetch products from MongoDB if missing
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDbProducts = async () => {
+      try {
+        const res = await productFetcher.list({ limit: 200, category: 'all' }).catch(() => null);
+        const items = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data?.items)
+          ? res.data.items
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        if (isMounted && items.length > 0) {
+          const normalized = items.map((p) => ({
+            id: p._id || p.id,
+            _id: p._id || p.id,
+            name: p.name,
+            category: p.category || 'Skin Care',
+            image: p.imageUrl || p.image || 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80',
+            price: Number(p.sellingPrice || p.price) || 0,
+            cost: Number(p.costPrice || p.cost) || 0,
+            stock: Number(p.stockQuantity ?? p.currentStock ?? p.stock ?? 0),
+            minStock: Number(p.minStockAlert ?? p.minStock ?? 3),
+            brand: p.brand || '',
+            unit: p.unit || 'Pieces',
+          }));
+          if (externalSetProducts) {
+            externalSetProducts(normalized);
+          } else {
+            setLocalProducts(normalized);
+          }
+          localStorage.setItem('parlour_products_inventory', JSON.stringify(normalized));
+        }
+      } catch (err) {
+        console.warn('DB product sync error:', err);
+      }
+    };
+    fetchDbProducts();
+    return () => {
+      isMounted = false;
+    };
+  }, [externalSetProducts]);
+
+  // Staff Roster loaded directly from DB (TenantUser where targetBusiness === 'PARLOUR' and role === 'STAFF' + Staff Collection)
+  const [staffList, setStaffList] = useState(() => {
+    try {
+      const cached = localStorage.getItem('parlour_db_staff_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadStaffRoster = async () => {
+      setIsLoadingStaff(true);
+      try {
+        const [staffRes, userRes] = await Promise.all([
+          staffFetcher.list({ limit: 200, targetBusiness: 'PARLOUR' }).catch(() => ({ data: [] })),
+          userFetcher.list({ limit: 200, targetBusiness: 'PARLOUR' }).catch(() => ({ data: [] })),
+        ]);
+
+        const rawStaff = Array.isArray(staffRes?.data?.data)
+          ? staffRes.data.data
+          : Array.isArray(staffRes?.data?.items)
+          ? staffRes.data.items
+          : Array.isArray(staffRes?.data)
+          ? staffRes.data
+          : [];
+
+        const rawUsers = Array.isArray(userRes?.data?.data)
+          ? userRes.data.data
+          : Array.isArray(userRes?.data?.items)
+          ? userRes.data.items
+          : Array.isArray(userRes?.data)
+          ? userRes.data
+          : [];
+
+        // 1. Filter Users from TenantUser table who belong strictly to PARLOUR and have role STAFF
+        // Excludes EVENTS, PLOTTING, RENT, SOFTWARE staff, and excludes Customers/Students/Admins!
+        const staffFromUsers = rawUsers
+          .filter((u) => {
+            const role = (u.role || u.userType || '').toUpperCase();
+            const business = (u.targetBusiness || '').toUpperCase();
+
+            // Strictly exclude Customers, Students, and Super Admin
+            if (role === 'CUSTOMER' || role === 'STUDENT' || role === 'SUPER_ADMIN') return false;
+
+            // Strictly exclude other verticals (EVENTS, PLOTTING, RENT, SOFTWARE)
+            if (business && business !== 'PARLOUR' && business !== 'ALL') return false;
+
+            // Must have staff role or userType STAFF
+            const isStaffRole =
+              role === 'STAFF' ||
+              u.userType === 'STAFF' ||
+              role.includes('STYLIST') ||
+              role.includes('BEAUTICIAN') ||
+              role.includes('THERAPIST') ||
+              role.includes('COLORIST') ||
+              role.includes('ARTIST');
+
+            return isStaffRole;
+          })
+          .map((u) => ({
+            _id: u._id || u.id,
+            id: u._id || u.id,
+            name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
+            designation: u.designation || u.customRoleId?.name || (u.role === 'STAFF' ? 'Parlour Stylist' : u.role) || 'Parlour Stylist',
+            phone: u.phone || '',
+            role: 'STAFF',
+            userType: 'STAFF',
+            targetBusiness: 'PARLOUR',
+            source: 'users_table',
+          }));
+
+        // 2. Staff profiles from Staff collection (Only Parlour staff)
+        const staffFromProfiles = rawStaff
+          .filter((s) => {
+            const business = (s.businessVertical || s.department || '').toUpperCase();
+            if (business && business !== 'PARLOUR' && business !== 'ALL') return false;
+            return true;
+          })
+          .map((s) => ({
+            _id: s._id || s.id,
+            id: s._id || s.id,
+            name: s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim(),
+            designation: s.designation || s.specialization || s.role || 'Senior Stylist',
+            phone: s.phone || '',
+            role: 'STAFF',
+            source: 'staff_collection',
+          }));
+
+        // 3. Deduplicate by lowercased name & valid name
+        const combined = [...staffFromUsers, ...staffFromProfiles].filter((s) => s.name && s.name.trim().length > 1);
+        const uniqueStaff = [];
+        const seenNames = new Set();
+        for (const stf of combined) {
+          const norm = stf.name.toLowerCase().trim();
+          if (!seenNames.has(norm)) {
+            seenNames.add(norm);
+            uniqueStaff.push(stf);
+          }
+        }
+
+        if (isMounted && uniqueStaff.length > 0) {
+          setStaffList(uniqueStaff);
+          localStorage.setItem('parlour_db_staff_cache', JSON.stringify(uniqueStaff));
+        }
+      } catch (e) {
+        console.warn('Error loading DB staff roster:', e);
+      } finally {
+        if (isMounted) setIsLoadingStaff(false);
+      }
+    };
+    loadStaffRoster();
+    window.addEventListener('parlour_staff_updated', loadStaffRoster);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('parlour_staff_updated', loadStaffRoster);
+    };
+  }, []);
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // 1. ISSUED PRODUCTS STATE (DIRECT FROM MONGODB DATABASE - ZERO HARDCODING)
+  // ════════════════════════════════════════════════════════════════════════════
+  const [assignments, setAssignments] = useState(() => {
+    try {
+      const stored = localStorage.getItem('parlour_product_assignments');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          // Purge legacy hardcoded mock items (ASG-101, ASG-102, ASG-103, ASG-104)
+          const clean = parsed.filter((item) => !['ASG-101', 'ASG-102', 'ASG-103', 'ASG-104'].includes(item.id));
+          localStorage.setItem('parlour_product_assignments', JSON.stringify(clean));
+          return clean;
+        }
+      }
+    } catch {}
+    return [];
+  });
+
+  // Background DB sync for product assignments from MongoDB
+  useEffect(() => {
+    let isMounted = true;
+    const loadDbAssignments = async () => {
+      try {
+        const res = await dashboardFetcher.getAssignedProducts({});
+        const items = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data?.items)
+          ? res.data.items
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        if (isMounted) {
+          const normalized = items.map((a) => ({
+            id: a._id || a.id,
+            _id: a._id || a.id,
+            recipientType: 'STAFF',
+            recipientName: a.staffName,
+            recipientRole: a.staffRole || 'Parlour Stylist',
+            productId: a.productId,
+            productName: a.productName,
+            qty: Number(a.qty) || 1,
+            date: a.date,
+            purpose: a.purpose,
+            status: a.status,
+            notes: a.notes || '',
+          }));
+          setAssignments(normalized);
+          localStorage.setItem('parlour_product_assignments', JSON.stringify(normalized));
+        }
+      } catch (err) {
+        console.warn('Could not load DB product assignments:', err?.message);
+      }
+    };
+    loadDbAssignments();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Issue Product Form State (Staff Only)
   const [issueForm, setIssueForm] = useState({
-    recipientType: 'STAFF', // 'STAFF' | 'STUDENT'
-    recipientId: '',
-    recipientName: '',
-    recipientRole: '',
+    staffId: '',
+    staffName: '',
+    staffRole: '',
     productId: '',
     qty: 1,
     purpose: '',
@@ -150,31 +293,46 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
     date: new Date().toISOString().split('T')[0],
   });
 
-  // Handle Issue Product Submit
+  // Derived Selected Product Object
+  const selectedProduct = useMemo(() => {
+    if (!issueForm.productId) return null;
+    return products.find((p) => p.id === issueForm.productId || p._id === issueForm.productId) || null;
+  }, [products, issueForm.productId]);
+
+  // Handle Quantity Change with Safe Bounds
+  const handleQtyChange = (newQty) => {
+    const maxStock = selectedProduct ? Math.max(0, Number(selectedProduct.stock) || 0) : 999;
+    const clamped = Math.max(1, Math.min(maxStock, Number(newQty) || 1));
+    setIssueForm((prev) => ({ ...prev, qty: clamped }));
+  };
+
+  // Handle Issue Product Submit (Staff Only)
   const handleIssueProductSubmit = (e) => {
     e.preventDefault();
-    if (!issueForm.recipientName || !issueForm.productId || Number(issueForm.qty) <= 0) {
-      alert('Please fill recipient, product and valid quantity.');
+    if (!issueForm.staffName || !issueForm.productId) {
+      if (showToast) showToast('Please select staff member and product.');
       return;
     }
 
-    const selectedProduct = products.find((p) => p.id === issueForm.productId);
     if (!selectedProduct) {
-      alert('Selected product not found in inventory.');
+      if (showToast) showToast('Selected product not found in inventory.');
       return;
     }
 
-    const reqQty = Number(issueForm.qty);
-    if (selectedProduct.stock < reqQty) {
-      alert(`Insufficient stock! Current stock for ${selectedProduct.name} is ${selectedProduct.stock}.`);
+    const availableStock = Math.max(0, Number(selectedProduct.stock) || 0);
+    const reqQty = Math.max(1, Number(issueForm.qty) || 1);
+
+    if (availableStock < reqQty) {
+      if (showToast) showToast(`Insufficient stock! Available stock for ${selectedProduct.name} is only ${availableStock}.`);
       return;
     }
 
-    // Deduct stock from Inventory
+    // Deduct stock from Inventory (Optimistic 0ms UI update)
+    const remainingStock = Math.max(0, availableStock - reqQty);
     if (setProducts) {
       const updatedProds = products.map((p) => {
-        if (p.id === issueForm.productId) {
-          return { ...p, stock: Math.max(0, p.stock - reqQty) };
+        if (p.id === selectedProduct.id || p._id === selectedProduct._id) {
+          return { ...p, stock: remainingStock };
         }
         return p;
       });
@@ -182,34 +340,66 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
       localStorage.setItem('parlour_products_inventory', JSON.stringify(updatedProds));
     }
 
+    // Persist stock deduction to MongoDB in background
+    const prodDbId = selectedProduct._id || selectedProduct.id;
+    if (prodDbId) {
+      productFetcher.update(prodDbId, { stockQuantity: remainingStock }).catch((err) => {
+        console.warn('Background stock deduction to DB error:', err);
+      });
+    }
+
+    const tempId = 'ASG-' + Date.now().toString().slice(-4);
     const newRecord = {
-      id: 'ASG-' + Date.now().toString().slice(-4),
-      recipientType: issueForm.recipientType,
-      recipientName: issueForm.recipientName,
-      recipientRole: issueForm.recipientRole || (issueForm.recipientType === 'STAFF' ? 'Staff Stylist' : 'Trainee Student'),
-      productId: issueForm.productId,
+      id: tempId,
+      recipientType: 'STAFF',
+      recipientName: issueForm.staffName,
+      recipientRole: issueForm.staffRole || 'Parlour Stylist',
+      productId: selectedProduct.id || selectedProduct._id,
       productName: selectedProduct.name,
       qty: reqQty,
-      date: issueForm.date,
-      purpose: issueForm.purpose || 'Salon Service / Training Practical',
+      date: issueForm.date || new Date().toISOString().split('T')[0],
+      purpose: issueForm.purpose.trim() || 'Salon Client Service / Styling Station',
       status: 'ACTIVE',
-      notes: issueForm.notes,
+      notes: issueForm.notes.trim(),
     };
 
     const updatedAssignments = [newRecord, ...assignments];
     setAssignments(updatedAssignments);
     localStorage.setItem('parlour_product_assignments', JSON.stringify(updatedAssignments));
 
+    // Save directly to MongoDB database!
+    dashboardFetcher.assignProduct({
+      staffId: issueForm.staffId,
+      staffName: issueForm.staffName,
+      staffRole: issueForm.staffRole || 'Parlour Stylist',
+      productId: selectedProduct._id || selectedProduct.id,
+      productName: selectedProduct.name,
+      qty: reqQty,
+      date: issueForm.date || new Date().toISOString().split('T')[0],
+      purpose: issueForm.purpose.trim() || 'Salon Client Service / Styling Station',
+      notes: issueForm.notes.trim(),
+    }).then((res) => {
+      const created = res?.data;
+      if (created?._id) {
+        setAssignments((prev) => {
+          const next = prev.map((a) => (a.id === tempId ? { ...a, id: created._id, _id: created._id } : a));
+          localStorage.setItem('parlour_product_assignments', JSON.stringify(next));
+          return next;
+        });
+      }
+    }).catch((err) => {
+      console.warn('Background assignment save to DB error:', err);
+    });
+
     if (showToast) {
-      showToast(`Issued ${reqQty}x ${selectedProduct.name} to ${issueForm.recipientName}! Stock deducted.`);
+      showToast(`✓ Assigned ${reqQty}x "${selectedProduct.name}" to ${issueForm.staffName}! Stock deducted (${remainingStock} units left in inventory).`);
     }
 
     setIssueModalOpen(false);
     setIssueForm({
-      recipientType: 'STAFF',
-      recipientId: '',
-      recipientName: '',
-      recipientRole: '',
+      staffId: '',
+      staffName: '',
+      staffRole: '',
       productId: '',
       qty: 1,
       purpose: '',
@@ -220,1429 +410,958 @@ export function ParlourProductAssignments({ products = [], setProducts, showToas
 
   // Mark Product Returned or Consumed
   const handleUpdateStatus = (id, newStatus) => {
-    const item = assignments.find((a) => a.id === id);
+    const item = assignments.find((a) => a.id === id || a._id === id);
     if (!item) return;
 
     // If returning, restore stock back to inventory
     if (newStatus === 'RETURNED' && item.status !== 'RETURNED') {
+      const restoredQty = Number(item.qty) || 1;
+      let nextStock = 0;
       if (setProducts) {
         const updatedProds = products.map((p) => {
-          if (p.id === item.productId) {
-            return { ...p, stock: p.stock + item.qty };
+          if (p.id === item.productId || p._id === item.productId) {
+            nextStock = (Number(p.stock) || 0) + restoredQty;
+            return { ...p, stock: nextStock };
           }
           return p;
         });
         setProducts(updatedProds);
         localStorage.setItem('parlour_products_inventory', JSON.stringify(updatedProds));
       }
-      if (showToast) showToast(`Restored ${item.qty}x ${item.productName} back to salon stock!`);
+
+      // Persist stock restore to MongoDB in background
+      if (item.productId) {
+        productFetcher.update(item.productId, { stockQuantity: nextStock }).catch((err) => {
+          console.warn('Background stock restore to DB error:', err);
+        });
+      }
+
+      if (showToast) showToast(`✓ Restored ${item.qty}x "${item.productName}" back to salon inventory stock!`);
+    } else if (newStatus === 'CONSUMED') {
+      if (showToast) showToast(`Marked ${item.qty}x "${item.productName}" as consumed by ${item.recipientName}.`);
     }
 
-    const updated = assignments.map((a) => (a.id === id ? { ...a, status: newStatus } : a));
+    const updated = assignments.map((a) => (a.id === id || a._id === id ? { ...a, status: newStatus } : a));
     setAssignments(updated);
     localStorage.setItem('parlour_product_assignments', JSON.stringify(updated));
+
+    // Persist status change to MongoDB in background
+    const targetId = item._id || item.id || id;
+    dashboardFetcher.updateAssignmentStatus(targetId, { status: newStatus }).catch((err) => {
+      console.warn('Background assignment status update error:', err);
+    });
   };
 
-  // Delete Assignment Record
+  // Delete Assignment Record Permanently from DB
   const handleDeleteAssignment = (id) => {
-    if (!window.confirm('Delete this product issue record?')) return;
-    const updated = assignments.filter((a) => a.id !== id);
+    if (!window.confirm('Delete this staff product assignment record permanently from database?')) return;
+    const target = assignments.find((a) => a.id === id || a._id === id);
+    const updated = assignments.filter((a) => a.id !== id && a._id !== id);
     setAssignments(updated);
     localStorage.setItem('parlour_product_assignments', JSON.stringify(updated));
-    if (showToast) showToast('Record removed.');
+
+    // Delete permanently from MongoDB database
+    const targetId = target?._id || target?.id || id;
+    dashboardFetcher.deleteAssignment(targetId).catch((err) => {
+      console.warn('Background assignment deletion from DB error:', err);
+    });
+
+    if (showToast) showToast('Record removed permanently from Database.');
   };
 
-  // Filtered Issued Products
+  // Filtered Issued Products (All displayed together, keyword search enabled)
   const filteredAssignments = useMemo(() => {
+    if (!searchTerm.trim()) return assignments;
+    const q = searchTerm.toLowerCase();
     return assignments.filter((item) => {
-      if (filterType === 'STAFF' && item.recipientType !== 'STAFF') return false;
-      if (filterType === 'STUDENT' && item.recipientType !== 'STUDENT') return false;
-      if (filterType === 'ACTIVE' && item.status !== 'ACTIVE') return false;
-      if (filterType === 'RETURNED' && item.status !== 'RETURNED') return false;
-
-      if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase();
-        return (
-          item.recipientName.toLowerCase().includes(q) ||
-          item.productName.toLowerCase().includes(q) ||
-          item.purpose.toLowerCase().includes(q)
-        );
-      }
-      return true;
+      return (
+        (item.recipientName || '').toLowerCase().includes(q) ||
+        (item.productName || '').toLowerCase().includes(q) ||
+        (item.purpose || '').toLowerCase().includes(q) ||
+        (item.recipientRole || '').toLowerCase().includes(q) ||
+        (item.status || '').toLowerCase().includes(q)
+      );
     });
-  }, [assignments, filterType, searchTerm]);
+  }, [assignments, searchTerm]);
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // 2. STUDENT PRACTICAL TRAINING & SERVICE QUOTA TRACKER
-  // ════════════════════════════════════════════════════════════════════════════
-  const [studentPracticalTracker, setStudentPracticalTracker] = useState(() => {
-    try {
-      const stored = localStorage.getItem('parlour_student_practicals_tracker');
-      if (stored) return JSON.parse(stored);
+  // Overall KPI Statistics
+  const stats = useMemo(() => {
+    const total = assignments.length;
+    const active = assignments.filter((a) => a.status === 'ACTIVE');
+    const returned = assignments.filter((a) => a.status === 'RETURNED');
+    const consumed = assignments.filter((a) => a.status === 'CONSUMED');
 
-      const seed = [
-        {
-          studentId: 'STU-01',
-          studentName: 'Neha Verma',
-          phone: '9876543210',
-          planName: 'Advance Bridal Glam & Cosmetology Diploma',
-          enrolledDate: '2026-10-01',
-          practicals: [
-            {
-              id: 'PRAC-01',
-              serviceName: 'Bridal HD & Airbrush Makeup',
-              totalQuota: 5,
-              completed: 3,
-              issuedMaterials: 'Kryolan 18-Shade Palette, HD Setting Powder, Beauty Blenders',
-              icon: '💄',
-            },
-            {
-              id: 'PRAC-02',
-              serviceName: 'Hair Styling, Cuts & Chemical Smoothening',
-              totalQuota: 4,
-              completed: 2,
-              issuedMaterials: 'Streax Straightening Cream, L’Oréal Mythic Oil, Thermal Brushes',
-              icon: '💇‍♀️',
-            },
-            {
-              id: 'PRAC-03',
-              serviceName: 'Nail Artistry & Acrylic Gel Extensions',
-              totalQuota: 4,
-              completed: 4,
-              issuedMaterials: 'Gel Polish Set, UV LED Lamp, Acrylic Powder Kit',
-              icon: '💅',
-            },
-            {
-              id: 'PRAC-04',
-              serviceName: 'O3+ Hydra Glow Bridal Facial & D-Tan',
-              totalQuota: 2,
-              completed: 1,
-              issuedMaterials: 'O3+ Bridal Facial Kit, D-Tan Scrub, Rose Toner',
-              icon: '💧',
-            },
-          ],
-        },
-        {
-          studentId: 'STU-02',
-          studentName: 'Pooja Sharma',
-          phone: '9876543212',
-          planName: 'Basic Salon Cosmetology & Hair Artistry',
-          enrolledDate: '2026-10-15',
-          practicals: [
-            {
-              id: 'PRAC-11',
-              serviceName: 'Basic Party & HD Makeup',
-              totalQuota: 3,
-              completed: 3,
-              issuedMaterials: 'Base Foundation, Powder, Lip Palette',
-              icon: '💄',
-            },
-            {
-              id: 'PRAC-12',
-              serviceName: 'Layer & Feather Hair Cutting',
-              totalQuota: 3,
-              completed: 2,
-              issuedMaterials: 'Salon Scissors, Section Clips, Hair Dryer',
-              icon: '✂️',
-            },
-            {
-              id: 'PRAC-13',
-              serviceName: 'Herbal Fruit Facial & Clean-Up',
-              totalQuota: 2,
-              completed: 2,
-              issuedMaterials: 'Fruit Scrub, Face Mask, Massage Cream',
-              icon: '🌿',
-            },
-          ],
-        },
-      ];
-      localStorage.setItem('parlour_student_practicals_tracker', JSON.stringify(seed));
-      return seed;
-    } catch {
-      return [];
-    }
-  });
+    const totalUnitsIssued = active.reduce((sum, a) => sum + (Number(a.qty) || 0), 0);
+    const uniqueStaff = new Set(active.map((a) => a.recipientName)).size;
 
-  const [selectedStudentForPracticals, setSelectedStudentForPracticals] = useState(
-    studentPracticalTracker[0]?.studentId || ''
-  );
-  const [addQuotaModalOpen, setAddQuotaModalOpen] = useState(false);
-  const [newQuotaForm, setNewQuotaForm] = useState({
-    serviceName: 'Bridal HD & Airbrush Makeup',
-    totalQuota: 5,
-    issuedMaterials: '',
-  });
-
-  const currentStudentData = useMemo(() => {
-    return (
-      studentPracticalTracker.find((s) => s.studentId === selectedStudentForPracticals) ||
-      studentPracticalTracker[0]
-    );
-  }, [studentPracticalTracker, selectedStudentForPracticals]);
-
-  // Unified practicals/services list supporting both legacy practicals and modern dynamic services with variants
-  const practicalsList = useMemo(() => {
-    if (!currentStudentData) return [];
-    if (Array.isArray(currentStudentData.services) && currentStudentData.services.length > 0) {
-      return currentStudentData.services.map((s) => ({
-        id: s.id,
-        serviceName: s.serviceName,
-        totalQuota: s.allowedUsage ?? s.totalQuota ?? 1,
-        completed: s.usedCount ?? s.completed ?? 0,
-        remaining: s.remainingCount ?? Math.max(0, (s.allowedUsage ?? s.totalQuota ?? 1) - (s.usedCount ?? s.completed ?? 0)),
-        variants: s.variants || [],
-        issuedMaterials: s.issuedMaterials || (s.variants?.length ? `Allowed Options: ${s.variants.join(', ')}` : 'Assigned Station Materials & Products'),
-        icon: s.icon || '✨',
-        history: s.history || [],
-      }));
-    }
-    if (Array.isArray(currentStudentData.practicals)) {
-      return currentStudentData.practicals.map((p) => ({
-        ...p,
-        remaining: Math.max(0, p.totalQuota - p.completed),
-        variants: p.variants || [],
-      }));
-    }
-    return [];
-  }, [currentStudentData]);
-
-  // Overall student practical completion stats
-  const overallProgress = useMemo(() => {
-    if (!practicalsList || practicalsList.length === 0) return { total: 0, done: 0, percent: 0 };
-    const total = practicalsList.reduce((sum, p) => sum + p.totalQuota, 0);
-    const done = practicalsList.reduce((sum, p) => sum + p.completed, 0);
-    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-    return { total, done, percent };
-  }, [practicalsList]);
-
-  // Tick / Log completed practical session
-  const handleIncrementPractical = (practicalId) => {
-    const updatedTracker = studentPracticalTracker.map((student) => {
-      if (student.studentId === currentStudentData.studentId) {
-        let updatedServices = student.services
-          ? student.services.map((s) => {
-              if (s.id === practicalId) {
-                const nextUsed = Math.min(s.allowedUsage, (s.usedCount ?? 0) + 1);
-                return {
-                  ...s,
-                  usedCount: nextUsed,
-                  remainingCount: Math.max(0, s.allowedUsage - nextUsed),
-                  history: [
-                    {
-                      id: 'LOG-' + Date.now(),
-                      date: new Date().toISOString().split('T')[0],
-                      variant: s.variants?.[0] || 'Standard Practice',
-                      staffOrTrainer: 'Admin / Lead Trainer',
-                      notes: 'Session logged via Parlour Dashboard',
-                    },
-                    ...(s.history || []),
-                  ],
-                };
-              }
-              return s;
-            })
-          : undefined;
-
-        let updatedPracticals = student.practicals
-          ? student.practicals.map((p) => {
-              if (p.id === practicalId) {
-                const nextVal = Math.min(p.totalQuota, p.completed + 1);
-                return { ...p, completed: nextVal };
-              }
-              return p;
-            })
-          : undefined;
-
-        return {
-          ...student,
-          ...(updatedServices ? { services: updatedServices } : {}),
-          ...(updatedPracticals ? { practicals: updatedPracticals } : {}),
-        };
-      }
-      return student;
-    });
-
-    setStudentPracticalTracker(updatedTracker);
-    localStorage.setItem('parlour_student_practicals_tracker', JSON.stringify(updatedTracker));
-    if (showToast) showToast('Practical session logged! Progress updated.');
-  };
-
-  // Decrement completed practical session (if logged by mistake)
-  const handleDecrementPractical = (practicalId) => {
-    const updatedTracker = studentPracticalTracker.map((student) => {
-      if (student.studentId === currentStudentData.studentId) {
-        let updatedServices = student.services
-          ? student.services.map((s) => {
-              if (s.id === practicalId) {
-                const nextUsed = Math.max(0, (s.usedCount ?? 0) - 1);
-                return {
-                  ...s,
-                  usedCount: nextUsed,
-                  remainingCount: Math.max(0, s.allowedUsage - nextUsed),
-                  history: (s.history || []).slice(1),
-                };
-              }
-              return s;
-            })
-          : undefined;
-
-        let updatedPracticals = student.practicals
-          ? student.practicals.map((p) => {
-              if (p.id === practicalId) {
-                const nextVal = Math.max(0, p.completed - 1);
-                return { ...p, completed: nextVal };
-              }
-              return p;
-            })
-          : undefined;
-
-        return {
-          ...student,
-          ...(updatedServices ? { services: updatedServices } : {}),
-          ...(updatedPracticals ? { practicals: updatedPracticals } : {}),
-        };
-      }
-      return student;
-    });
-
-    setStudentPracticalTracker(updatedTracker);
-    localStorage.setItem('parlour_student_practicals_tracker', JSON.stringify(updatedTracker));
-    if (showToast) showToast('Session log reverted.');
-  };
-
-  // Add Custom Practical Quota to Student
-  const handleAddCustomQuota = (e) => {
-    e.preventDefault();
-    if (!newQuotaForm.serviceName || Number(newQuotaForm.totalQuota) <= 0) return;
-
-    const newPrac = {
-      id: 'PRAC-' + Date.now().toString().slice(-4),
-      serviceName: newQuotaForm.serviceName,
-      totalQuota: Number(newQuotaForm.totalQuota),
-      allowedUsage: Number(newQuotaForm.totalQuota),
-      completed: 0,
-      usedCount: 0,
-      remainingCount: Number(newQuotaForm.totalQuota),
-      variants: ['Standard Service Variant'],
-      history: [],
-      issuedMaterials: newQuotaForm.issuedMaterials || 'Assigned Station Materials',
-      icon: '💅',
+    return {
+      total,
+      activeCount: active.length,
+      returnedCount: returned.length,
+      consumedCount: consumed.length,
+      totalUnitsIssued,
+      uniqueStaff,
     };
-
-    const updatedTracker = studentPracticalTracker.map((student) => {
-      if (student.studentId === currentStudentData.studentId) {
-        return {
-          ...student,
-          practicals: [...(student.practicals || []), newPrac],
-          ...(student.services ? { services: [...student.services, newPrac] } : {}),
-        };
-      }
-      return student;
-    });
-
-    setStudentPracticalTracker(updatedTracker);
-    localStorage.setItem('parlour_student_practicals_tracker', JSON.stringify(updatedTracker));
-    setAddQuotaModalOpen(false);
-    if (showToast) showToast(`Added ${newPrac.totalQuota} sessions of ${newPrac.serviceName}!`);
-  };
+  }, [assignments]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* ── Top Header & Tab Switcher ── */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* ── Top Header & Action ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '24px' }}>🧴</span>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+              Staff Product & Material Allocation
+            </h1>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: 'rgba(236, 72, 153, 0.15)',
+                color: '#ec4899',
+                border: '1px solid rgba(236, 72, 153, 0.3)',
+              }}
+            >
+              Staff Only · Live Stock Sync
+            </span>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+            Assign creams, styling kits, powders, hair colors & serums strictly to salon staff members with automatic inventory stock management.
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            setIssueForm({
+              staffId: staffList[0]?._id || '',
+              staffName: staffList[0]?.name || '',
+              staffRole: staffList[0]?.designation || 'Senior Stylist',
+              productId: products[0]?.id || products[0]?._id || '',
+              qty: 1,
+              purpose: '',
+              notes: '',
+              date: new Date().toISOString().split('T')[0],
+            });
+            setIssueModalOpen(true);
+          }}
+          className="btn btn-primary"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)',
+            borderColor: 'transparent',
+            fontWeight: 800,
+            padding: '10px 18px',
+            boxShadow: '0 4px 15px rgba(236, 72, 153, 0.35)',
+          }}
+        >
+          <Plus size={16} /> + Assign Product to Staff
+        </button>
+      </div>
+
+      {/* ── KPI Summary Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '14px',
+            padding: '1.15rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>Active Floor Allocations</span>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(236, 72, 153, 0.15)', color: '#ec4899', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Package size={17} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#ec4899', marginTop: 4 }}>
+            {stats.activeCount}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+            Currently in use across salon stations
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '14px',
+            padding: '1.15rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>Total Units Issued</span>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box size={17} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: 4 }}>
+            {stats.totalUnitsIssued} <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>units</span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+            Total product volume on active stations
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '14px',
+            padding: '1.15rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>Staff Members with Products</span>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={17} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#a855f7', marginTop: 4 }}>
+            {stats.uniqueStaff}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+            Active stylists currently holding materials
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '14px',
+            padding: '1.15rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>Restored to Stock</span>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <RotateCcw size={17} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#10b981', marginTop: 4 }}>
+            {stats.returnedCount}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+            Items safely returned & stock restocked
+          </div>
+        </div>
+      </div>
+
+      {/* ── Toolbar with Search Bar & Unified Roster Counter ── */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #1e112a 0%, #2e1045 50%, #1e1b4b 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem 1.75rem',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '0.85rem 1.15rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem',
-          border: '1px solid rgba(236, 72, 153, 0.25)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          gap: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '18px' }}>📋</span>
+            <strong style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-primary)' }}>
+              Assigned Products Roster
+            </strong>
+          </div>
+          <span
             style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.4)',
+              padding: '3px 10px',
+              borderRadius: '20px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              background: 'rgba(236, 72, 153, 0.12)',
+              color: '#ec4899',
+              border: '1px solid rgba(236, 72, 153, 0.25)',
             }}
           >
-            <Package size={26} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
-                Issue Salon Product
-              </h1>
-              <span
-                style={{
-                  background: 'rgba(236, 72, 153, 0.2)',
-                  color: '#f472b6',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(236, 72, 153, 0.35)',
-                }}
-              >
-                Staff & Student Quotas
-              </span>
-            </div>
-            <p style={{ fontSize: '13px', color: '#cbd5e1', margin: '3px 0 0' }}>
-              Issue salon styling products, assign kit materials, and track student practical services against their course plan.
-            </p>
-          </div>
+            {filteredAssignments.length} Items Listed
+          </span>
         </div>
 
-        {/* Tab Switcher Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(15, 23, 42, 0.6)', padding: '5px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('ISSUED_PRODUCTS')}
+        <div style={{ position: 'relative', minWidth: '280px' }}>
+          <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Search staff stylist, product, station..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              background: activeTab === 'ISSUED_PRODUCTS' ? 'linear-gradient(135deg, #ec4899, #db2777)' : 'transparent',
-              color: activeTab === 'ISSUED_PRODUCTS' ? '#ffffff' : '#94a3b8',
-              border: 'none',
+              width: '100%',
+              padding: '8px 12px 8px 34px',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-card, transparent)',
+              color: 'var(--text-primary)',
               fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s',
             }}
-          >
-            <Package size={14} />
-            📦 Issued Salon Products ({assignments.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('STUDENT_PRACTICALS')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              background: activeTab === 'STUDENT_PRACTICALS' ? 'linear-gradient(135deg, #ec4899, #db2777)' : 'transparent',
-              color: activeTab === 'STUDENT_PRACTICALS' ? '#ffffff' : '#94a3b8',
-              border: 'none',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s',
-            }}
-          >
-            <GraduationCap size={15} />
-            🎓 Student Practical Quota Tracker
-          </button>
+          />
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 1: ISSUED SALON PRODUCTS & MATERIAL ALLOCATION (STAFF & STUDENTS)
-          ══════════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'ISSUED_PRODUCTS' && (
-        <>
-          {/* Controls Bar */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '12px',
-              padding: '14px 16px',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            }}
-          >
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', flex: 1 }}>
-              {/* Search */}
-              <div style={{ position: 'relative', minWidth: '220px', flex: 1 }}>
-                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="text"
-                  placeholder="Search recipient, product, purpose..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 34px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                  }}
-                />
-              </div>
+      {/* ── Staff Product Assignments Table ── */}
+      <div
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+        }}
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <th style={{ padding: '12px 16px' }}>#</th>
+                <th style={{ padding: '12px 16px' }}>Staff Stylist</th>
+                <th style={{ padding: '12px 16px' }}>Assigned Product & Quantity</th>
+                <th style={{ padding: '12px 16px' }}>Station / Purpose</th>
+                <th style={{ padding: '12px 16px' }}>Issue Date</th>
+                <th style={{ padding: '12px 16px' }}>Status</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAssignments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '32px' }}>🧴</span>
+                      <strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>No staff product assignments found</strong>
+                      <span style={{ fontSize: '12px' }}>Click "+ Assign Product to Staff" to allocate salon creams, kits and materials to your team.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredAssignments.map((row, idx) => {
+                  const isActive = row.status === 'ACTIVE';
+                  const isReturned = row.status === 'RETURNED';
+                  const isConsumed = row.status === 'CONSUMED';
 
-              {/* Filter Pills */}
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {[
-                  { id: 'ALL', label: 'All Records' },
-                  { id: 'STAFF', label: '✂️ Staff Stylists' },
-                  { id: 'STUDENT', label: '🎓 Trainee Students' },
-                  { id: 'ACTIVE', label: '🟢 Active / In-Use' },
-                  { id: 'RETURNED', label: '⚪ Returned / Stock Restored' },
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setFilterType(f.id)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '7px',
-                      border: '1px solid',
-                      borderColor: filterType === f.id ? '#ec4899' : '#e2e8f0',
-                      background: filterType === f.id ? 'rgba(236, 72, 153, 0.1)' : '#f8fafc',
-                      color: filterType === f.id ? '#db2777' : '#64748b',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+                  return (
+                    <tr
+                      key={row.id || idx}
+                      style={{
+                        borderBottom: '1px solid var(--border-color)',
+                        transition: 'background 0.15s ease',
+                      }}
+                    >
+                      <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                        {idx + 1}
+                      </td>
 
-            {/* Issue Product Button */}
-            <button
-              type="button"
-              onClick={() => setIssueModalOpen(true)}
-              style={{
-                padding: '9px 16px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #ec4899, #db2777)',
-                border: 'none',
-                color: '#ffffff',
-                fontSize: '13px',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.35)',
-              }}
-            >
-              <Plus size={16} />
-              + Issue Product to Staff / Student
-            </button>
-          </div>
+                      {/* Staff Member */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 800,
+                              fontSize: '13px',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(row.recipientName || 'S').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                              {row.recipientName}
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              ✂️ {row.recipientRole || 'Staff Stylist'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
 
-          {/* Table */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '14px',
-              border: '1px solid #e2e8f0',
-              overflow: 'hidden',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-            }}
-          >
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '12px 16px' }}>Recipient (Staff / Student)</th>
-                    <th style={{ padding: '12px 16px' }}>Product Issued</th>
-                    <th style={{ padding: '12px 16px' }}>Qty</th>
-                    <th style={{ padding: '12px 16px' }}>Purpose / Practical Session</th>
-                    <th style={{ padding: '12px 16px' }}>Date Issued</th>
-                    <th style={{ padding: '12px 16px' }}>Status</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAssignments.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                        <Package size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                        <div style={{ fontWeight: 600, color: '#475569' }}>No product issue records found</div>
-                        <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                          Click "+ Issue Product to Staff / Student" to allocate creams, kits, or styling tools.
+                      {/* Product & Qty */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                          {row.productName}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              padding: '1px 7px',
+                              borderRadius: '6px',
+                              background: 'rgba(236, 72, 153, 0.12)',
+                              color: '#ec4899',
+                              border: '1px solid rgba(236, 72, 153, 0.25)',
+                            }}
+                          >
+                            📦 Qty: {row.qty} {row.qty > 1 ? 'Units' : 'Unit'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Purpose */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                          {row.purpose || 'Salon Client Service'}
+                        </div>
+                        {row.notes && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            {row.notes}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Issue Date */}
+                      <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '12px' }}>
+                        📅 {row.date}
+                      </td>
+
+                      {/* Status */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '3px 10px',
+                            borderRadius: '20px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: isActive
+                              ? 'rgba(245, 158, 11, 0.15)'
+                              : isReturned
+                              ? 'rgba(16, 185, 129, 0.15)'
+                              : 'rgba(148, 163, 184, 0.15)',
+                            color: isActive ? '#f59e0b' : isReturned ? '#10b981' : '#64748b',
+                            border: `1px solid ${
+                              isActive
+                                ? 'rgba(245, 158, 11, 0.3)'
+                                : isReturned
+                                ? 'rgba(16, 185, 129, 0.3)'
+                                : 'rgba(148, 163, 184, 0.3)'
+                            }`,
+                          }}
+                        >
+                          <span>{isActive ? '🟡' : isReturned ? '🟢' : '⚪'}</span>
+                          <span>{isActive ? 'ACTIVE (In Station)' : isReturned ? 'RESTOCKED' : 'CONSUMED'}</span>
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {isActive && (
+                            <>
+                              <button
+                                onClick={() => handleUpdateStatus(row._id || row.id, 'RETURNED')}
+                                className="btn btn-secondary btn-sm"
+                                title="Return remaining product to salon stock (restores inventory count)"
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '4px 9px',
+                                  color: '#10b981',
+                                  borderColor: 'rgba(16, 185, 129, 0.35)',
+                                  background: 'rgba(16, 185, 129, 0.08)',
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <RotateCcw size={12} /> Return to Stock
+                              </button>
+
+                              <button
+                                onClick={() => handleUpdateStatus(row._id || row.id, 'CONSUMED')}
+                                className="btn btn-secondary btn-sm"
+                                title="Mark as consumed during client makeover"
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '4px 9px',
+                                  color: '#a855f7',
+                                  borderColor: 'rgba(168, 85, 247, 0.35)',
+                                  background: 'rgba(168, 85, 247, 0.08)',
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Check size={12} /> Consumed
+                              </button>
+                            </>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteAssignment(row._id || row.id)}
+                            className="btn btn-secondary btn-sm"
+                            title="Delete assignment record"
+                            style={{
+                              padding: '4px 7px',
+                              color: '#ef4444',
+                              borderColor: 'rgba(239, 68, 68, 0.3)',
+                              background: 'rgba(239, 68, 68, 0.08)',
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </td>
                     </tr>
-                  ) : (
-                    filteredAssignments.map((rec) => (
-                      <tr key={rec.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        {/* Recipient */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '16px' }}>{rec.recipientType === 'STAFF' ? '✂️' : '🎓'}</span>
-                            <div>
-                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{rec.recipientName}</div>
-                              <span
-                                style={{
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  background: rec.recipientType === 'STAFF' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(236, 72, 153, 0.1)',
-                                  color: rec.recipientType === 'STAFF' ? '#2563eb' : '#db2777',
-                                }}
-                              >
-                                {rec.recipientType === 'STAFF' ? 'Staff Stylist' : 'Trainee Student'}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Product */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ fontWeight: 700, color: '#1e293b' }}>{rec.productName}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>Code: {rec.productId}</div>
-                        </td>
-
-                        {/* Qty */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontWeight: 800, color: '#0f172a', background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
-                            {rec.qty} Unit(s)
-                          </span>
-                        </td>
-
-                        {/* Purpose */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ color: '#334155', fontWeight: 600 }}>{rec.purpose}</div>
-                          {rec.notes && <div style={{ fontSize: '11px', color: '#94a3b8' }}>{rec.notes}</div>}
-                        </td>
-
-                        {/* Date */}
-                        <td style={{ padding: '12px 16px', color: '#64748b' }}>{rec.date}</td>
-
-                        {/* Status */}
-                        <td style={{ padding: '12px 16px' }}>
-                          {rec.status === 'ACTIVE' && (
-                            <span style={{ background: '#ecfdf5', color: '#059669', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, border: '1px solid #a7f3d0' }}>
-                              🟢 Active / Issued
-                            </span>
-                          )}
-                          {rec.status === 'CONSUMED' && (
-                            <span style={{ background: '#fef3c7', color: '#d97706', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, border: '1px solid #fde68a' }}>
-                              ⚡ Consumed / Used
-                            </span>
-                          )}
-                          {rec.status === 'RETURNED' && (
-                            <span style={{ background: '#f1f5f9', color: '#64748b', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, border: '1px solid #cbd5e1' }}>
-                              ⚪ Stock Returned
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Action */}
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            {rec.status === 'ACTIVE' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateStatus(rec.id, 'RETURNED')}
-                                  title="Return product & restore stock"
-                                  style={{
-                                    padding: '4px 8px',
-                                    borderRadius: '6px',
-                                    background: '#f1f5f9',
-                                    border: '1px solid #cbd5e1',
-                                    color: '#2563eb',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '3px',
-                                  }}
-                                >
-                                  <RotateCcw size={12} /> Return
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateStatus(rec.id, 'CONSUMED')}
-                                  title="Mark as consumed during live model training"
-                                  style={{
-                                    padding: '4px 8px',
-                                    borderRadius: '6px',
-                                    background: 'rgba(234, 179, 8, 0.1)',
-                                    border: '1px solid rgba(234, 179, 8, 0.3)',
-                                    color: '#b45309',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  Consumed
-                                </button>
-                              </>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteAssignment(rec.id)}
-                              title="Delete record"
-                              style={{
-                                padding: '4px 6px',
-                                borderRadius: '6px',
-                                background: 'rgba(239, 68, 68, 0.08)',
-                                border: '1px solid rgba(239, 68, 68, 0.25)',
-                                color: '#dc2626',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 2: STUDENT PRACTICAL SERVICE & QUOTA PROGRESS TRACKER
-          ══════════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'STUDENT_PRACTICALS' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Student Selector Card */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '14px',
-              padding: '18px 20px',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '14px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div
-                style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 900,
-                  fontSize: '18px',
-                }}
-              >
-                {currentStudentData?.studentName?.charAt(0) || 'S'}
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#ec4899', textTransform: 'uppercase' }}>
-                  Select Enrolled Trainee Student:
-                </div>
-                <select
-                  value={selectedStudentForPracticals}
-                  onChange={(e) => setSelectedStudentForPracticals(e.target.value)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '14px',
-                    fontWeight: 800,
-                    color: '#0f172a',
-                    background: '#f8fafc',
-                    cursor: 'pointer',
-                    marginTop: '3px',
-                  }}
-                >
-                  {studentPracticalTracker.map((s) => (
-                    <option key={s.studentId} value={s.studentId}>
-                      {s.studentName} · {s.planName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Overall Progress Stat Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '11.5px', color: '#64748b' }}>Total Practical Completion</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: overallProgress.percent === 100 ? '#059669' : '#0f172a' }}>
-                  {overallProgress.done} / {overallProgress.total} Sessions ({overallProgress.percent}%)
-                </div>
-              </div>
-              <div style={{ width: '120px', height: '10px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${overallProgress.percent}%`,
-                    height: '100%',
-                    background: overallProgress.percent === 100 ? '#10b981' : 'linear-gradient(90deg, #ec4899, #8b5cf6)',
-                    borderRadius: '999px',
-                    transition: 'width 0.3s ease',
-                  }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setAddQuotaModalOpen(true)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  background: 'rgba(236, 72, 153, 0.1)',
-                  border: '1px solid rgba(236, 72, 153, 0.3)',
-                  color: '#db2777',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Plus size={14} /> + Add Extra Quota
-              </button>
-            </div>
-          </div>
-
-          {/* Practical Services Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-            {practicalsList.map((prac) => {
-              const isComplete = prac.completed >= prac.totalQuota;
-              const remaining = Math.max(0, prac.totalQuota - prac.completed);
-              const pct = Math.round((prac.completed / prac.totalQuota) * 100);
-
-              return (
-                <div
-                  key={prac.id}
-                  style={{
-                    background: '#ffffff',
-                    borderRadius: '14px',
-                    border: '1px solid',
-                    borderColor: isComplete ? '#a7f3d0' : '#e2e8f0',
-                    padding: '18px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {isComplete && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '10px',
-                        background: '#ecfdf5',
-                        color: '#059669',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid #a7f3d0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <CheckCircle2 size={13} /> Completed
-                    </div>
-                  )}
-
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '22px' }}>{prac.icon || '💅'}</span>
-                      <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                        {prac.serviceName}
-                      </h3>
-                    </div>
-
-                    {/* Prominent Usage Numbers */}
-                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', margin: '10px 0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <div>
-                          <div style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
-                            {prac.completed}/{prac.totalQuota} Used
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
-                            Practical Sessions Done
-                          </div>
-                        </div>
-
-                        <div style={{ textAlign: 'right' }}>
-                          <span
-                            style={{
-                              fontSize: '12px',
-                              fontWeight: 800,
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              background: remaining === 0 ? '#ecfdf5' : '#fdf2f8',
-                              color: remaining === 0 ? '#059669' : '#db2777',
-                              border: `1px solid ${remaining === 0 ? '#a7f3d0' : '#fbcfe8'}`,
-                            }}
-                          >
-                            {remaining === 0 ? '✨ Done' : `${remaining} Remaining`}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div style={{ width: '100%', height: '7px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden', marginTop: '8px' }}>
-                        <div
-                          style={{
-                            width: `${pct}%`,
-                            height: '100%',
-                            background: isComplete ? '#10b981' : 'linear-gradient(90deg, #ec4899, #a855f7)',
-                            borderRadius: '999px',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* 2. Service ke andar bhi Sub-Service / Variants */}
-                    {prac.variants && prac.variants.length > 0 && (
-                      <div style={{ background: '#fdf4ff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #f0abfc', marginTop: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#7c3aed' }}>
-                            2. Service ke andar Sub-Service / Variants:
-                          </span>
-                          <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#6b21a8' }}>
-                            Total allowed usage: {prac.totalQuota}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {prac.variants.map((v, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '5px 8px',
-                                borderRadius: '6px',
-                                background: '#ffffff',
-                                border: '1px solid #e2e8f0',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: '#1e293b',
-                              }}
-                            >
-                              <span>{v}</span>
-                              <span style={{ fontSize: '10px', background: '#ecfdf5', color: '#059669', padding: '1px 6px', borderRadius: '4px', border: '1px solid #a7f3d0', fontWeight: 800 }}>
-                                Allowed
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#7c3aed', marginTop: '6px', fontStyle: 'italic' }}>
-                          * Student inmein se koi bhi design select kar sakta hai, lekin total {prac.totalQuota} appointments hi use kar sakta hai.
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Assigned Salon Materials */}
-                    <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '8px' }}>
-                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#64748b' }}>Assigned Salon Materials:</div>
-                      <div style={{ fontSize: '11.5px', color: '#1e293b', fontWeight: 600, marginTop: '2px' }}>
-                        {prac.issuedMaterials}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions to Tick / Log Session */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleIncrementPractical(prac.id)}
-                        disabled={isComplete}
-                        style={{
-                          padding: '7px 14px',
-                          borderRadius: '8px',
-                          background: isComplete ? '#e2e8f0' : 'linear-gradient(135deg, #ec4899, #db2777)',
-                          color: isComplete ? '#94a3b8' : '#ffffff',
-                          border: 'none',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: isComplete ? 'not-allowed' : 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <Check size={14} /> + Log 1 Session Done
-                      </button>
-
-                      {prac.completed > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleDecrementPractical(prac.id)}
-                          title="Undo / reduce count"
-                          style={{
-                            padding: '7px 10px',
-                            borderRadius: '8px',
-                            background: '#f1f5f9',
-                            color: '#64748b',
-                            border: '1px solid #cbd5e1',
-                            fontSize: '11.5px',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Undo
-                        </button>
-                      )}
-                    </div>
-
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      {pct}% Finished
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Certificate Readiness Card if 100% */}
-          {overallProgress.percent === 100 && (
-            <div
-              style={{
-                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                border: '1px solid #6ee7b7',
-                borderRadius: '14px',
-                padding: '20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Award size={24} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#065f46', margin: 0 }}>
-                    ✨ All Course Practicals 100% Completed!
-                  </h4>
-                  <div style={{ fontSize: '12.5px', color: '#047857', marginTop: '2px' }}>
-                    {currentStudentData?.studentName} has successfully satisfied all practical quotas and hands-on client hours.
-                  </div>
-                </div>
-              </div>
-
-              <a
-                href="/admin/parlour-certificates"
-                style={{
-                  padding: '9px 18px',
-                  borderRadius: '8px',
-                  background: '#059669',
-                  color: '#ffffff',
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
-                }}
-              >
-                <Award size={15} /> Issue Certificate Now →
-              </a>
-            </div>
-          )}
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
-      {/* ── Modal: Issue Product to Staff or Student ── */}
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL: ASSIGN PRODUCT TO STAFF (WITH LIVE STOCK VISIBILITY)
+          ══════════════════════════════════════════════════════════════ */}
       {issueModalOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 9999,
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px',
+            zIndex: 1300,
+            padding: '1rem',
           }}
         >
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(236, 72, 153, 0.3)',
-              borderRadius: '16px',
-              maxWidth: '540px',
               width: '100%',
-              padding: '24px',
-              color: '#f8fafc',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              maxWidth: '560px',
+              background: 'var(--bg-surface, #1e293b)',
+              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.12))',
+              borderRadius: '18px',
+              padding: '1.5rem',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.2rem',
+              color: 'var(--text-primary, #f8fafc)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))', paddingBottom: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Package size={20} color="#fff" />
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'rgba(236, 72, 153, 0.15)',
+                    color: '#ec4899',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Package size={20} />
                 </div>
-                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
-                  Issue Salon Product & Material
-                </h3>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: 'var(--text-primary, #f8fafc)' }}>
+                    Assign Product to Staff
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94a3b8)', margin: '2px 0 0 0' }}>
+                    Select staff member & product with available stock verification
+                  </p>
+                </div>
               </div>
+
               <button
                 type="button"
                 onClick={() => setIssueModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.4rem' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted, #94a3b8)', cursor: 'pointer', padding: '4px' }}
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
 
+            {/* Form */}
             <form onSubmit={handleIssueProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Recipient Type (Staff or Student) */}
+              {/* 1. Select Parlour Staff Member (Exclusively from DB) */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>
-                  Recipient Type
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary, #cbd5e1)', marginBottom: '5px' }}>
+                  Select Parlour Staff Member (Stylist / Beautician) <span style={{ color: '#ec4899' }}>*</span>
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIssueForm({ ...issueForm, recipientType: 'STAFF', recipientName: '', recipientRole: '' })}
-                    style={{
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid',
-                      borderColor: issueForm.recipientType === 'STAFF' ? '#ec4899' : '#334155',
-                      background: issueForm.recipientType === 'STAFF' ? 'rgba(236, 72, 153, 0.2)' : '#1e293b',
-                      color: issueForm.recipientType === 'STAFF' ? '#f472b6' : '#94a3b8',
-                      fontWeight: 700,
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ✂️ Staff Member (Stylist)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIssueForm({ ...issueForm, recipientType: 'STUDENT', recipientName: '', recipientRole: '' })}
-                    style={{
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid',
-                      borderColor: issueForm.recipientType === 'STUDENT' ? '#ec4899' : '#334155',
-                      background: issueForm.recipientType === 'STUDENT' ? 'rgba(236, 72, 153, 0.2)' : '#1e293b',
-                      color: issueForm.recipientType === 'STUDENT' ? '#f472b6' : '#94a3b8',
-                      fontWeight: 700,
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    🎓 Trainee Student
-                  </button>
-                </div>
-              </div>
-
-              {/* Recipient Dropdown (Loaded from DB) */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                  Select {issueForm.recipientType === 'STAFF' ? 'Staff Stylist' : 'Trainee Student'} <span style={{ color: '#ec4899' }}>*</span>
-                </label>
-                {issueForm.recipientType === 'STAFF' ? (
-                  <select
-                    value={issueForm.recipientName}
-                    onChange={(e) => {
-                      const staff = staffList.find((s) => s.name === e.target.value);
-                      setIssueForm({
-                        ...issueForm,
-                        recipientName: e.target.value,
-                        recipientRole: staff?.designation || staff?.role || 'Senior Stylist',
-                      });
-                    }}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(236, 72, 153, 0.4)',
-                      color: '#f8fafc',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    <option value="">-- Choose Staff Member --</option>
-                    {staffList.map((s) => (
+                <select
+                  value={issueForm.staffName}
+                  onChange={(e) => {
+                    const stf = staffList.find((s) => s.name === e.target.value);
+                    setIssueForm((prev) => ({
+                      ...prev,
+                      staffId: stf?._id || stf?.id || '',
+                      staffName: e.target.value,
+                      staffRole: stf?.designation || 'Parlour Stylist',
+                    }));
+                  }}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: 'var(--bg-card, #0f172a)',
+                    border: '1px solid rgba(236, 72, 153, 0.4)',
+                    color: 'var(--text-primary, #f8fafc)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                  }}
+                >
+                  <option value="">-- Choose Parlour Staff Member (From Database) --</option>
+                  {staffList.map((s) => {
+                    const label = s.name.includes('(') ? s.name : `${s.name} (${s.designation || 'Parlour Staff'})`;
+                    return (
                       <option key={s._id || s.id} value={s.name}>
-                        {s.name} ({s.designation || s.role || 'Staff'})
+                        {label}
                       </option>
-                    ))}
-                  </select>
-                ) : (
-                  <select
-                    value={issueForm.recipientName}
-                    onChange={(e) => {
-                      const student = studentList.find((s) => s.name === e.target.value);
-                      setIssueForm({
-                        ...issueForm,
-                        recipientName: e.target.value,
-                        recipientRole: student?.course || student?.plan || 'Academy Trainee',
-                      });
-                    }}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(236, 72, 153, 0.4)',
-                      color: '#f8fafc',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    <option value="">-- Choose Trainee Student --</option>
-                    {studentList.map((st) => (
-                      <option key={st._id || st.id} value={st.name}>
-                        {st.name} · Roll: {st.rollNumber || 'STU'} ({st.course || 'Academy'})
-                      </option>
-                    ))}
-                  </select>
-                )}
+                    );
+                  })}
+                </select>
               </div>
 
-              {/* Product & Qty */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                    Select Salon Product (Stock Sync) <span style={{ color: '#ec4899' }}>*</span>
-                  </label>
-                  <select
-                    value={issueForm.productId}
-                    onChange={(e) => setIssueForm({ ...issueForm, productId: e.target.value })}
-                    required
+              {/* 2. Select Salon Product */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary, #cbd5e1)', marginBottom: '5px' }}>
+                  Select Salon Product (From Inventory) <span style={{ color: '#ec4899' }}>*</span>
+                </label>
+                <select
+                  value={issueForm.productId}
+                  onChange={(e) => {
+                    const prodId = e.target.value;
+                    const prod = products.find((p) => p.id === prodId || p._id === prodId);
+                    setIssueForm((prev) => ({
+                      ...prev,
+                      productId: prodId,
+                      qty: 1,
+                    }));
+                  }}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: 'var(--bg-card, #0f172a)',
+                    border: '1px solid rgba(236, 72, 153, 0.4)',
+                    color: 'var(--text-primary, #f8fafc)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                  }}
+                >
+                  <option value="">-- Select Product From Inventory --</option>
+                  {products.map((p) => {
+                    const currentStock = Math.max(0, Number(p.stock) || 0);
+                    return (
+                      <option key={p.id || p._id} value={p.id || p._id} disabled={currentStock <= 0}>
+                        {p.name} · Available Stock: {currentStock} units · ₹{(Number(p.price) || 0).toLocaleString('en-IN')} {currentStock <= 0 ? '(Out of Stock)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* 3. Real-Time Available Stock Status Card */}
+              {selectedProduct && (() => {
+                const available = Math.max(0, Number(selectedProduct.stock) || 0);
+                const reqQty = Number(issueForm.qty) || 1;
+                const isOutOfStock = available <= 0;
+                const isOverStock = reqQty > available;
+                const remainingAfter = Math.max(0, available - reqQty);
+
+                return (
+                  <div
                     style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(236, 72, 153, 0.4)',
-                      color: '#f8fafc',
-                      fontSize: '13px',
-                      fontWeight: 600,
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      background: isOutOfStock
+                        ? 'rgba(239, 68, 68, 0.1)'
+                        : isOverStock
+                        ? 'rgba(245, 158, 11, 0.1)'
+                        : 'rgba(16, 185, 129, 0.08)',
+                      border: `1px solid ${
+                        isOutOfStock
+                          ? 'rgba(239, 68, 68, 0.35)'
+                          : isOverStock
+                          ? 'rgba(245, 158, 11, 0.35)'
+                          : 'rgba(16, 185, 129, 0.3)'
+                      }`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
                     }}
                   >
-                    <option value="">-- Choose Product --</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id} disabled={p.stock <= 0}>
-                        {p.name} (Stock: {p.stock})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '18px' }}>🧴</span>
+                        <div>
+                          <strong style={{ fontSize: '13px', color: 'var(--text-primary, #f8fafc)' }}>
+                            {selectedProduct.name}
+                          </strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)' }}>
+                            Category: {selectedProduct.category || 'Salon Supplies'} · Price: ₹{(Number(selectedProduct.price) || 0).toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                      </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                    Quantity <span style={{ color: '#ec4899' }}>*</span>
-                  </label>
+                      <span
+                        style={{
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          background: isOutOfStock
+                            ? 'rgba(239, 68, 68, 0.2)'
+                            : 'rgba(16, 185, 129, 0.2)',
+                          color: isOutOfStock ? '#ef4444' : '#10b981',
+                          border: `1px solid ${isOutOfStock ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                        }}
+                      >
+                        {isOutOfStock ? '🔴 Out of Stock' : `🟢 In Stock: ${available} Units`}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: 700, paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <span style={{ color: 'var(--text-muted, #cbd5e1)' }}>
+                        Quantity to Allocate: <strong style={{ color: '#ec4899' }}>{reqQty}</strong>
+                      </span>
+                      <span style={{ color: isOverStock ? '#ef4444' : '#10b981' }}>
+                        {isOverStock
+                          ? `⚠️ Exceeds Available Stock (${available} max)`
+                          : `Inventory Remaining After: ${remainingAfter} units`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 4. Quantity Stepper with Stock Limit */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary, #cbd5e1)', marginBottom: '5px' }}>
+                  Quantity to Issue <span style={{ color: '#ec4899' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    disabled={!selectedProduct || issueForm.qty <= 1}
+                    onClick={() => handleQtyChange(issueForm.qty - 1)}
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '8px',
+                      background: 'var(--bg-card, #0f172a)',
+                      border: '1px solid var(--border-color, #334155)',
+                      color: 'var(--text-primary, #f8fafc)',
+                      fontSize: '18px',
+                      fontWeight: 800,
+                      cursor: issueForm.qty <= 1 ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    -
+                  </button>
+
                   <input
                     type="number"
                     min="1"
+                    max={selectedProduct ? Math.max(1, Number(selectedProduct.stock) || 1) : 999}
                     value={issueForm.qty}
-                    onChange={(e) => setIssueForm({ ...issueForm, qty: Number(e.target.value) })}
+                    onChange={(e) => handleQtyChange(e.target.value)}
                     required
+                    style={{
+                      flex: 1,
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: 'var(--bg-card, #0f172a)',
+                      border: '1px solid var(--border-color, #334155)',
+                      color: 'var(--text-primary, #f8fafc)',
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    disabled={!selectedProduct || issueForm.qty >= (Number(selectedProduct.stock) || 1)}
+                    onClick={() => handleQtyChange(issueForm.qty + 1)}
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '8px',
+                      background: 'var(--bg-card, #0f172a)',
+                      border: '1px solid var(--border-color, #334155)',
+                      color: 'var(--text-primary, #f8fafc)',
+                      fontSize: '18px',
+                      fontWeight: 800,
+                      cursor: issueForm.qty >= (Number(selectedProduct?.stock) || 1) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    +
+                  </button>
+
+                  {selectedProduct && selectedProduct.stock > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleQtyChange(selectedProduct.stock)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(56, 189, 248, 0.15)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#0284c7',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Max ({selectedProduct.stock})
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 5. Purpose & Date */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary, #cbd5e1)', marginBottom: '5px' }}>
+                    Salon Station / Purpose
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. VIP Bridal Station #1"
+                    value={issueForm.purpose}
+                    onChange={(e) => setIssueForm((prev) => ({ ...prev, purpose: e.target.value }))}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
                       borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid #334155',
-                      color: '#f8fafc',
+                      background: 'var(--bg-card, #0f172a)',
+                      border: '1px solid var(--border-color, #334155)',
+                      color: 'var(--text-primary, #f8fafc)',
                       fontSize: '13px',
-                      fontWeight: 700,
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary, #cbd5e1)', marginBottom: '5px' }}>
+                    Allocation Date
+                  </label>
+                  <input
+                    type="date"
+                    value={issueForm.date}
+                    onChange={(e) => setIssueForm((prev) => ({ ...prev, date: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: 'var(--bg-card, #0f172a)',
+                      border: '1px solid var(--border-color, #334155)',
+                      color: 'var(--text-primary, #f8fafc)',
+                      fontSize: '13px',
                     }}
                   />
                 </div>
               </div>
 
-              {/* Purpose */}
+              {/* 6. Notes */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                  Purpose / Training Service
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary, #cbd5e1)', marginBottom: '5px' }}>
+                  Allocation Remarks / Notes (Optional)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Bridal HD Makeup Practical #2 / Hair Smoothening Station"
-                  value={issueForm.purpose}
-                  onChange={(e) => setIssueForm({ ...issueForm, purpose: e.target.value })}
+                  placeholder="e.g. Pre-booked client service kit allocation"
+                  value={issueForm.notes}
+                  onChange={(e) => setIssueForm((prev) => ({ ...prev, notes: e.target.value }))}
                   style={{
                     width: '100%',
                     padding: '9px 12px',
                     borderRadius: '8px',
-                    background: '#1e293b',
-                    border: '1px solid #334155',
-                    color: '#f8fafc',
+                    background: 'var(--bg-card, #0f172a)',
+                    border: '1px solid var(--border-color, #334155)',
+                    color: 'var(--text-primary, #f8fafc)',
                     fontSize: '13px',
                   }}
                 />
               </div>
 
-              {/* Submit Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+              {/* Submit / Cancel Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))', paddingTop: '12px' }}>
                 <button
                   type="button"
                   onClick={() => setIssueModalOpen(false)}
                   style={{
-                    padding: '10px 16px',
+                    padding: '9px 16px',
                     borderRadius: '8px',
                     background: 'transparent',
-                    border: '1px solid #475569',
-                    color: '#cbd5e1',
+                    border: '1px solid var(--border-color, #475569)',
+                    color: 'var(--text-muted, #cbd5e1)',
                     fontSize: '13px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
+                  disabled={!selectedProduct || selectedProduct.stock < (issueForm.qty || 1)}
                   style={{
-                    padding: '10px 22px',
+                    padding: '9px 20px',
                     borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                    background:
+                      !selectedProduct || selectedProduct.stock < (issueForm.qty || 1)
+                        ? 'rgba(148, 163, 184, 0.3)'
+                        : 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)',
                     border: 'none',
                     color: '#ffffff',
                     fontSize: '13px',
                     fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(236, 72, 153, 0.4)',
+                    cursor:
+                      !selectedProduct || selectedProduct.stock < (issueForm.qty || 1)
+                        ? 'not-allowed'
+                        : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 15px rgba(236, 72, 153, 0.3)',
                   }}
                 >
-                  Issue & Deduct Stock
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal: Add Custom Practical Quota to Student ── */}
-      {addQuotaModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-          }}
-        >
-          <div
-            style={{
-              background: '#0f172a',
-              border: '1px solid rgba(236, 72, 153, 0.3)',
-              borderRadius: '16px',
-              maxWidth: '480px',
-              width: '100%',
-              padding: '24px',
-              color: '#f8fafc',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '10px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
-                Add Custom Practical Quota: {currentStudentData?.studentName}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setAddQuotaModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.4rem' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCustomQuota} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                  Practical Service Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Airbrush Makeup or Mehendi Artistry"
-                  value={newQuotaForm.serviceName}
-                  onChange={(e) => setNewQuotaForm({ ...newQuotaForm, serviceName: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '13px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                  Total Sessions Quota *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={newQuotaForm.totalQuota}
-                  onChange={(e) => setNewQuotaForm({ ...newQuotaForm, totalQuota: Number(e.target.value) })}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '13px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '5px' }}>
-                  Assigned Materials / Products
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Airbrush gun, compressor, foundation fluids"
-                  value={newQuotaForm.issuedMaterials}
-                  onChange={(e) => setNewQuotaForm({ ...newQuotaForm, issuedMaterials: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '13px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setAddQuotaModalOpen(false)}
-                  style={{ padding: '8px 14px', borderRadius: '8px', background: 'transparent', border: '1px solid #475569', color: '#cbd5e1', fontSize: '12.5px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{ padding: '8px 18px', borderRadius: '8px', background: 'linear-gradient(135deg, #ec4899, #db2777)', border: 'none', color: '#ffffff', fontSize: '12.5px', fontWeight: 800, cursor: 'pointer' }}
-                >
-                  Add Quota
+                  <Check size={15} /> Confirm & Assign to Staff
                 </button>
               </div>
             </form>

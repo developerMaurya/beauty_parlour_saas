@@ -945,6 +945,8 @@ export const AppointmentSchema = new Schema(
     },
     cancellationReason: { type: String, default: '' },
     rescheduledFrom: { type: Schema.Types.ObjectId, ref: 'Appointment', default: null },
+    videoConsultationUrl: { type: String, default: '' },
+    googleMeetLink: { type: String, default: '' },
     notes: { type: String, default: '' },
   },
   { timestamps: true }
@@ -1167,6 +1169,58 @@ export const InventoryTransactionSchema = new Schema(
   },
   { timestamps: true }
 );
+
+/**
+ * 37b. Product Assignment Schema (Staff Product Issuance & Station Allocation)
+ */
+export const ProductAssignmentSchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null },
+    staffId: { type: String, default: null },
+    staffName: { type: String, required: true },
+    staffRole: { type: String, default: 'Parlour Stylist' },
+    productId: { type: String, required: true },
+    productName: { type: String, required: true },
+    qty: { type: Number, required: true, default: 1 },
+    date: { type: String, default: () => new Date().toISOString().split('T')[0] },
+    purpose: { type: String, default: 'Salon Client Service / Styling Station' },
+    status: { type: String, enum: ['ACTIVE', 'RETURNED', 'CONSUMED'], default: 'ACTIVE' },
+    notes: { type: String, default: '' },
+  },
+  { timestamps: true }
+);
+ProductAssignmentSchema.index({ tenantId: 1, createdAt: -1 });
+
+/**
+ * 37c. Inquiry Schema (Customer Inquiries, Consultation Leads, and Parlour Requests)
+ */
+export const InquirySchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    inquiryNumber: { type: String, default: () => `INQ-${Date.now().toString().slice(-6)}` },
+    customerName: { type: String, required: true, trim: true },
+    customerPhone: { type: String, required: true, trim: true },
+    customerEmail: { type: String, default: '', trim: true },
+    serviceType: { type: String, default: 'parlour' },
+    serviceName: { type: String, default: 'Bridal HD Airbrush Makeup' },
+    preferredDate: { type: String, default: '' },
+    preferredTime: { type: String, default: '' },
+    budget: { type: String, default: '' },
+    source: { type: String, default: 'WEBSITE' },
+    status: {
+      type: String,
+      enum: ['NEW', 'CONTACTED', 'IN_PROGRESS', 'CONVERTED', 'CLOSED'],
+      default: 'NEW',
+      index: true,
+    },
+    notes: { type: String, default: '' },
+    assignedStaff: { type: String, default: '' },
+    followUpDate: { type: String, default: '' },
+  },
+  { timestamps: true }
+);
+InquirySchema.index({ tenantId: 1, createdAt: -1 });
 
 /**
  * 38. Supplier Schema

@@ -72,19 +72,150 @@ export const createProduct = async (req, res) => {
   }
 };
 
+// Standard Baseline Salon Products for auto-seeding if tenant DB has 0 items
+const INITIAL_PARLOUR_PRODUCTS = [
+  {
+    name: 'O3+ Bridal Glow & Whitening Facial Kit',
+    sku: 'SKU-O3-01',
+    category: 'Skin Care',
+    brand: 'O3+ Professional',
+    description: 'High-end oxygenating whitening and bridal radiance facial treatment kit.',
+    costPrice: 2800,
+    sellingPrice: 3850,
+    stockQuantity: 14,
+    minStockAlert: 3,
+    unit: 'kit',
+    imageUrl: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+  {
+    name: 'Streax Canvoline Hair Straightening & Neutralizer Kit',
+    sku: 'SKU-STX-02',
+    category: 'Hair Care',
+    brand: 'Streax Professional',
+    description: 'Chemical smoothening, rebonding cream & intense keratin neutralizer kit.',
+    costPrice: 1750,
+    sellingPrice: 2450,
+    stockQuantity: 8,
+    minStockAlert: 2,
+    unit: 'kit',
+    imageUrl: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+  {
+    name: 'Kryolan HD Micro Foundation Palette (18 Shades)',
+    sku: 'SKU-KRY-03',
+    category: 'Makeup & Bridal',
+    brand: 'Kryolan Professional',
+    description: 'HD micronized camera-ready bridal foundation palette for all skin undertones.',
+    costPrice: 4800,
+    sellingPrice: 6200,
+    stockQuantity: 6,
+    minStockAlert: 2,
+    unit: 'palette',
+    imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+  {
+    name: 'L’Oréal Professionnel Mythic Oil Nourishing Serum (100ml)',
+    sku: 'SKU-LOR-04',
+    category: 'Hair Care',
+    brand: 'L’Oréal Professionnel',
+    description: 'Argan oil infused blow-dry & anti-frizz shine booster hair serum.',
+    costPrice: 850,
+    sellingPrice: 1250,
+    stockQuantity: 22,
+    minStockAlert: 5,
+    unit: 'bottle',
+    imageUrl: 'https://images.unsplash.com/photo-1608248597359-597548773994?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+  {
+    name: 'Rica White Chocolate Liposoluble Wax (800ml)',
+    sku: 'SKU-RCA-05',
+    category: 'Waxing & Body Care',
+    brand: 'Rica Italy',
+    description: 'Painless colophony-free Italian white chocolate peel wax for delicate skin.',
+    costPrice: 980,
+    sellingPrice: 1450,
+    stockQuantity: 18,
+    minStockAlert: 4,
+    unit: 'can',
+    imageUrl: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+  {
+    name: 'Lotus Herbals Professional Phyto-Rx D-Tan Pack (500g)',
+    sku: 'SKU-LOT-06',
+    category: 'Skin Care',
+    brand: 'Lotus Professional',
+    description: 'Organic sun-tan reversal & brightening lactic acid professional salon pack.',
+    costPrice: 650,
+    sellingPrice: 950,
+    stockQuantity: 25,
+    minStockAlert: 5,
+    unit: 'jar',
+    imageUrl: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+  {
+    name: 'VLCC Diamond Polishing & Bleach Salon Kit',
+    sku: 'SKU-VLC-07',
+    category: 'Skin Care',
+    brand: 'VLCC Professional',
+    description: 'Micro-diamond ash skin polishing and natural hair bleach salon kit.',
+    costPrice: 1200,
+    sellingPrice: 1800,
+    stockQuantity: 12,
+    minStockAlert: 3,
+    unit: 'kit',
+    imageUrl: 'https://images.unsplash.com/photo-1512290900672-1f879654ef24?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+  {
+    name: 'Bluesky UV Gel Nail Polish & Extension Kit',
+    sku: 'SKU-BLU-08',
+    category: 'Nail Artistry',
+    brand: 'Bluesky Nail Art',
+    description: 'Top coat, base gel, 12 French & glitter colors plus builder gel extension kit.',
+    costPrice: 2400,
+    sellingPrice: 3400,
+    stockQuantity: 9,
+    minStockAlert: 2,
+    unit: 'kit',
+    imageUrl: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80',
+    status: 'active',
+  },
+];
+
 export const getProducts = async (req, res) => {
   try {
     const Product = getTenantModel(req, 'Product');
-    const { page, limit, skip } = getPagination(req.query);
-    const sort = getSort(req.query, 'name');
+    const params = { ...req.query, ...(req.body || {}) };
+    const { page, limit, skip } = getPagination(params);
+    const sort = getSort(params, 'name');
     const filter = buildTenantFilter(req);
 
-    if (req.query.category && req.query.category !== 'all') filter.category = req.query.category;
-    if (req.query.search) {
+    // Auto-seed baseline parlour products in MongoDB if tenant has zero products
+    const existingCount = await Product.countDocuments({ tenantId: req.tenantId });
+    if (existingCount === 0) {
+      try {
+        const toInsert = INITIAL_PARLOUR_PRODUCTS.map((p) => ({
+          ...p,
+          tenantId: req.tenantId,
+        }));
+        await Product.insertMany(toInsert);
+      } catch (seedErr) {
+        console.warn('Auto-seed products fallback:', seedErr?.message);
+      }
+    }
+
+    if (params.category && params.category !== 'all') filter.category = params.category;
+    if (params.search) {
       filter.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { sku: { $regex: req.query.search, $options: 'i' } },
-        { brand: { $regex: req.query.search, $options: 'i' } },
+        { name: { $regex: params.search, $options: 'i' } },
+        { sku: { $regex: params.search, $options: 'i' } },
+        { brand: { $regex: params.search, $options: 'i' } },
       ];
     }
 

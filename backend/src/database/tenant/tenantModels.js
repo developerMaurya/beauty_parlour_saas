@@ -51,6 +51,8 @@ const MODEL_SCHEMA_MAP = {
   PaymentGateway: schemas.PaymentGatewaySchema,
   Product: schemas.ProductSchema,
   InventoryTransaction: schemas.InventoryTransactionSchema,
+  ProductAssignment: schemas.ProductAssignmentSchema,
+  Inquiry: schemas.InquirySchema,
   Supplier: schemas.SupplierSchema,
   Purchase: schemas.PurchaseSchema,
   ScrapItem: schemas.ScrapItemSchema,

@@ -36,14 +36,17 @@ export const dashboardFetcher = {
   getOverview: (params) => adminAxiosClient.get('/admin/dashboard/overview', { params: buildParams(params) }),
   getBusinessOverview: (params) => adminAxiosClient.get('/admin/dashboard/business-overview', { params: buildParams(params) }),
   getOperationsQueue: (params) => adminAxiosClient.get('/admin/dashboard/operations-queue', { params: buildParams(params) }),
+  getAssignedProducts: (body = {}) => adminAxiosClient.post('/admin/dashboard/assigned-products/list', body),
   assignProduct: (data) => adminAxiosClient.post('/admin/dashboard/assign-product', data),
+  updateAssignmentStatus: (assignmentId, data = {}) => adminAxiosClient.post('/admin/dashboard/assigned-products/update-status', { assignmentId, ...data }),
+  deleteAssignment: (assignmentId) => adminAxiosClient.post('/admin/dashboard/assigned-products/delete', { assignmentId }),
   updateHomeServiceStatus: (appointmentId, data) => adminAxiosClient.patch(`/admin/dashboard/home-services/${appointmentId}/status`, data),
   punchAttendance: (data) => adminAxiosClient.post('/admin/dashboard/attendance/punch', data),
 };
 
 // 3. User Fetcher
 export const userFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/users', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/users/filter', body),
   get: (userId) => adminAxiosClient.get(`/admin/users/${userId}`),
   create: (data) => adminAxiosClient.post('/admin/users', data),
   update: (userId, data) => adminAxiosClient.patch(`/admin/users/${userId}`, data),
@@ -57,7 +60,7 @@ export const userFetcher = {
 
 // 4. Role Fetcher (MongoDB RBAC)
 export const roleFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/roles', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/roles/filter', body),
   get: (roleId) => adminAxiosClient.get(`/admin/roles/${roleId}`),
   create: (data) => adminAxiosClient.post('/admin/roles', data),
   update: (roleId, data) => adminAxiosClient.patch(`/admin/roles/${roleId}`, data),
@@ -68,7 +71,7 @@ export const roleFetcher = {
 
 // 4B. User Type Fetcher (MongoDB Stored)
 export const userTypeFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/user-types', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/user-types/filter', body),
   get: (typeId) => adminAxiosClient.get(`/admin/user-types/${typeId}`),
   create: (data) => adminAxiosClient.post('/admin/user-types', data),
   update: (typeId, data) => adminAxiosClient.patch(`/admin/user-types/${typeId}`, data),
@@ -77,7 +80,7 @@ export const userTypeFetcher = {
 
 // 4C. Business Target / Vertical Fetcher (MongoDB Stored)
 export const businessTargetFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/business-targets', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/business-targets/filter', body),
   get: (targetId) => adminAxiosClient.get(`/admin/business-targets/${targetId}`),
   create: (data) => adminAxiosClient.post('/admin/business-targets', data),
   update: (targetId, data) => adminAxiosClient.patch(`/admin/business-targets/${targetId}`, data),
@@ -92,7 +95,7 @@ export const permissionFetcher = {
 
 // 6. Branch Fetcher
 export const branchFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/branches', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/branches/filter', body),
   get: (branchId) => adminAxiosClient.get(`/admin/branches/${branchId}`),
   create: (data) => adminAxiosClient.post('/admin/branches', data),
   update: (branchId, data) => adminAxiosClient.patch(`/admin/branches/${branchId}`, data),
@@ -107,7 +110,7 @@ export const branchFetcher = {
 
 // 7. Department Fetcher
 export const departmentFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/departments', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/departments/filter', body),
   get: (departmentId) => adminAxiosClient.get(`/admin/departments/${departmentId}`),
   create: (data) => adminAxiosClient.post('/admin/departments', data),
   update: (departmentId, data) => adminAxiosClient.patch(`/admin/departments/${departmentId}`, data),
@@ -117,7 +120,7 @@ export const departmentFetcher = {
 
 // 8. Designation Fetcher
 export const designationFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/designations', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/designations/filter', body),
   get: (designationId) => adminAxiosClient.get(`/admin/designations/${designationId}`),
   create: (data) => adminAxiosClient.post('/admin/designations', data),
   update: (designationId, data) => adminAxiosClient.patch(`/admin/designations/${designationId}`, data),
@@ -127,7 +130,7 @@ export const designationFetcher = {
 
 // 9. Skill Fetcher
 export const skillFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/skills', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/skills/filter', body),
   get: (skillId) => adminAxiosClient.get(`/admin/skills/${skillId}`),
   create: (data) => adminAxiosClient.post('/admin/skills', data),
   update: (skillId, data) => adminAxiosClient.patch(`/admin/skills/${skillId}`, data),
@@ -136,7 +139,7 @@ export const skillFetcher = {
 
 // 10. Staff Fetcher
 export const staffFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/staff', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/staff/filter', body),
   get: (staffId) => adminAxiosClient.get(`/admin/staff/${staffId}`),
   create: (data) => adminAxiosClient.post('/admin/staff', data),
   update: (staffId, data) => adminAxiosClient.patch(`/admin/staff/${staffId}`, data),
@@ -170,7 +173,7 @@ export const salaryFetcher = {
 
 // 11. Student Fetcher
 export const studentFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/students', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/students/filter', body),
   get: (studentId) => adminAxiosClient.get(`/admin/students/${studentId}`),
   create: (data) => adminAxiosClient.post('/admin/students', data),
   update: (studentId, data) => adminAxiosClient.patch(`/admin/students/${studentId}`, data),
@@ -186,7 +189,7 @@ export const studentFetcher = {
 
 // 12. Student Plan Fetcher
 export const studentPlanFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/student-plans', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/student-plans/filter', body),
   get: (planId) => adminAxiosClient.get(`/admin/student-plans/${planId}`),
   create: (data) => adminAxiosClient.post('/admin/student-plans', data),
   update: (planId, data) => adminAxiosClient.patch(`/admin/student-plans/${planId}`, data),
@@ -216,7 +219,7 @@ export const courseMaterialFetcher = {
 
 // 14. Customer Fetcher
 export const customerFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/customers', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/customers/filter', body),
   get: (customerId) => adminAxiosClient.get(`/admin/customers/${customerId}`),
   create: (data) => adminAxiosClient.post('/admin/customers', data),
   update: (customerId, data) => adminAxiosClient.patch(`/admin/customers/${customerId}`, data),
@@ -236,7 +239,7 @@ export const customerFetcher = {
 
 // 15. Service Category Fetcher
 export const serviceCategoryFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/service-categories', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/service-categories/filter', body),
   get: (categoryId) => adminAxiosClient.get(`/admin/service-categories/${categoryId}`),
   create: (data) => adminAxiosClient.post('/admin/service-categories', data),
   update: (categoryId, data) => adminAxiosClient.patch(`/admin/service-categories/${categoryId}`, data),
@@ -245,7 +248,7 @@ export const serviceCategoryFetcher = {
 
 // 16. Service Subcategory Fetcher
 export const serviceSubcategoryFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/service-subcategories', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/service-subcategories/filter', body),
   get: (subcategoryId) => adminAxiosClient.get(`/admin/service-subcategories/${subcategoryId}`),
   create: (data) => adminAxiosClient.post('/admin/service-subcategories', data),
   update: (subcategoryId, data) => adminAxiosClient.patch(`/admin/service-subcategories/${subcategoryId}`, data),
@@ -254,7 +257,7 @@ export const serviceSubcategoryFetcher = {
 
 // 17. Service Fetcher
 export const serviceFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/services', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/services/filter', body),
   get: (serviceId) => adminAxiosClient.get(`/admin/services/${serviceId}`),
   create: (data) => adminAxiosClient.post('/admin/services', data),
   update: (serviceId, data) => adminAxiosClient.patch(`/admin/services/${serviceId}`, data),
@@ -283,7 +286,7 @@ export const serviceAddonFetcher = {
 
 // 20. Package Fetcher
 export const packageFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/packages', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/packages/filter', body),
   get: (packageId) => adminAxiosClient.get(`/admin/packages/${packageId}`),
   create: (data) => adminAxiosClient.post('/admin/packages', data),
   update: (packageId, data) => adminAxiosClient.patch(`/admin/packages/${packageId}`, data),
@@ -294,7 +297,7 @@ export const packageFetcher = {
 
 // 21. Offer Fetcher
 export const offerFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/offers', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/offers/filter', body),
   get: (offerId) => adminAxiosClient.get(`/admin/offers/${offerId}`),
   create: (data) => adminAxiosClient.post('/admin/offers', data),
   update: (offerId, data) => adminAxiosClient.patch(`/admin/offers/${offerId}`, data),
@@ -305,7 +308,7 @@ export const offerFetcher = {
 
 // 22. Coupon Fetcher
 export const couponFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/coupons', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/coupons/filter', body),
   get: (couponId) => adminAxiosClient.get(`/admin/coupons/${couponId}`),
   create: (data) => adminAxiosClient.post('/admin/coupons', data),
   update: (couponId, data) => adminAxiosClient.patch(`/admin/coupons/${couponId}`, data),
@@ -313,20 +316,31 @@ export const couponFetcher = {
   updateStatus: (couponId, status) => adminAxiosClient.patch(`/admin/coupons/${couponId}/status`, { status }),
 };
 
+// 22B. Inquiry Fetcher (Leads & Parlour Customer Requests)
+export const inquiryFetcher = {
+  list: (body = {}) => adminAxiosClient.post('/admin/inquiries/filter', body),
+  create: (data) => adminAxiosClient.post('/admin/inquiries', data),
+  update: (id, data = {}) => adminAxiosClient.patch(`/admin/inquiries/${id}`, data),
+  updateStatus: (id, data = {}) => adminAxiosClient.post('/admin/inquiries/update', { id, inquiryId: id, ...data }),
+  delete: (id) => adminAxiosClient.post('/admin/inquiries/delete', { id, inquiryId: id }),
+};
+
 // 23. Appointment Fetcher
 export const appointmentFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/appointments', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/appointments/filter', body),
   get: (appointmentId) => adminAxiosClient.get(`/admin/appointments/${appointmentId}`),
   create: (data) => adminAxiosClient.post('/admin/appointments', data),
   update: (appointmentId, data) => adminAxiosClient.patch(`/admin/appointments/${appointmentId}`, data),
   delete: (appointmentId) => adminAxiosClient.delete(`/admin/appointments/${appointmentId}`),
-  confirm: (appointmentId) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/confirm`),
+  confirm: (appointmentId, data = {}) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/confirm`, data),
+  approve: (appointmentId, data = {}) => adminAxiosClient.post('/admin/appointments/approve', { appointmentId, ...data }),
   checkIn: (appointmentId) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/check-in`),
   start: (appointmentId) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/start`),
   pause: (appointmentId) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/pause`),
   resume: (appointmentId) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/resume`),
   complete: (appointmentId) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/complete`),
   cancel: (appointmentId, data) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/cancel`, data),
+  cancelWithReason: (appointmentId, data = {}) => adminAxiosClient.post('/admin/appointments/cancel', { appointmentId, ...data }),
   noShow: (appointmentId) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/no-show`),
   reschedule: (appointmentId, data) => adminAxiosClient.post(`/admin/appointments/${appointmentId}/reschedule`, data),
   getAvailability: (params) => adminAxiosClient.get('/admin/appointments/availability', { params: buildParams(params) }),
@@ -392,7 +406,7 @@ export const paymentGatewayFetcher = {
 
 // 28. Product Fetcher
 export const productFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/products', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/products/filter', body),
   get: (productId) => adminAxiosClient.get(`/admin/products/${productId}`),
   create: (data) => adminAxiosClient.post('/admin/products', data),
   update: (productId, data) => adminAxiosClient.patch(`/admin/products/${productId}`, data),
@@ -401,7 +415,7 @@ export const productFetcher = {
 
 // 29. Inventory Fetcher
 export const inventoryFetcher = {
-  getStock: (params) => adminAxiosClient.get('/admin/inventory', { params: buildParams(params) }),
+  getStock: (body = {}) => adminAxiosClient.post('/admin/inventory/filter', body),
   getLowStock: (params) => adminAxiosClient.get('/admin/inventory/low-stock', { params: buildParams(params) }),
   stockIn: (data) => adminAxiosClient.post('/admin/inventory/stock-in', data),
   stockOut: (data) => adminAxiosClient.post('/admin/inventory/stock-out', data),
@@ -679,7 +693,7 @@ export const systemConfigFetcher = {
 
 // 55. Parlour Sub-Services Master Fetcher
 export const subServiceFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/sub-services', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/sub-services/filter', body),
   get: (id) => adminAxiosClient.get(`/admin/sub-services/${id}`),
   create: (data) => adminAxiosClient.post('/admin/sub-services', data),
   update: (id, data) => adminAxiosClient.patch(`/admin/sub-services/${id}`, data),
@@ -689,7 +703,7 @@ export const subServiceFetcher = {
 
 // 56. Parlour Plans Fetcher
 export const parlourPlanFetcher = {
-  list: (params) => adminAxiosClient.get('/admin/parlour-plans', { params: buildParams(params) }),
+  list: (body = {}) => adminAxiosClient.post('/admin/parlour-plans/filter', body),
   get: (id) => adminAxiosClient.get(`/admin/parlour-plans/${id}`),
   create: (data) => adminAxiosClient.post('/admin/parlour-plans', data),
   update: (id, data) => adminAxiosClient.patch(`/admin/parlour-plans/${id}`, data),

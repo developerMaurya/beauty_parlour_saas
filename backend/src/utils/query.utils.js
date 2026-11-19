@@ -12,7 +12,7 @@
  */
 export const getPagination = (query, defaultLimit = 20) => {
   const page = Math.max(1, parseInt(query.page || 1, 10));
-  const limit = Math.max(1, Math.min(100, parseInt(query.limit || defaultLimit, 10)));
+  const limit = Math.max(1, Math.min(500, parseInt(query.limit || defaultLimit, 10)));
   const skip = (page - 1) * limit;
 
   return { page, limit, skip };

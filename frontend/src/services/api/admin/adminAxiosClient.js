@@ -11,6 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export const adminAxiosClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 10000,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -19,6 +20,7 @@ export const adminAxiosClient = axios.create({
 
 let isRefreshing = false;
 let failedQueue = [];
+let autoLoginPromise = null;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
@@ -36,36 +38,43 @@ adminAxiosClient.interceptors.request.use(
   async (config) => {
     let token = localStorage.getItem('tenant_access_token');
     
-    // Auto-authenticate with demo tenant admin if no token in session
+    // Auto-authenticate with demo tenant admin if no token in session (singleton promise)
     if (!token && !config.url?.includes('/admin/auth/login')) {
-      try {
-        const loginRes = await axios.post(
+      if (!autoLoginPromise) {
+        autoLoginPromise = axios.post(
           `${API_BASE_URL}/admin/auth/login`,
           {
             identifier: 'admin@parlour.local',
             password: 'Password@123',
           },
           {
+            timeout: 6000,
             headers: {
               'x-tenant-slug': localStorage.getItem('active_tenant_slug') || 'blossom-salon',
             },
           }
-        );
-        const data = loginRes.data?.data;
-        if (data?.accessToken) {
-          token = data.accessToken;
-          localStorage.setItem('tenant_access_token', token);
-          if (data.refreshToken) {
-            localStorage.setItem('tenant_refresh_token', data.refreshToken);
+        ).then((loginRes) => {
+          const data = loginRes.data?.data;
+          if (data?.accessToken) {
+            token = data.accessToken;
+            localStorage.setItem('tenant_access_token', token);
+            if (data.refreshToken) {
+              localStorage.setItem('tenant_refresh_token', data.refreshToken);
+            }
+            if (data.user) {
+              localStorage.setItem('tenant_user', JSON.stringify(data.user));
+            }
+            localStorage.setItem('active_tenant_slug', 'blossom-salon');
           }
-          if (data.user) {
-            localStorage.setItem('tenant_user', JSON.stringify(data.user));
-          }
-          localStorage.setItem('active_tenant_slug', 'blossom-salon');
-        }
-      } catch (authErr) {
-        // Continue without blocking
+          return token;
+        }).catch((authErr) => {
+          console.warn('Auto auth fallback:', authErr?.message);
+          return null;
+        }).finally(() => {
+          autoLoginPromise = null;
+        });
       }
+      token = await autoLoginPromise;
     }
 
     if (token) {
@@ -81,6 +90,47 @@ adminAxiosClient.interceptors.request.use(
     const branchId = localStorage.getItem('active_branch_id');
     if (branchId) {
       config.headers['x-branch-id'] = branchId;
+    }
+
+    // Automatic Query-to-Body Transformation for filterable listing endpoints:
+    // Ensures all listing/filter queries are sent via HTTP JSON Request Body (POST) instead of URL query parameters
+    const FILTERABLE_ENDPOINTS = [
+      '/admin/users',
+      '/admin/staff',
+      '/admin/products',
+      '/admin/roles',
+      '/admin/user-types',
+      '/admin/business-targets',
+      '/admin/branches',
+      '/admin/students',
+      '/admin/student-plans',
+      '/admin/enrollments',
+      '/admin/student-attendance',
+      '/admin/course-materials',
+      '/admin/customers',
+      '/admin/services',
+      '/admin/service-categories',
+      '/admin/service-subcategories',
+      '/admin/sub-services',
+      '/admin/parlour-plans',
+      '/admin/packages',
+      '/admin/offers',
+      '/admin/coupons',
+      '/admin/appointments',
+      '/admin/inquiries',
+      '/admin/departments',
+      '/admin/designations',
+      '/admin/skills',
+      '/admin/inventory',
+      '/admin/dashboard/assigned-products',
+    ];
+
+    const urlPath = (config.url || '').split('?')[0];
+    if (config.method?.toLowerCase() === 'get' && FILTERABLE_ENDPOINTS.includes(urlPath)) {
+      config.method = 'post';
+      config.url = urlPath.endsWith('/assigned-products') ? `${urlPath}/list` : `${urlPath}/filter`;
+      config.data = { ...(config.params || {}), ...(config.data || {}) };
+      config.params = {};
     }
 
     return config;
