@@ -53,24 +53,33 @@ import {
   Globe,
   Search,
   UserCheck,
+  UserPlus,
+  XCircle,
+  PhoneCall,
   LayoutDashboard,
   Copy,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 import { ParlourProductAssignments } from '../components/parlour/ParlourProductAssignments.jsx';
 import { ParlourStaffSalaryManager } from '../components/parlour/ParlourStaffSalaryManager.jsx';
 import { ParlourProductSalesManager } from '../components/parlour/ParlourProductSalesManager.jsx';
-import { productFetcher, inquiryFetcher, appointmentFetcher, staffFetcher } from '../../../services/api/admin/adminApi.js';
+import { productFetcher, inquiryFetcher, appointmentFetcher, staffFetcher, userFetcher } from '../../../services/api/admin/adminApi.js';
 
 export function GoldenBeautyAdminDashboard({ defaultTab }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  // Determine active view strictly from route or query param
+  // Determine active view strictly from query param, route path, or defaultTab
+  const tabParam = searchParams.get('tab');
   let activeView = 'overview';
-  if (defaultTab) {
-    activeView = defaultTab === 'billing' || defaultTab === 'payments' || defaultTab === 'attendance' ? 'overview' : defaultTab;
+
+  if (tabParam) {
+    activeView = tabParam;
   } else if (location.pathname.includes('inquiries') || location.pathname.includes('requests')) {
     activeView = 'requests';
   } else if (location.pathname.includes('appointments') || location.pathname.includes('appointment')) {
@@ -85,8 +94,8 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
     activeView = 'assignments';
   } else if (location.pathname.includes('salary') || location.pathname.includes('payroll')) {
     activeView = 'salary';
-  } else if (searchParams.get('tab')) {
-    activeView = searchParams.get('tab');
+  } else if (defaultTab) {
+    activeView = defaultTab === 'billing' || defaultTab === 'payments' || defaultTab === 'attendance' ? 'overview' : defaultTab;
   }
 
   // State for Sales Chart filter in Overview
@@ -161,6 +170,13 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
   const [inquiryFilter, setInquiryFilter] = useState('ALL');
   const [inquirySearch, setInquirySearch] = useState('');
+  const [inquirySort, setInquirySort] = useState('newest');
+  const [inquiryPage, setInquiryPage] = useState(1);
+  const [inquiryPageSize, setInquiryPageSize] = useState(10);
+
+  useEffect(() => {
+    setInquiryPage(1);
+  }, [inquiryFilter, inquirySearch, inquirySort]);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [inquiryForm, setInquiryForm] = useState({
     customerName: '',
@@ -371,12 +387,26 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
   const [appointmentFilter, setAppointmentFilter] = useState('ALL');
   const [appointmentSearch, setAppointmentSearch] = useState('');
+  const [appointmentSort, setAppointmentSort] = useState('newest');
+  const [appointmentModeFilter, setAppointmentModeFilter] = useState('ALL');
+  const [appointmentPage, setAppointmentPage] = useState(1);
+  const [appointmentPageSize, setAppointmentPageSize] = useState(10);
+
+  useEffect(() => {
+    setAppointmentPage(1);
+  }, [appointmentFilter, appointmentSearch, appointmentSort, appointmentModeFilter]);
   const [approveModalAppt, setApproveModalAppt] = useState(null);
   const [approveForm, setApproveForm] = useState({
     videoConsultationUrl: '',
     staffName: '',
     notes: '',
   });
+
+  // Rejection & Staff Assignment Modals State
+  const [rejectModalAppt, setRejectModalAppt] = useState(null);
+  const [rejectReason, setRejectReason] = useState('Slot unavailable / stylist already booked at requested time');
+  const [assignStaffModalAppt, setAssignStaffModalAppt] = useState(null);
+  const [selectedStaffForAssign, setSelectedStaffForAssign] = useState('');
 
   // DB Sync for Appointments
   useEffect(() => {
@@ -425,8 +455,8 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
     const randomCode = `${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`;
     setApproveForm({
       videoConsultationUrl: appt.videoConsultationUrl || `https://meet.google.com/${randomCode}`,
-      staffName: appt.assignedStaffName || 'Pooja Verma (HD Makeup Artist)',
-      notes: appt.notes || 'Video consultation approved. Google Meet link dispatched to client.',
+      staffName: appt.assignedStaffName || '',
+      notes: appt.notes && !appt.notes.startsWith('Declined') ? appt.notes : 'Appointment confirmed. Video consultation link dispatched.',
     });
     setApproveModalAppt(appt);
   };
@@ -437,6 +467,8 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
     const apptId = approveModalAppt._id || approveModalAppt.id;
     const meetLink = approveForm.videoConsultationUrl.trim();
+    const assignedStaff = approveForm.staffName.trim();
+    const approvalRemarks = approveForm.notes.trim() || 'Appointment confirmed by admin';
 
     const updated = appointments.map((a) =>
       a.id === apptId || a._id === apptId
@@ -445,48 +477,114 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
             status: 'confirmed',
             videoConsultationUrl: meetLink,
             googleMeetLink: meetLink,
-            assignedStaffName: approveForm.staffName,
-            notes: approveForm.notes,
+            assignedStaffName: assignedStaff,
+            notes: approvalRemarks,
           }
         : a
     );
 
     setAppointments(updated);
     localStorage.setItem('parlour_appointments_cache', JSON.stringify(updated));
-    showToast(`✓ Appointment approved! Google Meet link attached.`);
+    showToast(`✓ Appointment approved! Meet link & staff assigned.`);
     setApproveModalAppt(null);
 
     try {
       await appointmentFetcher.approve(apptId, {
         videoConsultationUrl: meetLink,
         googleMeetLink: meetLink,
-        notes: approveForm.notes,
+        assignedStaffName: assignedStaff,
+        notes: approvalRemarks,
       });
     } catch (err) {
       console.warn('Appointment approval DB error:', err);
     }
   };
 
-  const handleCancelAppointment = async (appt) => {
-    const reason = window.prompt(
-      `Cancel appointment for "${appt.customerName}"? Enter cancellation reason:`,
-      'Client requested reschedule / slot unavailable'
-    );
-    if (reason === null) return;
+  const handleOpenRejectModal = (appt) => {
+    setRejectModalAppt(appt);
+    setRejectReason('Slot unavailable / stylist already booked at requested time');
+  };
 
-    const apptId = appt._id || appt.id;
+  const handleConfirmRejectSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectModalAppt) return;
+
+    const apptId = rejectModalAppt._id || rejectModalAppt.id;
+    const reason = rejectReason.trim() || 'Declined by parlour management';
+
     const updated = appointments.map((a) =>
-      a.id === apptId || a._id === apptId ? { ...a, status: 'cancelled', notes: `Cancelled: ${reason}` } : a
+      a.id === apptId || a._id === apptId
+        ? {
+            ...a,
+            status: 'cancelled',
+            notes: `Declined / Rejected: ${reason}`,
+          }
+        : a
     );
+
     setAppointments(updated);
     localStorage.setItem('parlour_appointments_cache', JSON.stringify(updated));
-    showToast(`Appointment marked as Cancelled.`);
+    showToast(`Appointment declined with remark.`);
+    setRejectModalAppt(null);
 
     try {
       await appointmentFetcher.cancelWithReason(apptId, { reason });
     } catch (err) {
       console.warn('Appointment cancel DB error:', err);
     }
+  };
+
+  const handleOpenAssignStaffModal = (appt) => {
+    setAssignStaffModalAppt(appt);
+    setSelectedStaffForAssign(appt.assignedStaffName || '');
+  };
+
+  const handleConfirmAssignStaffSubmit = async (e) => {
+    e.preventDefault();
+    if (!assignStaffModalAppt) return;
+
+    const apptId = assignStaffModalAppt._id || assignStaffModalAppt.id;
+    const staff = selectedStaffForAssign.trim();
+
+    const updated = appointments.map((a) =>
+      a.id === apptId || a._id === apptId
+        ? {
+            ...a,
+            assignedStaffName: staff,
+          }
+        : a
+    );
+
+    setAppointments(updated);
+    localStorage.setItem('parlour_appointments_cache', JSON.stringify(updated));
+    showToast(staff ? `✓ Assigned to ${staff}!` : 'Staff unassigned');
+    setAssignStaffModalAppt(null);
+
+    try {
+      await appointmentFetcher.update(apptId, { assignedStaffName: staff });
+    } catch (err) {
+      console.warn('Appointment staff assign DB error:', err);
+    }
+  };
+
+  const handleMarkAppointmentCompleted = async (appt) => {
+    const apptId = appt._id || appt.id;
+    const updated = appointments.map((a) =>
+      a.id === apptId || a._id === apptId ? { ...a, status: 'completed' } : a
+    );
+    setAppointments(updated);
+    localStorage.setItem('parlour_appointments_cache', JSON.stringify(updated));
+    showToast(`✓ Appointment marked as completed.`);
+
+    try {
+      await appointmentFetcher.update(apptId, { status: 'completed' });
+    } catch (err) {
+      console.warn('Appointment complete DB error:', err);
+    }
+  };
+
+  const handleCancelAppointment = (appt) => {
+    handleOpenRejectModal(appt);
   };
 
   // Quick Booking State
@@ -577,10 +675,32 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
   const [parlourStaffList, setParlourStaffList] = useState([]);
   useEffect(() => {
     let isMounted = true;
-    staffFetcher.list({ limit: 100 }).then((res) => {
-      const items = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : [];
-      if (isMounted && items.length > 0) {
-        setParlourStaffList(items);
+    Promise.allSettled([
+      staffFetcher.list({ limit: 100 }),
+      userFetcher.list({ role: 'STAFF', targetBusiness: 'PARLOUR', limit: 100 }),
+      userFetcher.list({ targetBusiness: 'PARLOUR', limit: 100 }),
+    ]).then(([staffRes, userRes, allParlourRes]) => {
+      if (!isMounted) return;
+      const combined = [];
+      const seenNames = new Set();
+
+      const addStaff = (name, designation, id) => {
+        if (!name || seenNames.has(name.trim().toLowerCase())) return;
+        seenNames.add(name.trim().toLowerCase());
+        combined.push({ _id: id || name, name: name.trim(), designation: designation || 'Stylist' });
+      };
+
+      const staffItems = staffRes.status === 'fulfilled' && Array.isArray(staffRes.value?.data?.data) ? staffRes.value.data.data : [];
+      staffItems.forEach((s) => addStaff(s.name, s.designation || s.designationId?.name || 'Stylist', s._id));
+
+      const userItems = userRes.status === 'fulfilled' && Array.isArray(userRes.value?.data?.data) ? userRes.value.data.data : [];
+      userItems.forEach((u) => addStaff(u.name, u.role === 'STAFF' ? 'Staff Stylist' : u.role, u._id));
+
+      const allParlour = allParlourRes.status === 'fulfilled' && Array.isArray(allParlourRes.value?.data?.data) ? allParlourRes.value.data.data : [];
+      allParlour.forEach((u) => addStaff(u.name, u.role === 'STAFF' ? 'Staff Stylist' : u.role, u._id));
+
+      if (combined.length > 0) {
+        setParlourStaffList(combined);
       }
     }).catch(() => {});
     return () => {
@@ -1092,73 +1212,6 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
       {/* ── Main Dashboard Content Area (Controlled Directly via Left Sidebar) ── */}
       <main style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {/* ── Top View Navigation Tabs Bar ── */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            padding: '8px 12px',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            overflowX: 'auto',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-          }}
-        >
-          {[
-            { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/admin/golden-beauty-parlour' },
-            { id: 'requests', label: 'Inquiries & Leads', icon: MessageSquare, badge: inquiries.length, path: '/admin/parlour-inquiries' },
-            { id: 'appointments', label: 'Appointments & Meet', icon: Calendar, badge: appointments.length, path: '/admin/parlour-appointments' },
-            { id: 'products', label: 'Products & Inventory', icon: Box, badge: products.length, path: '/admin/parlour-products' },
-            { id: 'assignments', label: 'Issue Salon Product', icon: Package, path: '/admin/parlour-assignments' },
-            { id: 'sales', label: 'Sales POS', icon: ShoppingBag, path: '/admin/parlour-sales' },
-            { id: 'certificates', label: 'Certificates', icon: Award, path: '/admin/parlour-certificates' },
-            { id: 'salary', label: 'Salary & Payroll', icon: Users, path: '/admin/parlour-salary' },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeView === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => navigate(tab.path)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '9px 16px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: isActive ? '#7e22ce' : 'transparent',
-                  color: isActive ? '#ffffff' : '#64748b',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 800 : 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease-in-out',
-                }}
-              >
-                <Icon size={16} />
-                <span>{tab.label}</span>
-                {tab.badge !== undefined && (
-                  <span
-                    style={{
-                      background: isActive ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-                      color: isActive ? '#ffffff' : '#475569',
-                      padding: '2px 7px',
-                      borderRadius: '10px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                    }}
-                  >
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
         {/* ══════════════════════════════════════════════════════════════════════
             VIEW 1: SALON OVERVIEW
             ══════════════════════════════════════════════════════════════════════ */}
@@ -1386,130 +1439,221 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════
-            VIEW 2: CUSTOMER INQUIRIES & REQUESTS
+            VIEW 2: CUSTOMER INQUIRIES & LEADS MANAGEMENT
             ══════════════════════════════════════════════════════════════════════ */}
-        {activeView === 'requests' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: '18px',
-                padding: '1.25rem 1.5rem',
-                border: '1px solid #f1f5f9',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-              }}
-            >
-              <div>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>Customer Inquiries & Leads</span>
-                  <span style={{ fontSize: '11px', background: '#7e22ce', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
-                    {inquiries.length} Inquiries
-                  </span>
-                </h2>
-                <div style={{ fontSize: '12.5px', color: '#64748b' }}>
-                  Manage incoming inquiries, customer requests, budget estimates, and follow up instantly.
-                </div>
-              </div>
+        {activeView === 'requests' && (() => {
+          const filteredInquiries = inquiries.filter((inq) => {
+            const s = (inq.status || 'NEW').toUpperCase();
+            const matchesStatus =
+              inquiryFilter === 'ALL' ||
+              s === inquiryFilter ||
+              (inquiryFilter === 'NEW' && (s === 'PENDING' || s === 'NEW')) ||
+              (inquiryFilter === 'IN-PROGRESS' && (s === 'IN_PROGRESS' || s === 'IN-PROGRESS'));
+            if (!matchesStatus) return false;
+            if (!inquirySearch.trim()) return true;
+            const query = inquirySearch.toLowerCase();
+            return (
+              inq.customerName?.toLowerCase().includes(query) ||
+              inq.customerPhone?.toLowerCase().includes(query) ||
+              inq.serviceName?.toLowerCase().includes(query) ||
+              inq.customerEmail?.toLowerCase().includes(query) ||
+              inq.inquiryNumber?.toLowerCase().includes(query) ||
+              inq.id?.toLowerCase().includes(query)
+            );
+          }).sort((a, b) => {
+            if (inquirySort === 'name_asc') return (a.customerName || '').localeCompare(b.customerName || '');
+            if (inquirySort === 'name_desc') return (b.customerName || '').localeCompare(a.customerName || '');
+            if (inquirySort === 'oldest') return (a.eventDate || a.createdAt || '').localeCompare(b.eventDate || b.createdAt || '');
+            return (b.eventDate || b.createdAt || '').localeCompare(a.eventDate || a.createdAt || '');
+          });
 
-              {/* Action Buttons & Search */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', minWidth: '220px' }}>
-                  <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                  <input
-                    type="text"
-                    value={inquirySearch}
-                    onChange={(e) => setInquirySearch(e.target.value)}
-                    placeholder="Search name, phone, service..."
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px 8px 32px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '12.5px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  {inquirySearch && (
-                    <button
-                      onClick={() => setInquirySearch('')}
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
+          const totalPages = Math.ceil(filteredInquiries.length / inquiryPageSize) || 1;
+          const safePage = Math.min(inquiryPage, totalPages);
+          const startIdx = (safePage - 1) * inquiryPageSize;
+          const paginatedInquiries = filteredInquiries.slice(startIdx, startIdx + inquiryPageSize);
 
-                <button
-                  onClick={() => setInquiryModalOpen(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: '#7e22ce',
-                    color: '#ffffff',
-                    fontSize: '12.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(126, 34, 206, 0.25)',
-                  }}
-                >
-                  <Plus size={15} />
-                  <span>+ Add Customer Inquiry</span>
-                </button>
-              </div>
+          const newCount = inquiries.filter((i) => ['NEW', 'PENDING'].includes((i.status || 'NEW').toUpperCase())).length;
+          const inProgressCount = inquiries.filter((i) => ['IN-PROGRESS', 'IN_PROGRESS', 'CONTACTED'].includes((i.status || '').toUpperCase())).length;
+          const confirmedCount = inquiries.filter((i) => ['CONFIRMED', 'COMPLETED'].includes((i.status || '').toUpperCase())).length;
 
-              {/* Status Filter Badges */}
-              <div style={{ width: '100%', display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-                {['ALL', 'NEW', 'CONTACTED', 'IN-PROGRESS', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((f) => (
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Header Card with KPIs */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '1.25rem 1.5rem',
+                  border: '1px solid #f1f5f9',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span>Customer Inquiries & Leads Roster</span>
+                      <span style={{ fontSize: '11px', background: '#7e22ce', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                        {inquiries.length} Inquiries Total
+                      </span>
+                    </h2>
+                    <div style={{ fontSize: '12.5px', color: '#64748b' }}>
+                      Live customer booking requests, bridal consultations, and inquiries submitted by clients.
+                    </div>
+                  </div>
+
                   <button
-                    key={f}
-                    onClick={() => setInquiryFilter(f)}
+                    onClick={() => setInquiryModalOpen(true)}
                     style={{
-                      padding: '6px 12px',
-                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 18px',
+                      borderRadius: '12px',
                       border: 'none',
-                      background: inquiryFilter === f ? '#7e22ce' : '#f1f5f9',
-                      color: inquiryFilter === f ? '#ffffff' : '#64748b',
-                      fontSize: '11.5px',
+                      background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+                      color: '#ffffff',
+                      fontSize: '13px',
                       fontWeight: 800,
                       cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(126, 34, 206, 0.3)',
                     }}
                   >
-                    {f}
+                    <Plus size={16} />
+                    <span>+ Add Customer Inquiry</span>
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* Inquiries Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {inquiries
-                .filter((inq) => {
-                  const s = (inq.status || 'NEW').toUpperCase();
-                  const matchesStatus =
-                    inquiryFilter === 'ALL' ||
-                    s === inquiryFilter ||
-                    (inquiryFilter === 'NEW' && (s === 'PENDING' || s === 'NEW')) ||
-                    (inquiryFilter === 'IN-PROGRESS' && (s === 'IN_PROGRESS' || s === 'IN-PROGRESS'));
-                  if (!matchesStatus) return false;
-                  if (!inquirySearch.trim()) return true;
-                  const query = inquirySearch.toLowerCase();
-                  return (
-                    inq.customerName?.toLowerCase().includes(query) ||
-                    inq.customerPhone?.toLowerCase().includes(query) ||
-                    inq.serviceName?.toLowerCase().includes(query) ||
-                    inq.customerEmail?.toLowerCase().includes(query)
-                  );
-                })
-                .map((inq) => {
+                {/* Quick Metric Badges */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                  <div style={{ background: '#faf5ff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #f3e8ff' }}>
+                    <div style={{ fontSize: '11px', color: '#7e22ce', fontWeight: 700, textTransform: 'uppercase' }}>Total Inquiries</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#581c87', marginTop: '2px' }}>{inquiries.length}</div>
+                  </div>
+                  <div style={{ background: '#fefce8', padding: '10px 14px', borderRadius: '12px', border: '1px solid #fef08a' }}>
+                    <div style={{ fontSize: '11px', color: '#a16207', fontWeight: 700, textTransform: 'uppercase' }}>New / Pending</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#854d0e', marginTop: '2px' }}>{newCount}</div>
+                  </div>
+                  <div style={{ background: '#eff6ff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                    <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 700, textTransform: 'uppercase' }}>In-Progress</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#1e40af', marginTop: '2px' }}>{inProgressCount}</div>
+                  </div>
+                  <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 700, textTransform: 'uppercase' }}>Confirmed / Converted</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#166534', marginTop: '2px' }}>{confirmedCount}</div>
+                  </div>
+                </div>
+
+                {/* Search, Filter & Sort Control Bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
+                    <div style={{ position: 'relative', width: '100%', maxWidth: '340px' }}>
+                      <Search size={15} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                      <input
+                        type="text"
+                        value={inquirySearch}
+                        onChange={(e) => setInquirySearch(e.target.value)}
+                        placeholder="Search customer name, phone, service, ID..."
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px 9px 34px',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      {inquirySearch && (
+                        <button
+                          onClick={() => setInquirySearch('')}
+                          style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                      <ArrowUpDown size={14} />
+                      <span>Sort:</span>
+                      <select
+                        value={inquirySort}
+                        onChange={(e) => setInquirySort(e.target.value)}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                      <span>Show:</span>
+                      <select
+                        value={inquiryPageSize}
+                        onChange={(e) => setInquiryPageSize(Number(e.target.value))}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value={5}>5 / page</option>
+                        <option value={10}>10 / page</option>
+                        <option value={20}>20 / page</option>
+                        <option value={50}>50 / page</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Status Filter Badges */}
+                  <div style={{ width: '100%', display: 'flex', gap: '6px', flexWrap: 'wrap', paddingTop: '4px' }}>
+                    {['ALL', 'NEW', 'CONTACTED', 'IN-PROGRESS', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setInquiryFilter(f)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: inquiryFilter === f ? '#7e22ce' : '#f1f5f9',
+                          color: inquiryFilter === f ? '#ffffff' : '#64748b',
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Inquiries Cards / Professional List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {paginatedInquiries.map((inq, idx) => {
                   const cleanPhone = (inq.customerPhone || '').replace(/\D/g, '');
                   const currentStatus = (inq.status || 'NEW').toUpperCase();
                   const isNew = currentStatus === 'NEW' || currentStatus === 'PENDING';
@@ -1518,54 +1662,76 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
                   return (
                     <div
-                      key={inq.id || inq._id}
+                      key={inq.id || inq._id || idx}
                       style={{
                         background: '#ffffff',
                         borderRadius: '16px',
                         border: isNew ? '1.5px solid #facc15' : '1px solid #e2e8f0',
                         padding: '1.25rem 1.5rem',
                         boxShadow: isNew ? '0 4px 16px rgba(250, 204, 21, 0.12)' : '0 2px 8px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '10px' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{inq.customerName}</span>
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                background: isConfirmed ? '#ecfdf5' : isInProgress ? '#eff6ff' : '#fefce8',
-                                color: isConfirmed ? '#15803d' : isInProgress ? '#1d4ed8' : '#a16207',
-                                border: isConfirmed ? '1px solid #bbf7d0' : isInProgress ? '1px solid #bfdbfe' : '1px solid #fef08a',
-                              }}
-                            >
-                              {inq.status || 'NEW'}
-                            </span>
-                            {inq.source && (
-                              <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                                {inq.source}
-                              </span>
-                            )}
+                      {/* Top Header Row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '50%',
+                              background: '#f3e8ff',
+                              color: '#7e22ce',
+                              fontWeight: 900,
+                              fontSize: '15px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(inq.customerName || 'C').charAt(0).toUpperCase()}
                           </div>
-
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <span>📞 {inq.customerPhone || 'No Phone'}</span>
-                            {inq.customerEmail && <span>✉️ {inq.customerEmail}</span>}
-                            <span>🆔 {inq.inquiryNumber || inq.id}</span>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{inq.customerName}</span>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  background: isConfirmed ? '#ecfdf5' : isInProgress ? '#eff6ff' : '#fefce8',
+                                  color: isConfirmed ? '#15803d' : isInProgress ? '#1d4ed8' : '#a16207',
+                                  border: isConfirmed ? '1px solid #bbf7d0' : isInProgress ? '1px solid #bfdbfe' : '1px solid #fef08a',
+                                }}
+                              >
+                                {inq.status || 'NEW'}
+                              </span>
+                              {inq.source && (
+                                <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                  {inq.source}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                              <span>📞 {inq.customerPhone || 'No Phone'}</span>
+                              {inq.customerEmail && <span>✉️ {inq.customerEmail}</span>}
+                              <span>🆔 {inq.inquiryNumber || inq.id}</span>
+                            </div>
                           </div>
                         </div>
 
                         {/* Status Change Dropdown */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Status:</span>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Change Status:</span>
                           <select
                             value={inq.status || 'NEW'}
                             onChange={(e) => updateInquiryStatus(inq.id || inq._id, e.target.value)}
                             style={{
-                              padding: '6px 10px',
+                              padding: '6px 12px',
                               borderRadius: '8px',
                               border: '1.5px solid #cbd5e1',
                               background: '#ffffff',
@@ -1586,13 +1752,13 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                       </div>
 
                       {/* Service Details Card */}
-                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 14px', border: '1px solid #f1f5f9', marginBottom: '12px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 800, color: '#7e22ce', marginBottom: '4px' }}>
+                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 14px', border: '1px solid #f1f5f9' }}>
+                        <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#7e22ce', marginBottom: '4px' }}>
                           💄 {inq.serviceName}
                         </div>
                         <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#475569', flexWrap: 'wrap' }}>
                           {inq.eventDate && <span>📅 Date: <strong>{inq.eventDate}</strong></span>}
-                          {inq.timeSlot && <span>⏰ Preferred Time: <strong>{inq.timeSlot}</strong></span>}
+                          {inq.timeSlot && <span>⏰ Time Slot: <strong>{inq.timeSlot}</strong></span>}
                           {inq.budget && <span>💰 Estimate: <strong>{inq.budget}</strong></span>}
                           {inq.assignedStaff && <span>✂️ Assigned: <strong>{inq.assignedStaff}</strong></span>}
                         </div>
@@ -1677,146 +1843,343 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
                         <button
                           onClick={() => deleteInquiry(inq.id || inq._id)}
-                          style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#b91c1c', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#b91c1c', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
-                          <Trash2 size={13} /> Delete
+                          <Trash2 size={13} /> Delete Inquiry
                         </button>
                       </div>
                     </div>
                   );
                 })}
-              {inquiries.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '3rem', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                  <MessageSquare size={36} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
-                  <div style={{ fontWeight: 800, color: '#1e293b' }}>No Customer Inquiries Registered Yet</div>
-                  <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Click "+ Add Customer Inquiry" to record a new client request.</div>
+
+                {filteredInquiries.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '3rem', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                    <MessageSquare size={36} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
+                    <div style={{ fontWeight: 800, color: '#1e293b' }}>No Customer Inquiries Match Your Search/Filter</div>
+                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Try adjusting your filters or click "+ Add Customer Inquiry" to record a new lead.</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              {filteredInquiries.length > 0 && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '14px',
+                    padding: '12px 18px',
+                    border: '1px solid #f1f5f9',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>
+                    Showing <strong style={{ color: '#0f172a' }}>{startIdx + 1}</strong> to <strong style={{ color: '#0f172a' }}>{Math.min(startIdx + inquiryPageSize, filteredInquiries.length)}</strong> of <strong style={{ color: '#0f172a' }}>{filteredInquiries.length}</strong> inquiries
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      onClick={() => setInquiryPage((p) => Math.max(1, p - 1))}
+                      disabled={safePage <= 1}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: safePage <= 1 ? '#f8fafc' : '#ffffff',
+                        color: safePage <= 1 ? '#94a3b8' : '#0f172a',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <ChevronLeft size={14} /> Previous
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => setInquiryPage(pageNum)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          border: safePage === pageNum ? 'none' : '1px solid #cbd5e1',
+                          background: safePage === pageNum ? '#7e22ce' : '#ffffff',
+                          color: safePage === pageNum ? '#ffffff' : '#0f172a',
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={() => setInquiryPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safePage >= totalPages}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: safePage >= totalPages ? '#f8fafc' : '#ffffff',
+                        color: safePage >= totalPages ? '#94a3b8' : '#0f172a',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ══════════════════════════════════════════════════════════════════════
-            VIEW 2B: APPOINTMENTS & VIDEO CONSULTATIONS (GOOGLE MEET INTEGRATED)
+            VIEW 2B: APPOINTMENTS BOOKINGS & VIDEO CONSULTATIONS (NO DASHBOARD OVERVIEW)
             ══════════════════════════════════════════════════════════════════════ */}
-        {activeView === 'appointments' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: '18px',
-                padding: '1.25rem 1.5rem',
-                border: '1px solid #f1f5f9',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-              }}
-            >
-              <div>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>Appointment Requests & Video Consultations</span>
-                  <span style={{ fontSize: '11px', background: '#0284c7', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
-                    {appointments.length} Total
-                  </span>
-                </h2>
-                <div style={{ fontSize: '12.5px', color: '#64748b' }}>
-                  Manage parlour visits and virtual pre-bridal consultations. Approve appointments and attach Google Meet links directly.
-                </div>
-              </div>
+        {activeView === 'appointments' && (() => {
+          const filteredAppointments = appointments.filter((appt) => {
+            const s = (appt.status || 'pending').toUpperCase();
+            const matchesStatus = appointmentFilter === 'ALL' || s === appointmentFilter;
+            if (!matchesStatus) return false;
+            if (appointmentModeFilter !== 'ALL' && appt.serviceMode !== appointmentModeFilter) return false;
+            if (!appointmentSearch.trim()) return true;
+            const query = appointmentSearch.toLowerCase();
+            return (
+              appt.customerName?.toLowerCase().includes(query) ||
+              appt.customerPhone?.toLowerCase().includes(query) ||
+              appt.serviceName?.toLowerCase().includes(query) ||
+              appt.appointmentNumber?.toLowerCase().includes(query) ||
+              appt.customerEmail?.toLowerCase().includes(query)
+            );
+          }).sort((a, b) => {
+            if (appointmentSort === 'name_asc') return (a.customerName || '').localeCompare(b.customerName || '');
+            if (appointmentSort === 'date_asc') return (a.date || '').localeCompare(b.date || '');
+            return (b.date || '').localeCompare(a.date || '');
+          });
 
-              {/* Actions & Search */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', minWidth: '220px' }}>
-                  <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                  <input
-                    type="text"
-                    value={appointmentSearch}
-                    onChange={(e) => setAppointmentSearch(e.target.value)}
-                    placeholder="Search client, service, phone..."
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px 8px 32px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '12.5px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  {appointmentSearch && (
-                    <button
-                      onClick={() => setAppointmentSearch('')}
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
+          const totalPages = Math.ceil(filteredAppointments.length / appointmentPageSize) || 1;
+          const safePage = Math.min(appointmentPage, totalPages);
+          const startIdx = (safePage - 1) * appointmentPageSize;
+          const paginatedAppointments = filteredAppointments.slice(startIdx, startIdx + appointmentPageSize);
 
-                <button
-                  onClick={() => setBookApptModalOpen(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: '#0284c7',
-                    color: '#ffffff',
-                    fontSize: '12.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)',
-                  }}
-                >
-                  <Plus size={15} />
-                  <span>+ Schedule Appointment</span>
-                </button>
-              </div>
+          const pendingCount = appointments.filter((a) => (a.status || 'pending').toLowerCase() === 'pending').length;
+          const confirmedCount = appointments.filter((a) => (a.status || '').toLowerCase() === 'confirmed').length;
+          const virtualCount = appointments.filter((a) => a.serviceMode === 'ONLINE_CONSULTATION' || a.videoConsultationUrl).length;
 
-              {/* Status Filter Badges */}
-              <div style={{ width: '100%', display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-                {['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((f) => (
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Header Card with Appointment Metrics */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '1.25rem 1.5rem',
+                  border: '1px solid #f1f5f9',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span>Client Appointments & Video Consultations List</span>
+                      <span style={{ fontSize: '11px', background: '#0284c7', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                        {appointments.length} Total Bookings
+                      </span>
+                    </h2>
+                    <div style={{ fontSize: '12.5px', color: '#64748b' }}>
+                      Dedicated roster of appointments booked by customers for parlour services and virtual bridal consultations.
+                    </div>
+                  </div>
+
                   <button
-                    key={f}
-                    onClick={() => setAppointmentFilter(f)}
+                    onClick={() => setBookApptModalOpen(true)}
                     style={{
-                      padding: '6px 12px',
-                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 18px',
+                      borderRadius: '12px',
                       border: 'none',
-                      background: appointmentFilter === f ? '#0284c7' : '#f1f5f9',
-                      color: appointmentFilter === f ? '#ffffff' : '#64748b',
-                      fontSize: '11.5px',
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: '#ffffff',
+                      fontSize: '13px',
                       fontWeight: 800,
                       cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
                     }}
                   >
-                    {f}
+                    <Plus size={16} />
+                    <span>+ Schedule New Appointment</span>
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* Appointments Cards List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {appointments
-                .filter((appt) => {
-                  const s = (appt.status || 'pending').toUpperCase();
-                  const matchesStatus = appointmentFilter === 'ALL' || s === appointmentFilter;
-                  if (!matchesStatus) return false;
-                  if (!appointmentSearch.trim()) return true;
-                  const query = appointmentSearch.toLowerCase();
-                  return (
-                    appt.customerName?.toLowerCase().includes(query) ||
-                    appt.customerPhone?.toLowerCase().includes(query) ||
-                    appt.serviceName?.toLowerCase().includes(query) ||
-                    appt.appointmentNumber?.toLowerCase().includes(query)
-                  );
-                })
-                .map((appt) => {
+                {/* Quick Metric Badges */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                  <div style={{ background: '#f0f9ff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                    <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 700, textTransform: 'uppercase' }}>All Bookings</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#075985', marginTop: '2px' }}>{appointments.length}</div>
+                  </div>
+                  <div style={{ background: '#fefce8', padding: '10px 14px', borderRadius: '12px', border: '1px solid #fef08a' }}>
+                    <div style={{ fontSize: '11px', color: '#a16207', fontWeight: 700, textTransform: 'uppercase' }}>Pending Approval</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#854d0e', marginTop: '2px' }}>{pendingCount}</div>
+                  </div>
+                  <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 700, textTransform: 'uppercase' }}>Confirmed Slots</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#166534', marginTop: '2px' }}>{confirmedCount}</div>
+                  </div>
+                  <div style={{ background: '#e0f2fe', padding: '10px 14px', borderRadius: '12px', border: '1px solid #7dd3fc' }}>
+                    <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700, textTransform: 'uppercase' }}>Virtual Video Calls</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0369a1', marginTop: '2px' }}>{virtualCount}</div>
+                  </div>
+                </div>
+
+                {/* Search, Filter & Sort Control Bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
+                    <div style={{ position: 'relative', width: '100%', maxWidth: '340px' }}>
+                      <Search size={15} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                      <input
+                        type="text"
+                        value={appointmentSearch}
+                        onChange={(e) => setAppointmentSearch(e.target.value)}
+                        placeholder="Search client, service, phone, booking ID..."
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px 9px 34px',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      {appointmentSearch && (
+                        <button
+                          onClick={() => setAppointmentSearch('')}
+                          style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                      <Video size={14} />
+                      <span>Mode:</span>
+                      <select
+                        value={appointmentModeFilter}
+                        onChange={(e) => setAppointmentModeFilter(e.target.value)}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="ALL">All Modes</option>
+                        <option value="ONLINE_CONSULTATION">Virtual Video Call (Meet)</option>
+                        <option value="IN_STORE">In-Store Parlour Visit</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                      <ArrowUpDown size={14} />
+                      <span>Sort:</span>
+                      <select
+                        value={appointmentSort}
+                        onChange={(e) => setAppointmentSort(e.target.value)}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="newest">Newest Booking First</option>
+                        <option value="date_asc">Earliest Date First</option>
+                        <option value="name_asc">Customer Name (A-Z)</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                      <span>Show:</span>
+                      <select
+                        value={appointmentPageSize}
+                        onChange={(e) => setAppointmentPageSize(Number(e.target.value))}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value={5}>5 / page</option>
+                        <option value={10}>10 / page</option>
+                        <option value={20}>20 / page</option>
+                        <option value={50}>50 / page</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Status Filter Badges */}
+                  <div style={{ width: '100%', display: 'flex', gap: '6px', flexWrap: 'wrap', paddingTop: '4px' }}>
+                    {['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setAppointmentFilter(f)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: appointmentFilter === f ? '#0284c7' : '#f1f5f9',
+                          color: appointmentFilter === f ? '#ffffff' : '#64748b',
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Appointments List of Customer Bookings */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {paginatedAppointments.map((appt, idx) => {
                   const cleanPhone = (appt.customerPhone || '').replace(/\D/g, '');
                   const currentStatus = (appt.status || 'pending').toLowerCase();
                   const isPending = currentStatus === 'pending';
@@ -1828,155 +2191,252 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
 
                   return (
                     <div
-                      key={appt.id || appt._id}
+                      key={appt.id || appt._id || idx}
                       style={{
                         background: '#ffffff',
                         borderRadius: '16px',
                         border: isPending ? '1.5px solid #facc15' : isConfirmed ? '1.5px solid #38bdf8' : '1px solid #e2e8f0',
                         padding: '1.25rem 1.5rem',
                         boxShadow: isPending ? '0 4px 16px rgba(250, 204, 21, 0.12)' : '0 2px 8px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '10px' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{appt.customerName}</span>
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                background: isConfirmed ? '#ecfdf5' : isCompleted ? '#eff6ff' : isCancelled ? '#fee2e2' : '#fefce8',
-                                color: isConfirmed ? '#15803d' : isCompleted ? '#1d4ed8' : isCancelled ? '#b91c1c' : '#a16207',
-                                border: isConfirmed ? '1px solid #bbf7d0' : isCompleted ? '1px solid #bfdbfe' : isCancelled ? '1px solid #fca5a5' : '1px solid #fef08a',
-                              }}
-                            >
-                              {(appt.status || 'pending').toUpperCase()}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: '10.5px',
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                background: isOnline ? '#e0f2fe' : '#f1f5f9',
-                                color: isOnline ? '#0369a1' : '#475569',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              {isOnline ? <Video size={12} /> : <span>🏪</span>}
-                              {isOnline ? 'Virtual Video Consultation' : 'In-Store Parlour Visit'}
-                            </span>
+                      {/* Top Row: Customer Info, Stylist Assignment & Status */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '50%',
+                              background: isOnline ? '#e0f2fe' : '#f1f5f9',
+                              color: isOnline ? '#0284c7' : '#475569',
+                              fontWeight: 900,
+                              fontSize: '15px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(appt.customerName || 'C').charAt(0).toUpperCase()}
                           </div>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{appt.customerName}</span>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  background: isConfirmed ? '#ecfdf5' : isCompleted ? '#eff6ff' : isCancelled ? '#fee2e2' : '#fefce8',
+                                  color: isConfirmed ? '#15803d' : isCompleted ? '#1d4ed8' : isCancelled ? '#b91c1c' : '#a16207',
+                                  border: isConfirmed ? '1px solid #bbf7d0' : isCompleted ? '1px solid #bfdbfe' : isCancelled ? '1px solid #fca5a5' : '1px solid #fef08a',
+                                }}
+                              >
+                                {(appt.status || 'pending').toUpperCase()}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '10.5px',
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  background: isOnline ? '#e0f2fe' : '#f1f5f9',
+                                  color: isOnline ? '#0369a1' : '#475569',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                {isOnline ? <Video size={12} /> : <span>🏪</span>}
+                                {isOnline ? 'Virtual Video Consultation' : 'In-Store Parlour Visit'}
+                              </span>
+                            </div>
 
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <span>📞 {appt.customerPhone || 'No Phone'}</span>
-                            {appt.customerEmail && <span>✉️ {appt.customerEmail}</span>}
-                            <span>🆔 {appt.appointmentNumber || appt.id}</span>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                              <span>📞 {appt.customerPhone || 'No Phone'}</span>
+                              {appt.customerEmail && <span>✉️ {appt.customerEmail}</span>}
+                              <span>🆔 {appt.appointmentNumber || appt.id}</span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Top Right Stylist Badge */}
-                        <div style={{ fontSize: '12px', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '4px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                          <UserCheck size={14} color="#7e22ce" />
-                          <span>Stylist: <strong>{appt.assignedStaffName || 'Assigned on Confirmation'}</strong></span>
+                        {/* Top Right: Stylist Assignment with Quick Assign / Change Button */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          {appt.assignedStaffName ? (
+                            <div style={{ fontSize: '12px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '6px', background: '#f0f9ff', padding: '5px 12px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                              <UserCheck size={14} color="#0284c7" />
+                              <span>Stylist: <strong>{appt.assignedStaffName}</strong></span>
+                              <button
+                                onClick={() => handleOpenAssignStaffModal(appt)}
+                                style={{ marginLeft: '6px', border: 'none', background: '#e0f2fe', color: '#0369a1', borderRadius: '6px', padding: '2px 6px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '5px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                              <UserPlus size={14} color="#94a3b8" />
+                              <span>Stylist: <em style={{ color: '#94a3b8' }}>Unassigned</em></span>
+                              <button
+                                onClick={() => handleOpenAssignStaffModal(appt)}
+                                style={{ marginLeft: '6px', border: 'none', background: '#f3e8ff', color: '#7e22ce', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+                              >
+                                + Assign Staff
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Appointment Schedule & Service Details */}
-                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 14px', border: '1px solid #f1f5f9', marginBottom: '12px' }}>
+                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 14px', border: '1px solid #f1f5f9' }}>
                         <div style={{ fontSize: '14px', fontWeight: 800, color: '#0369a1', marginBottom: '4px' }}>
                           💄 {appt.serviceName}
                         </div>
                         <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#475569', flexWrap: 'wrap' }}>
                           <span>📅 Appointment Date: <strong>{appt.date}</strong></span>
-                          <span>⏰ Slot: <strong>{appt.time}</strong></span>
+                          <span>⏰ Scheduled Slot: <strong>{appt.time}</strong></span>
                           <span>⏱️ Duration: <strong>{appt.durationMinutes} mins</strong></span>
                         </div>
-                        {appt.notes && (
-                          <div style={{ fontSize: '12px', color: '#334155', fontStyle: 'italic', marginTop: '6px', background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                            "{appt.notes}"
-                          </div>
-                        )}
                       </div>
 
-                      {/* Prominent Google Meet / Video Call Banner */}
-                      {meetLink && (
+                      {/* Dynamic Remarks / Discussion Notes Box */}
+                      {appt.notes && (
+                        <div>
+                          {isCancelled ? (
+                            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', fontSize: '12.5px', color: '#991b1b', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                              <XCircle size={16} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+                              <div>
+                                <strong>Rejection / Cancellation Remark:</strong> {appt.notes}
+                              </div>
+                            </div>
+                          ) : isConfirmed ? (
+                            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', fontSize: '12.5px', color: '#166534', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                              <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                              <div>
+                                <strong>Admin Approval Remark:</strong> {appt.notes}
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '10px', padding: '10px 14px', fontSize: '12.5px', color: '#92400e', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                              <Clock size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+                              <div>
+                                <strong>Client Request Note:</strong> "{appt.notes}"
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Prominent Video Call Channels (Google Meet + WhatsApp Video Call) */}
+                      {(isConfirmed || isOnline) && (
                         <div
                           style={{
-                            background: 'linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%)',
+                            background: 'linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%)',
                             border: '1.5px solid #7dd3fc',
-                            borderRadius: '12px',
-                            padding: '12px 14px',
-                            marginBottom: '12px',
+                            borderRadius: '14px',
+                            padding: '12px 16px',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             flexWrap: 'wrap',
-                            gap: '10px',
+                            gap: '12px',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', flexShrink: 0 }}>
                               <Video size={18} />
                             </div>
                             <div>
-                              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1' }}>
-                                Google Meet Video Consultation Link
+                              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>Video Call Discussion Channels</span>
+                                {meetLink && <span style={{ fontSize: '10px', background: '#16a34a', color: '#fff', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>Google Meet Ready</span>}
                               </div>
-                              <div style={{ fontSize: '12px', color: '#0284c7', fontFamily: 'monospace', fontWeight: 600 }}>
-                                {meetLink}
+                              <div style={{ fontSize: '12px', color: '#0284c7', fontFamily: 'monospace', fontWeight: 600, marginTop: '2px' }}>
+                                {meetLink ? meetLink : 'Google Meet link not generated yet (Click Approve / Edit to add)'}
                               </div>
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard?.writeText(meetLink);
-                                showToast('✓ Google Meet link copied to clipboard!');
-                              }}
-                              style={{
-                                padding: '7px 12px',
-                                borderRadius: '8px',
-                                border: '1px solid #7dd3fc',
-                                background: '#ffffff',
-                                color: '#0369a1',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                              }}
-                            >
-                              <Copy size={13} /> Copy Link
-                            </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            {meetLink && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard?.writeText(meetLink);
+                                    showToast('✓ Google Meet link copied to clipboard!');
+                                  }}
+                                  style={{
+                                    padding: '7px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #7dd3fc',
+                                    background: '#ffffff',
+                                    color: '#0369a1',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                  }}
+                                >
+                                  <Copy size={13} /> Copy Link
+                                </button>
 
-                            <a
-                              href={meetLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                border: 'none',
-                                background: '#0284c7',
-                                color: '#ffffff',
-                                fontSize: '12px',
-                                fontWeight: 800,
-                                textDecoration: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
-                              }}
-                            >
-                              <ExternalLink size={14} /> Join Google Meet
-                            </a>
+                                <a
+                                  href={meetLink}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: '#0284c7',
+                                    color: '#ffffff',
+                                    fontSize: '12px',
+                                    fontWeight: 800,
+                                    textDecoration: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+                                  }}
+                                >
+                                  <ExternalLink size={14} /> Join Google Meet
+                                </a>
+                              </>
+                            )}
+
+                            {cleanPhone && (
+                              <a
+                                href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
+                                  `Hello ${appt.customerName}, your appointment for ${appt.serviceName} at Golden Beauty Parlour is confirmed for ${appt.date} at ${appt.time}.${meetLink ? ` You can join on Google Meet: ${meetLink} or ` : ''}We can connect directly here on WhatsApp Video Call. Please confirm when ready!`
+                                )}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  padding: '8px 14px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #16a34a',
+                                  background: '#16a34a',
+                                  color: '#ffffff',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  textDecoration: 'none',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)',
+                                }}
+                              >
+                                <MessageCircle size={15} /> WhatsApp Video Call & Chat
+                              </a>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1985,6 +2445,148 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {isPending && (
+                            <>
+                              <button
+                                onClick={() => handleOpenApproveModal(appt)}
+                                style={{
+                                  padding: '8px 16px',
+                                  borderRadius: '10px',
+                                  border: 'none',
+                                  background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                                  color: '#ffffff',
+                                  fontSize: '12.5px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)',
+                                }}
+                              >
+                                <CheckCircle2 size={15} /> Approve & Video Call Setup
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenRejectModal(appt)}
+                                style={{
+                                  padding: '8px 14px',
+                                  borderRadius: '10px',
+                                  border: '1.5px solid #f87171',
+                                  background: '#fff1f2',
+                                  color: '#be123c',
+                                  fontSize: '12.5px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                }}
+                              >
+                                <XCircle size={15} /> Reject Request
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenAssignStaffModal(appt)}
+                                style={{
+                                  padding: '8px 14px',
+                                  borderRadius: '10px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  color: '#0f172a',
+                                  fontSize: '12.5px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                }}
+                              >
+                                <UserPlus size={15} /> Assign Staff
+                              </button>
+                            </>
+                          )}
+
+                          {isConfirmed && (
+                            <>
+                              <button
+                                onClick={() => handleOpenApproveModal(appt)}
+                                style={{
+                                  padding: '7px 12px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  color: '#0f172a',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                }}
+                              >
+                                <Edit size={13} /> Edit Meet Link / Remarks
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenAssignStaffModal(appt)}
+                                style={{
+                                  padding: '7px 12px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  color: '#0f172a',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                }}
+                              >
+                                <UserCheck size={13} /> Reassign Staff
+                              </button>
+
+                              <button
+                                onClick={() => handleMarkAppointmentCompleted(appt)}
+                                style={{
+                                  padding: '7px 14px',
+                                  borderRadius: '8px',
+                                  border: 'none',
+                                  background: '#0284c7',
+                                  color: '#ffffff',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                }}
+                              >
+                                <CheckCircle2 size={14} /> Mark Completed
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenRejectModal(appt)}
+                                style={{
+                                  padding: '7px 12px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #fca5a5',
+                                  background: '#fff1f2',
+                                  color: '#be123c',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                }}
+                              >
+                                <XCircle size={13} /> Cancel
+                              </button>
+                            </>
+                          )}
+
+                          {isCancelled && (
                             <button
                               onClick={() => handleOpenApproveModal(appt)}
                               style={{
@@ -1999,57 +2601,10 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '5px',
-                                boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)',
                               }}
                             >
-                              <CheckCircle2 size={14} /> Approve & Attach Google Meet
+                              <CheckCircle2 size={14} /> Reopen & Approve
                             </button>
-                          )}
-
-                          {isConfirmed && (
-                            <button
-                              onClick={() => handleOpenApproveModal(appt)}
-                              style={{
-                                padding: '7px 12px',
-                                borderRadius: '8px',
-                                border: '1px solid #cbd5e1',
-                                background: '#ffffff',
-                                color: '#0f172a',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                              }}
-                            >
-                              <Edit size={13} /> Edit Meet Link / Stylist
-                            </button>
-                          )}
-
-                          {cleanPhone && (
-                            <a
-                              href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
-                                `Hello ${appt.customerName}, your appointment for ${appt.serviceName} at Golden Beauty Parlour on ${appt.date} at ${appt.time} is ${isConfirmed ? 'CONFIRMED' : 'received'}.${meetLink ? ` Google Meet link: ${meetLink}` : ''}`
-                              )}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{
-                                padding: '7px 12px',
-                                borderRadius: '8px',
-                                border: '1px solid #22c55e',
-                                background: '#f0fdf4',
-                                color: '#15803d',
-                                fontSize: '12px',
-                                fontWeight: 800,
-                                textDecoration: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                              }}
-                            >
-                              <MessageCircle size={14} /> WhatsApp Client
-                            </a>
                           )}
 
                           {cleanPhone && (
@@ -2073,29 +2628,105 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                             </a>
                           )}
                         </div>
-
-                        {!isCancelled && (
-                          <button
-                            onClick={() => handleCancelAppointment(appt)}
-                            style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#b91c1c', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <Trash2 size={13} /> Cancel Appointment
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
                 })}
-              {appointments.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '3rem', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                  <Calendar size={36} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
-                  <div style={{ fontWeight: 800, color: '#1e293b' }}>No Appointments Booked Yet</div>
-                  <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Click "+ Schedule Appointment" to book a client visit or video consultation.</div>
+
+                {filteredAppointments.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '3rem', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                    <Calendar size={36} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
+                    <div style={{ fontWeight: 800, color: '#1e293b' }}>No Appointments Match Your Filters</div>
+                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Click "+ Schedule New Appointment" to book a client visit or video consultation.</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              {filteredAppointments.length > 0 && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '14px',
+                    padding: '12px 18px',
+                    border: '1px solid #f1f5f9',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>
+                    Showing <strong style={{ color: '#0f172a' }}>{startIdx + 1}</strong> to <strong style={{ color: '#0f172a' }}>{Math.min(startIdx + appointmentPageSize, filteredAppointments.length)}</strong> of <strong style={{ color: '#0f172a' }}>{filteredAppointments.length}</strong> bookings
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      onClick={() => setAppointmentPage((p) => Math.max(1, p - 1))}
+                      disabled={safePage <= 1}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: safePage <= 1 ? '#f8fafc' : '#ffffff',
+                        color: safePage <= 1 ? '#94a3b8' : '#0f172a',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <ChevronLeft size={14} /> Previous
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => setAppointmentPage(pageNum)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          border: safePage === pageNum ? 'none' : '1px solid #cbd5e1',
+                          background: safePage === pageNum ? '#0284c7' : '#ffffff',
+                          color: safePage === pageNum ? '#ffffff' : '#0f172a',
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={() => setAppointmentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safePage >= totalPages}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: safePage >= totalPages ? '#f8fafc' : '#ffffff',
+                        color: safePage >= totalPages ? '#94a3b8' : '#0f172a',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ══════════════════════════════════════════════════════════════════════
             VIEW 3: PRODUCTS & STOCK INVENTORY (WITH IMAGE PICKER & CATEGORY CRUD)
@@ -3682,16 +4313,24 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                   onChange={(e) => setApproveForm({ ...approveForm, staffName: e.target.value })}
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 >
-                  <option value="Pooja Verma (HD Makeup Artist)">Pooja Verma (HD Makeup Artist)</option>
-                  <option value="Priya Sharma (Beauty Stylist Lead)">Priya Sharma (Beauty Stylist Lead)</option>
-                  <option value="Kavita Singh (Hair Specialist & Colorist)">Kavita Singh (Hair Specialist & Colorist)</option>
-                  <option value="Suman Sharma (Senior Bridal Stylist)">Suman Sharma (Senior Bridal Stylist)</option>
+                  <option value="">-- Unassigned (Do not assign staff yet) --</option>
                   {parlourStaffList.map((s) => (
-                    <option key={s._id} value={s.name}>
+                    <option key={s._id || s.name} value={s.name}>
                       {s.name} ({s.designation || 'Stylist'})
                     </option>
                   ))}
+                  {parlourStaffList.length === 0 && (
+                    <>
+                      <option value="Pooja Verma (HD Makeup Artist)">Pooja Verma (HD Makeup Artist)</option>
+                      <option value="Priya Sharma (Beauty Stylist Lead)">Priya Sharma (Beauty Stylist Lead)</option>
+                      <option value="Kavita Singh (Hair Specialist & Colorist)">Kavita Singh (Hair Specialist & Colorist)</option>
+                      <option value="Suman Sharma (Senior Bridal Stylist)">Suman Sharma (Senior Bridal Stylist)</option>
+                    </>
+                  )}
                 </select>
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0' }}>
+                  Optional: You can assign a stylist now or leave unassigned to assign later.
+                </p>
               </div>
 
               <div>
@@ -3707,6 +4346,13 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                 />
               </div>
 
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 12px', fontSize: '12px', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Video size={16} color="#16a34a" style={{ flexShrink: 0 }} />
+                <span>
+                  <strong>Video Discussion Ready:</strong> Google Meet link will be saved, and 1-click WhatsApp Video Call & Chat channel is enabled automatically.
+                </span>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button
                   type="button"
@@ -3720,6 +4366,217 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
                   style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: '#0284c7', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <CheckCircle2 size={16} /> Confirm & Attach Meet Link
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Reject / Decline Appointment Request ── */}
+      {rejectModalAppt && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '520px',
+              width: '100%',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+              padding: '1.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#be123c', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <XCircle size={20} color="#e11d48" />
+                  <span>Decline Appointment Request</span>
+                </h3>
+                <p style={{ fontSize: '12.5px', color: '#64748b', margin: '4px 0 0' }}>
+                  Decline booking for <strong>{rejectModalAppt.customerName}</strong> ({rejectModalAppt.serviceName})
+                </p>
+              </div>
+              <button
+                onClick={() => setRejectModalAppt(null)}
+                style={{ border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmRejectSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Quick Preset Reasons:
+                </label>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    'Slot unavailable / booked',
+                    'Stylist unavailable',
+                    'Outside operational hours',
+                    'Customer requested cancellation',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setRejectReason(preset)}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        border: rejectReason === preset ? '1.5px solid #e11d48' : '1px solid #cbd5e1',
+                        background: rejectReason === preset ? '#ffe4e6' : '#f8fafc',
+                        color: rejectReason === preset ? '#be123c' : '#475569',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  Rejection Reason / Remarks for Client *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Explain reason for declining request..."
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #fda4af', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setRejectModalAppt(null)}
+                  style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: '#e11d48', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <XCircle size={16} /> Confirm Decline
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Assign / Reassign Staff Member ── */}
+      {assignStaffModalAppt && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+              padding: '1.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Scissors size={20} color="#7c3aed" />
+                  <span>Assign Stylist / Staff Member</span>
+                </h3>
+                <p style={{ fontSize: '12.5px', color: '#64748b', margin: '4px 0 0' }}>
+                  Assign or unassign parlour staff for <strong>{assignStaffModalAppt.customerName}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => setAssignStaffModalAppt(null)}
+                style={{ border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmAssignStaffSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12.5px' }}>
+                <div>💄 Service: <strong>{assignStaffModalAppt.serviceName}</strong></div>
+                <div style={{ color: '#64748b', marginTop: '3px' }}>
+                  📅 Slot: {assignStaffModalAppt.date} at {assignStaffModalAppt.time}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Select Stylist / Staff (or Unassigned):
+                </label>
+                <select
+                  value={selectedStaffForAssign}
+                  onChange={(e) => setSelectedStaffForAssign(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                >
+                  <option value="">-- Unassigned (Do not assign staff yet) --</option>
+                  {parlourStaffList.map((s) => (
+                    <option key={s._id || s.name} value={s.name}>
+                      {s.name} ({s.designation || 'Stylist'})
+                    </option>
+                  ))}
+                  {parlourStaffList.length === 0 && (
+                    <>
+                      <option value="Pooja Verma (HD Makeup Artist)">Pooja Verma (HD Makeup Artist)</option>
+                      <option value="Priya Sharma (Beauty Stylist Lead)">Priya Sharma (Beauty Stylist Lead)</option>
+                      <option value="Kavita Singh (Hair Specialist & Colorist)">Kavita Singh (Hair Specialist & Colorist)</option>
+                      <option value="Suman Sharma (Senior Bridal Stylist)">Suman Sharma (Senior Bridal Stylist)</option>
+                      <option value="Anjali Gupta (Nail Artist & Aesthetician)">Anjali Gupta (Nail Artist & Aesthetician)</option>
+                    </>
+                  )}
+                </select>
+                <p style={{ fontSize: '11.5px', color: '#64748b', margin: '6px 0 0' }}>
+                  💡 Both assigned and unassigned options are supported. You can change stylist anytime.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setAssignStaffModalAppt(null)}
+                  style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <CheckCircle2 size={16} /> Save Staff Assignment
                 </button>
               </div>
             </form>
