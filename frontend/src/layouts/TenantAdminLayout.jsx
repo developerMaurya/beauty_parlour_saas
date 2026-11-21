@@ -298,6 +298,7 @@ export const TenantAdminLayout = () => {
       badgeBg: '#ca8a04',
       items: [
         { label: 'Event & Management Overview', path: '/admin/event-decoration', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Events & Packages Catalog', path: '/admin/event-decoration?tab=EVENTS', icon: Sparkles, badge: 'Events' },
         { label: 'Event Users', path: '/admin/users?business=EVENTS', icon: Users, badge: 'Users' },
       ],
     },

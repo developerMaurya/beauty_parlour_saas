@@ -722,3 +722,13 @@ export const publicFetcher = {
   getAvailability: (tenant, params) => adminAxiosClient.get('/public/availability', { headers: { 'x-tenant-id': tenant }, params: buildParams(params) }),
   createBooking: (tenant, data) => adminAxiosClient.post('/public/bookings', data, { headers: { 'x-tenant-id': tenant } }),
 };
+
+// 55. Jay Gurudev Event & Management Catalog Fetcher
+export const eventCatalogFetcher = {
+  list: (body = {}) => adminAxiosClient.post('/events/catalog/filter', body),
+  get: (id) => adminAxiosClient.get(`/events/catalog/${id}`),
+  create: (data) => adminAxiosClient.post('/events/catalog', data),
+  update: (id, data) => adminAxiosClient.put(`/events/catalog/${id}`, data),
+  delete: (id) => adminAxiosClient.delete(`/events/catalog/${id}`),
+  toggleStatus: (id, data) => adminAxiosClient.patch(`/events/catalog/${id}/status`, data),
+};

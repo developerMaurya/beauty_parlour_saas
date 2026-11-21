@@ -146,6 +146,9 @@ export const AdminRoutes = (
       {/* ── 2. Jay Gurudev Event Decoration Sub-Routes ── */}
       <Route path="event-decoration" element={<AdminEventDashboard />} />
       <Route path="events" element={<AdminEventDashboard />} />
+      <Route path="event-services" element={<AdminEventDashboard defaultTab="EVENTS" />} />
+      <Route path="event-packages" element={<AdminEventDashboard defaultTab="EVENTS" />} />
+      <Route path="event-catalog" element={<AdminEventDashboard defaultTab="EVENTS" />} />
       <Route path="jay-gurudev" element={<AdminEventDashboard />} />
       <Route path="jay-gurudev-events" element={<AdminEventDashboard />} />
       <Route path="event-users" element={<EventUsersManagement />} />

@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { 
   PartyPopper, 
   Calendar, 
@@ -47,14 +47,66 @@ import {
   Wrench,
   AlertCircle,
   MessageCircle,
-  Maximize2
+  Maximize2,
+  Edit3,
+  Trash2,
+  Tag,
+  Upload,
+  AlertTriangle,
+  ArrowUpDown,
+  Image as ImageIcon
 } from 'lucide-react';
+import { eventCatalogFetcher } from '../../../services/api/admin/adminApi.js';
 
-export function EventDecorationDashboard() {
+export const EVENT_CATEGORIES = [
+  { id: 'STAGE_DECORATION', label: 'Stage Decoration & Setup', icon: '🏛️', short: 'Stage' },
+  { id: 'BRIDAL_ENTRY', label: 'Royal Bridal Entry & Walkways', icon: '👑', short: 'Bridal Entry' },
+  { id: 'VARMALA_STAGE', label: 'Hydraulic & Revolving Varmala Stage', icon: '💍', short: 'Varmala Stage' },
+  { id: 'SPECIAL_EFFECTS', label: 'Cold Pyro, Fog & Fireworks', icon: '🎆', short: 'Special Effects' },
+  { id: 'HALDI_MEHENDI', label: 'Haldi, Mehendi & Sangeet', icon: '🌸', short: 'Haldi/Mehendi' },
+  { id: 'COMPLETE_THEME', label: 'Complete Grand Theme Package', icon: '🏰', short: 'Complete Theme' },
+  { id: 'OTHER', label: 'Custom Event Service', icon: '✨', short: 'Other' },
+];
+
+const PRESET_EVENT_IMAGES = [
+  { label: '🔱 Aadiyogi Mahadev Stage', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80' },
+  { label: '👑 15ft Flower Arch Entry', url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80' },
+  { label: '🎆 Cold Pyro & Cloud Fog', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=80' },
+  { label: '💍 Hydraulic Varmala Stage', url: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=1000&q=80' },
+  { label: '🌸 Marigold Haldi Decor', url: 'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?auto=format&fit=crop&w=1000&q=80' },
+  { label: '🏰 Royal Palace Theme', url: 'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&w=1000&q=80' },
+];
+
+export function EventDecorationDashboard({ defaultTab }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  // Active top tab in Admin
-  const [activeTab, setActiveTab] = useState('DASHBOARD'); // 'DASHBOARD' | 'STAGES' | 'PROPOSALS' | 'CLIENTS' | 'INVENTORY'
+  // Tab evaluation from query param (?tab=events) or prop or route
+  const tabParam = searchParams.get('tab');
+  const getInitialTab = () => {
+    if (tabParam) return tabParam.toUpperCase();
+    if (
+      location.pathname.includes('event-services') ||
+      location.pathname.includes('event-packages') ||
+      location.pathname.includes('event-catalog')
+    ) {
+      return 'EVENTS';
+    }
+    if (defaultTab) return defaultTab.toUpperCase();
+    return 'DASHBOARD';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam.toUpperCase());
+    } else if (defaultTab) {
+      setActiveTab(defaultTab.toUpperCase());
+    }
+  }, [tabParam, defaultTab, location.pathname]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [venueFilter, setVenueFilter] = useState('ALL');
   const [venueDropdownOpen, setVenueDropdownOpen] = useState(false);
@@ -66,6 +118,383 @@ export function EventDecorationDashboard() {
   const [newProposalModalOpen, setNewProposalModalOpen] = useState(false);
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // EVENT CATALOG STATE & CRUD DATA (Synced with backend + localStorage)
+  // ══════════════════════════════════════════════════════════════════════════
+  const [eventCatalogList, setEventCatalogList] = useState(() => {
+    try {
+      const stored = localStorage.getItem('jaygurudev_event_catalog');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.warn(e);
+    }
+    return [
+      {
+        id: 'pkg_101',
+        _id: 'pkg_101',
+        name: 'Aadiyogi Theme Grand Wedding Stage (20ft)',
+        category: 'STAGE_DECORATION',
+        categoryName: 'Stage Decoration & Setup',
+        description: 'Spectacular 20ft Mahadev Bust sculpture with golden sun rays aura, Nandi statue, Trishul & Damru centerpiece with programmed warm lighting.',
+        features: [
+          '20ft High-density Fiberglass Mahadev Bust',
+          '360° Circular Sun Rays LED Warm Amber Backlight',
+          'Sacred Trishul & Damru Brass Artifacts',
+          'Sculpted Nandi Bull Floral Enclosure',
+          '40x24ft Heavy Duty Iron Rigging Platform',
+        ],
+        rate: 250000,
+        discount: 25000,
+        finalPrice: 225000,
+        showPrice: true,
+        imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80',
+        status: 'ACTIVE',
+        setupTime: '5-7 Hours',
+        crewSize: '8 Riggers + 2 Electricians',
+        advanceRequired: '40% Advance',
+      },
+      {
+        id: 'pkg_102',
+        _id: 'pkg_102',
+        name: 'Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel',
+        category: 'BRIDAL_ENTRY',
+        categoryName: 'Royal Bridal Entry & Walkways',
+        description: 'Regal bridal walkway with 15ft illuminated floral arch tunnel, velvet red carpet, fairy light canopy and handheld floral phoolon ki chaadar.',
+        features: [
+          '15ft Continuous Flower Arch Tunnel (Fresh Roses & Orchids)',
+          'High-Lux Fairy Warm White Curtain Lights',
+          '50ft Velvet Red Carpet Runway',
+          'LED Handheld Lotus Flower Props for Bridesmaids',
+          'Matching Entry Gate Welcome Signage',
+        ],
+        rate: 95000,
+        discount: 10000,
+        finalPrice: 85000,
+        showPrice: true,
+        imageUrl: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80',
+        status: 'ACTIVE',
+        setupTime: '3-4 Hours',
+        crewSize: '5 Florists',
+        advanceRequired: '30% Advance',
+      },
+      {
+        id: 'pkg_103',
+        _id: 'pkg_103',
+        name: 'Cold Pyro Fireworks & Heavy Dry Ice Cloud Fog Machine',
+        category: 'SPECIAL_EFFECTS',
+        categoryName: 'Cold Pyro, Fog & Fireworks',
+        description: 'Cinematic grand entry & jaimala special effects with 8 smokeless cold pyro guns, heavy low-lying dry ice cloud fog, and confetti blast.',
+        features: [
+          '8 Electric Remote-Controlled Cold Pyro Guns',
+          'Dual Tank High-Volume Dry Ice Cloud Fog Machine',
+          'Non-toxic, odourless, fire-safety certified smoke',
+          'Double-barrel Confetti Air Cannon with Golden Foil',
+          'Dedicated Trained Pyro Technician on site',
+        ],
+        rate: 45000,
+        discount: 5000,
+        finalPrice: 40000,
+        showPrice: true,
+        imageUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=80',
+        status: 'ACTIVE',
+        setupTime: '1-2 Hours',
+        crewSize: '2 Pyro Operators',
+        advanceRequired: '50% Advance',
+      },
+      {
+        id: 'pkg_104',
+        _id: 'pkg_104',
+        name: 'Royal Hydraulic Revolving Varmala Stage',
+        category: 'VARMALA_STAGE',
+        categoryName: 'Hydraulic & Revolving Varmala Stage',
+        description: 'Automated hydraulic rotating round stage with floral railing, golden pillars and remote elevation for the grand garland exchange ceremony.',
+        features: [
+          '12ft Diameter Rotating Platform with speed regulator',
+          '6ft Hydraulic Vertical Elevation System',
+          'Embedded LED Ring Lights & Brass Urli Accents',
+          'Safety Railing wrapped in White Carnations',
+          'Synchronized Pyro Trigger upon garland exchange',
+        ],
+        rate: 120000,
+        discount: 15000,
+        finalPrice: 105000,
+        showPrice: true,
+        imageUrl: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=1000&q=80',
+        status: 'ACTIVE',
+        setupTime: '4-5 Hours',
+        crewSize: '4 Hydraulic Techs',
+        advanceRequired: '40% Advance',
+      },
+      {
+        id: 'pkg_105',
+        _id: 'pkg_105',
+        name: 'Traditional Marigold Haldi & Mehendi Cabana Decor',
+        category: 'HALDI_MEHENDI',
+        categoryName: 'Haldi, Mehendi & Sangeet',
+        description: 'Vibrant yellow and orange fresh marigold floral canopies with traditional brass urlis, colorful kites, floral swings, and Rajasthani cushions.',
+        features: [
+          '10x10ft Fresh Marigold Canopy with Tassels',
+          '5ft Handcrafted Floral Jhoola (Swing)',
+          'Brass Urli for Flower Petal Bathing Ceremony',
+          '8 Floor Gaddi Mattresses with Bandhani Cushions',
+          'Photo Booth with Antique Rickshaw / Cycle Prop',
+        ],
+        rate: 65000,
+        discount: 5000,
+        finalPrice: 60000,
+        showPrice: true,
+        imageUrl: 'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?auto=format&fit=crop&w=1000&q=80',
+        status: 'ACTIVE',
+        setupTime: '3 Hours',
+        crewSize: '4 Decorators',
+        advanceRequired: '30% Advance',
+      },
+      {
+        id: 'pkg_106',
+        _id: 'pkg_106',
+        name: 'Grand Luxury Destination Wedding Complete Theme Package',
+        category: 'COMPLETE_THEME',
+        categoryName: 'Complete Grand Theme Package',
+        description: 'All-inclusive royal palace wedding production: Stage, Bridal Walkway, Varmala Platform, Banquet Lighting, Sound Truss, and Full Effects.',
+        features: [
+          'Full Aadiyogi or Crystal Palace Stage Setup',
+          'Complete 100ft Illuminated Entry Pathway',
+          'Complete Pyro + Heavy Fog + Drone Fireworks',
+          'Stage Sound System & Intelligent Moving Head Lights',
+          'Full Day Staging & Dismantling Crew Supervision',
+        ],
+        rate: 0,
+        discount: 0,
+        finalPrice: 0,
+        showPrice: false,
+        imageUrl: 'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&w=1000&q=80',
+        status: 'ACTIVE',
+        setupTime: '12-16 Hours',
+        crewSize: '25 Master Crew',
+        advanceRequired: '50% Advance',
+      },
+    ];
+  });
+
+  // DB Sync for Event Catalog
+  useEffect(() => {
+    let isMounted = true;
+    eventCatalogFetcher.list({})
+      .then((res) => {
+        const items = res?.data?.data?.items || res?.data?.items || res?.data?.data;
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          setEventCatalogList(items);
+          localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(items));
+        }
+      })
+      .catch((err) => console.warn('Event catalog sync err:', err));
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Filter & Search state for Event Catalog
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogCategoryFilter, setCatalogCategoryFilter] = useState('ALL');
+  const [catalogStatusFilter, setCatalogStatusFilter] = useState('ALL');
+  const [catalogSort, setCatalogSort] = useState('newest');
+
+  // Add / Edit Modal state
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [eventForm, setEventForm] = useState({
+    name: '',
+    category: 'STAGE_DECORATION',
+    description: '',
+    features: [''],
+    rate: '',
+    discount: '',
+    showPrice: true,
+    imageUrl: '',
+    status: 'ACTIVE',
+    setupTime: '',
+    crewSize: '',
+    advanceRequired: '',
+  });
+  const [newFeatureInput, setNewFeatureInput] = useState('');
+  const [deleteConfirmEvent, setDeleteConfirmEvent] = useState(null);
+  const [previewEventModal, setPreviewEventModal] = useState(null);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const triggerToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleOpenAddModal = () => {
+    setEditingEvent(null);
+    setEventForm({
+      name: '',
+      category: 'STAGE_DECORATION',
+      description: '',
+      features: [
+        'High-grade Premium Materials & Rigging',
+        'Warm Tone Atmospheric LED Lighting',
+        'Experienced On-site Technical Operator',
+      ],
+      rate: '',
+      discount: '',
+      showPrice: true,
+      imageUrl: PRESET_EVENT_IMAGES[0].url,
+      status: 'ACTIVE',
+      setupTime: '4-6 Hours',
+      crewSize: '6 Master Crew',
+      advanceRequired: '40% Advance',
+    });
+    setNewFeatureInput('');
+    setEventModalOpen(true);
+  };
+
+  const handleOpenEditModal = (item) => {
+    setEditingEvent(item);
+    setEventForm({
+      name: item.name || '',
+      category: item.category || 'STAGE_DECORATION',
+      description: item.description || '',
+      features: Array.isArray(item.features) && item.features.length > 0 ? [...item.features] : [''],
+      rate: item.rate !== undefined && item.rate !== null ? item.rate : '',
+      discount: item.discount !== undefined && item.discount !== null ? item.discount : '',
+      showPrice: item.showPrice !== undefined ? Boolean(item.showPrice) : true,
+      imageUrl: item.imageUrl || '',
+      status: item.status || 'ACTIVE',
+      setupTime: item.setupTime || '',
+      crewSize: item.crewSize || '',
+      advanceRequired: item.advanceRequired || '',
+    });
+    setNewFeatureInput('');
+    setEventModalOpen(true);
+  };
+
+  const handleAddFeature = () => {
+    if (!newFeatureInput.trim()) return;
+    setEventForm((prev) => ({
+      ...prev,
+      features: [...prev.features.filter(Boolean), newFeatureInput.trim()],
+    }));
+    setNewFeatureInput('');
+  };
+
+  const handleRemoveFeature = (idx) => {
+    setEventForm((prev) => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const handleImageFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setEventForm((prev) => ({ ...prev, imageUrl: event.target.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveEventSubmit = async (e) => {
+    e.preventDefault();
+    if (!eventForm.name.trim()) return;
+
+    const numRate = Number(eventForm.rate) || 0;
+    const numDiscount = Number(eventForm.discount) || 0;
+    const finalPrice = Math.max(0, numRate - numDiscount);
+
+    const categoryObj = EVENT_CATEGORIES.find((c) => c.id === eventForm.category) || EVENT_CATEGORIES[0];
+
+    const payload = {
+      name: eventForm.name.trim(),
+      category: eventForm.category,
+      categoryName: categoryObj.label,
+      description: eventForm.description.trim(),
+      features: eventForm.features.filter(Boolean),
+      rate: numRate,
+      discount: numDiscount,
+      finalPrice,
+      showPrice: Boolean(eventForm.showPrice),
+      imageUrl: eventForm.imageUrl.trim() || PRESET_EVENT_IMAGES[0].url,
+      status: eventForm.status || 'ACTIVE',
+      setupTime: eventForm.setupTime.trim() || '3-5 Hours',
+      crewSize: eventForm.crewSize.trim() || '4-6 Crew',
+      advanceRequired: eventForm.advanceRequired.trim() || '30% Advance',
+    };
+
+    if (editingEvent) {
+      const targetId = editingEvent.id || editingEvent._id;
+      const updated = eventCatalogList.map((item) =>
+        item.id === targetId || item._id === targetId
+          ? { ...item, ...payload, updatedAt: new Date().toISOString() }
+          : item
+      );
+      setEventCatalogList(updated);
+      localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
+      triggerToast(`✓ Event package "${payload.name}" updated successfully!`);
+      setEventModalOpen(false);
+      setEditingEvent(null);
+
+      try {
+        await eventCatalogFetcher.update(targetId, payload);
+      } catch (err) {
+        console.warn('API update event catalog error:', err);
+      }
+    } else {
+      const newItem = {
+        id: `pkg_${Date.now()}`,
+        _id: `pkg_${Date.now()}`,
+        ...payload,
+        createdAt: new Date().toISOString(),
+      };
+      const updated = [newItem, ...eventCatalogList];
+      setEventCatalogList(updated);
+      localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
+      triggerToast(`✓ New event package "${newItem.name}" added to catalog!`);
+      setEventModalOpen(false);
+
+      try {
+        await eventCatalogFetcher.create(payload);
+      } catch (err) {
+        console.warn('API create event catalog error:', err);
+      }
+    }
+  };
+
+  const handleToggleStatus = async (item) => {
+    const targetId = item.id || item._id;
+    const newStatus = (item.status || 'ACTIVE') === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const updated = eventCatalogList.map((i) =>
+      i.id === targetId || i._id === targetId ? { ...i, status: newStatus } : i
+    );
+    setEventCatalogList(updated);
+    localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
+    triggerToast(`Status changed to ${newStatus} for "${item.name}"`);
+
+    try {
+      await eventCatalogFetcher.toggleStatus(targetId, { status: newStatus });
+    } catch (err) {
+      console.warn('API status toggle error:', err);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmEvent) return;
+    const targetId = deleteConfirmEvent.id || deleteConfirmEvent._id;
+    const updated = eventCatalogList.filter((i) => i.id !== targetId && i._id !== targetId);
+    setEventCatalogList(updated);
+    localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
+    triggerToast(`Event package "${deleteConfirmEvent.name}" deleted.`);
+    setDeleteConfirmEvent(null);
+
+    try {
+      await eventCatalogFetcher.delete(targetId);
+    } catch (err) {
+      console.warn('API delete event error:', err);
+    }
+  };
 
   // ══════════════════════════════════════════════════════════════════════════
   // 1. EVENT CONTRACTS & BOOKINGS DATA
@@ -498,74 +927,126 @@ export function EventDecorationDashboard() {
           </p>
         </div>
 
-        {/* Date / Season Filter */}
-        <div style={{ position: 'relative' }}>
+        {/* Subheader Right Actions: Add Event & Season Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <button
-            onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
+            onClick={handleOpenAddModal}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              padding: '8px 14px',
-              borderRadius: '8px',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              color: '#334155',
+              gap: '6px',
+              background: 'linear-gradient(135deg, #7e22ce 0%, #ca8a04 100%)',
+              color: '#ffffff',
+              border: 'none',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              fontSize: '0.86rem',
+              fontWeight: 800,
               cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              boxShadow: '0 4px 14px rgba(126, 34, 206, 0.3)',
+              transition: 'transform 0.15s ease',
             }}
           >
-            <span>{rangeFilter}</span>
-            <ChevronDown size={14} color="#64748b" />
+            <Plus size={16} />
+            <span>+ Add Event Package</span>
           </button>
 
-          {rangeDropdownOpen && (
-            <div
+          {/* Date / Season Filter */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
               style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
                 background: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #cbd5e1',
+                padding: '8px 14px',
                 borderRadius: '8px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                width: '180px',
-                zIndex: 50,
-                overflow: 'hidden',
+                fontSize: '0.84rem',
+                fontWeight: 600,
+                color: '#334155',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               }}
             >
-              {['Wedding Season 2026', 'This Month', 'Upcoming 90 Days', 'Full Year 2026'].map((r, rIdx) => (
-                <div
-                  key={rIdx}
-                  onClick={() => {
-                    setRangeFilter(r);
-                    setRangeDropdownOpen(false);
-                  }}
-                  style={{
-                    padding: '8px 14px',
-                    fontSize: '0.82rem',
-                    fontWeight: rangeFilter === r ? 700 : 500,
-                    color: rangeFilter === r ? '#7e22ce' : '#334155',
-                    background: rangeFilter === r ? '#faf5ff' : '#ffffff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {r}
-                </div>
-              ))}
-            </div>
-          )}
+              <span>{rangeFilter}</span>
+              <ChevronDown size={14} color="#64748b" />
+            </button>
+
+            {rangeDropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '6px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                  width: '180px',
+                  zIndex: 50,
+                  overflow: 'hidden',
+                }}
+              >
+                {['Wedding Season 2026', 'This Month', 'Upcoming 90 Days', 'Full Year 2026'].map((r, rIdx) => (
+                  <div
+                    key={rIdx}
+                    onClick={() => {
+                      setRangeFilter(r);
+                      setRangeDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '8px 14px',
+                      fontSize: '0.82rem',
+                      fontWeight: rangeFilter === r ? 700 : 500,
+                      color: rangeFilter === r ? '#7e22ce' : '#334155',
+                      background: rangeFilter === r ? '#faf5ff' : '#ffffff',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {r}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Sub Tabs Bar (Dashboard | Aadiyogi Inventory | Proposals | Clients) ── */}
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '24px',
+            zIndex: 99999,
+            background: '#0f172a',
+            color: '#facc15',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.88rem',
+            fontWeight: 800,
+            border: '1px solid #ca8a04',
+          }}
+        >
+          <Sparkles size={16} color="#facc15" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* ── Sub Tabs Bar (Dashboard | Events Catalog | Aadiyogi Inventory | Proposals | Clients) ── */}
       <div style={{ padding: '0 2rem 1.25rem' }}>
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', overflowX: 'auto' }}>
           {[
             { id: 'DASHBOARD', label: '📊 Dashboard Overview' },
+            { id: 'EVENTS', label: '🎪 Events & Services Catalog', count: eventCatalogList.length },
             { id: 'STAGES', label: '🔱 Aadiyogi & Stage Inventory' },
             { id: 'PROPOSALS', label: '📑 Customer Proposals & Quotes', count: proposals.length },
             { id: 'CLIENTS', label: '👥 Wedding Couples & Ledger', count: eventContracts.length },
@@ -1176,6 +1657,586 @@ Please call 76519 72973 to finalize contract.`;
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
+          TAB 5: EVENTS & SERVICES MASTER CATALOG
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'EVENTS' && (() => {
+        const filteredCatalog = eventCatalogList.filter((item) => {
+          // Category filter
+          if (catalogCategoryFilter !== 'ALL' && (item.category || '').toUpperCase() !== catalogCategoryFilter.toUpperCase()) {
+            return false;
+          }
+          // Status filter
+          if (catalogStatusFilter !== 'ALL' && (item.status || 'ACTIVE').toUpperCase() !== catalogStatusFilter.toUpperCase()) {
+            return false;
+          }
+          // Search query
+          if (!catalogSearch.trim()) return true;
+          const q = catalogSearch.toLowerCase().trim();
+          return (
+            (item.name || '').toLowerCase().includes(q) ||
+            (item.description || '').toLowerCase().includes(q) ||
+            (item.categoryName || '').toLowerCase().includes(q) ||
+            (item.features || []).some((f) => f.toLowerCase().includes(q))
+          );
+        }).sort((a, b) => {
+          if (catalogSort === 'rate_desc') return (b.finalPrice || b.rate || 0) - (a.finalPrice || a.rate || 0);
+          if (catalogSort === 'rate_asc') return (a.finalPrice || a.rate || 0) - (b.finalPrice || b.rate || 0);
+          if (catalogSort === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+
+        const stageCount = eventCatalogList.filter((i) => i.category === 'STAGE_DECORATION').length;
+        const entryCount = eventCatalogList.filter((i) => i.category === 'BRIDAL_ENTRY').length;
+        const effectsCount = eventCatalogList.filter((i) => i.category === 'SPECIAL_EFFECTS').length;
+        const activeCount = eventCatalogList.filter((i) => (i.status || 'ACTIVE').toUpperCase() === 'ACTIVE').length;
+
+        return (
+          <div style={{ padding: '0 2rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Catalog Banner & Stats */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 60%, #451a03 100%)',
+                borderRadius: '20px',
+                padding: '1.75rem 2rem',
+                color: '#ffffff',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1.5rem',
+                border: '1px solid rgba(250, 204, 21, 0.3)',
+              }}
+            >
+              <div style={{ maxWidth: '620px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '18px' }}>🔱</span>
+                  <span style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: '#facc15', color: '#1e1b4b', padding: '2px 8px', borderRadius: '6px' }}>
+                    Jay Gurudev Productions Master
+                  </span>
+                </div>
+                <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '0 0 8px', letterSpacing: '-0.02em', color: '#ffffff' }}>
+                  Events & Stage Decoration Packages
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#e2e8f0', lineHeight: 1.5 }}>
+                  Manage client-facing wedding themes, 20ft Aadiyogi setups, royal bridal entrance tunnels, cold pyro effects, and custom pricing ledgers.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleOpenAddModal}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, #facc15 0%, #eab308 100%)',
+                    color: '#1e1b4b',
+                    border: 'none',
+                    padding: '12px 22px',
+                    borderRadius: '12px',
+                    fontSize: '0.92rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 18px rgba(250, 204, 21, 0.4)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Plus size={18} />
+                  <span>+ Add New Event Package</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+              {[
+                { label: 'Total Packages', count: eventCatalogList.length, icon: '🎪', color: '#7e22ce', bg: '#faf5ff' },
+                { label: 'Stage Setups', count: stageCount, icon: '🏛️', color: '#ca8a04', bg: '#fefce8' },
+                { label: 'Bridal Entries', count: entryCount, icon: '👑', color: '#be123c', bg: '#fff1f2' },
+                { label: 'Special Effects', count: effectsCount, icon: '🎆', color: '#0284c7', bg: '#f0f9ff' },
+                { label: 'Active on Website', count: activeCount, icon: '🟢', color: '#15803d', bg: '#f0fdf4' },
+              ].map((m, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '14px',
+                    padding: '1rem 1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: m.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                    {m.icon}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                      {m.label}
+                    </div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: m.color }}>
+                      {m.count}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                {/* Search Box */}
+                <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
+                  <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    placeholder="Search events by name, stage, bridal entry, features..."
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px 9px 36px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.86rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {catalogSearch && (
+                    <button
+                      onClick={() => setCatalogSearch('')}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Status Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>Status:</span>
+                  <select
+                    value={catalogStatusFilter}
+                    onChange={(e) => setCatalogStatusFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      background: '#fff',
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="ACTIVE">🟢 Active Only</option>
+                    <option value="INACTIVE">⚪ Inactive Only</option>
+                  </select>
+                </div>
+
+                {/* Sort Order */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>Sort:</span>
+                  <select
+                    value={catalogSort}
+                    onChange={(e) => setCatalogSort(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      background: '#fff',
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="rate_desc">Price: High to Low</option>
+                    <option value="rate_asc">Price: Low to High</option>
+                    <option value="name_asc">Package Name (A-Z)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Category Filter Chips */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                <button
+                  onClick={() => setCatalogCategoryFilter('ALL')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: catalogCategoryFilter === 'ALL' ? '#7e22ce' : '#f1f5f9',
+                    color: catalogCategoryFilter === 'ALL' ? '#ffffff' : '#475569',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  All ({eventCatalogList.length})
+                </button>
+                {EVENT_CATEGORIES.map((cat) => {
+                  const count = eventCatalogList.filter((i) => i.category === cat.id).length;
+                  const isSelected = catalogCategoryFilter === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setCatalogCategoryFilter(cat.id)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: isSelected ? '#7e22ce' : '#f1f5f9',
+                        color: isSelected ? '#ffffff' : '#475569',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.short}</span>
+                      <span style={{ fontSize: '10px', background: isSelected ? 'rgba(255,255,255,0.3)' : '#e2e8f0', color: isSelected ? '#fff' : '#64748b', padding: '1px 5px', borderRadius: '99px' }}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Results Counter */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem', color: '#64748b' }}>
+              <span>
+                Showing <strong>{filteredCatalog.length}</strong> of <strong>{eventCatalogList.length}</strong> event packages
+              </span>
+              {(catalogCategoryFilter !== 'ALL' || catalogStatusFilter !== 'ALL' || catalogSearch) && (
+                <button
+                  onClick={() => {
+                    setCatalogCategoryFilter('ALL');
+                    setCatalogStatusFilter('ALL');
+                    setCatalogSearch('');
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#7e22ce', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+                >
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+
+            {/* Event Cards Grid */}
+            {filteredCatalog.length === 0 ? (
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  border: '1px dashed #cbd5e1',
+                  padding: '3rem 2rem',
+                  textAlign: 'center',
+                  color: '#64748b',
+                }}
+              >
+                <div style={{ fontSize: '40px', marginBottom: '10px' }}>🎪</div>
+                <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: '#0f172a' }}>No Event Packages Found</h3>
+                <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem' }}>
+                  No event package matches the selected category or search filter.
+                </p>
+                <button
+                  onClick={handleOpenAddModal}
+                  style={{
+                    background: '#7e22ce',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '9px 18px',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  + Add New Package
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
+                {filteredCatalog.map((pkg) => {
+                  const catMeta = EVENT_CATEGORIES.find((c) => c.id === pkg.category) || {
+                    icon: '🎪',
+                    label: pkg.categoryName || 'Event Service',
+                    short: 'Event',
+                  };
+                  const isActive = (pkg.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
+
+                  return (
+                    <div
+                      key={pkg.id || pkg._id}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '18px',
+                        border: '1.5px solid #e2e8f0',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      }}
+                    >
+                      {/* Top: Image, Category Badge & Status Pill */}
+                      <div>
+                        <div style={{ position: 'relative', height: '190px', background: '#0f172a', overflow: 'hidden' }}>
+                          <img
+                            src={pkg.imageUrl || PRESET_EVENT_IMAGES[0].url}
+                            alt={pkg.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.target.src = PRESET_EVENT_IMAGES[0].url;
+                            }}
+                          />
+                          {/* Category Badge (Top Left) */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '12px',
+                              left: '12px',
+                              background: 'rgba(15, 23, 42, 0.85)',
+                              backdropFilter: 'blur(6px)',
+                              color: '#facc15',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              fontSize: '0.74rem',
+                              fontWeight: 900,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              border: '1px solid rgba(250, 204, 21, 0.4)',
+                            }}
+                          >
+                            <span>{catMeta.icon}</span>
+                            <span>{catMeta.label}</span>
+                          </div>
+
+                          {/* Status Badge (Top Right - Clickable Toggle) */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(pkg)}
+                            title="Click to toggle Active / Inactive"
+                            style={{
+                              position: 'absolute',
+                              top: '12px',
+                              right: '12px',
+                              background: isActive ? 'rgba(22, 163, 74, 0.9)' : 'rgba(100, 116, 139, 0.9)',
+                              backdropFilter: 'blur(6px)',
+                              color: '#ffffff',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              fontSize: '0.72rem',
+                              fontWeight: 900,
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fff' }} />
+                            <span>{isActive ? 'ACTIVE' : 'INACTIVE'}</span>
+                          </button>
+                        </div>
+
+                        {/* Body Details */}
+                        <div style={{ padding: '1.25rem 1.25rem 0.75rem' }}>
+                          <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
+                            {pkg.name}
+                          </h3>
+                          <p style={{ margin: '0 0 1rem', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5, minHeight: '38px' }}>
+                            {pkg.description || 'Premium wedding & event production setup customized for lawns and banquets.'}
+                          </p>
+
+                          {/* Features List (User requested: list wise multiple features) */}
+                          <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '10px 12px', border: '1px solid #f1f5f9', marginBottom: '1rem' }}>
+                            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <Sparkles size={13} color="#ca8a04" />
+                              <span>Included Features & Specifications:</span>
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.8rem', color: '#334155', lineHeight: 1.6 }}>
+                              {(pkg.features || []).slice(0, 4).map((f, fIdx) => (
+                                <li key={fIdx} style={{ marginBottom: '2px' }}>
+                                  {f}
+                                </li>
+                              ))}
+                              {(pkg.features || []).length > 4 && (
+                                <li style={{ color: '#7e22ce', fontWeight: 700, listStyleType: 'none', marginTop: '2px' }}>
+                                  + {(pkg.features.length - 4)} more features included
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Operational Specs: Setup, Crew, Advance */}
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '0.74rem', color: '#64748b', marginBottom: '1rem' }}>
+                            {pkg.setupTime && (
+                              <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
+                                ⏱️ {pkg.setupTime}
+                              </span>
+                            )}
+                            {pkg.crewSize && (
+                              <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
+                                👥 {pkg.crewSize}
+                              </span>
+                            )}
+                            {pkg.advanceRequired && (
+                              <span style={{ background: '#fefce8', color: '#854d0e', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                                💳 {pkg.advanceRequired}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Pricing & Actions Toolbar */}
+                      <div style={{ padding: '0.75rem 1.25rem 1.25rem', borderTop: '1px solid #f1f5f9' }}>
+                        {/* Pricing Block */}
+                        <div style={{ marginBottom: '12px' }}>
+                          {pkg.showPrice ? (
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                              <div>
+                                {pkg.discount > 0 && (
+                                  <span style={{ fontSize: '0.82rem', color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
+                                    ₹{Number(pkg.rate || 0).toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7e22ce' }}>
+                                  ₹{Number(pkg.finalPrice || pkg.rate || 0).toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                              {pkg.discount > 0 && (
+                                <span style={{ fontSize: '0.74rem', background: '#dcfce7', color: '#15803d', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                                  Save ₹{Number(pkg.discount).toLocaleString('en-IN')}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#92400e', padding: '5px 10px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800 }}>
+                              <MessageCircle size={14} />
+                              <span>Price on Request / Custom Quotation</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => handleOpenEditModal(pkg)}
+                            style={{
+                              flex: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              color: '#334155',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <Edit3 size={14} />
+                            <span>Edit</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleToggleStatus(pkg)}
+                            title={isActive ? 'Deactivate Package' : 'Activate Package'}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: isActive ? '#f0fdf4' : '#f8fafc',
+                              border: isActive ? '1px solid #86efac' : '1px solid #cbd5e1',
+                              color: isActive ? '#15803d' : '#64748b',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isActive ? 'Live' : 'Draft'}
+                          </button>
+
+                          <button
+                            onClick={() => setPreviewEventModal(pkg)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              color: '#475569',
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                            }}
+                            title="Preview Event Card"
+                          >
+                            <Eye size={14} />
+                          </button>
+
+                          <button
+                            onClick={() => setDeleteConfirmEvent(pkg)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#fff1f2',
+                              border: '1px solid #fecdd3',
+                              color: '#e11d48',
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                            }}
+                            title="Delete Event Package"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
           7. MODAL: 20ft BLUEPRINT & TECHNICAL SPECIFICATIONS
          ══════════════════════════════════════════════════════════════════════════ */}
       {blueprintModalOpen && (
@@ -1541,6 +2602,674 @@ Please call 76519 72973 to finalize contract.`;
                 Save & Dispatch to WhatsApp
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          8. MODAL: ADD / EDIT EVENT PACKAGE
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {eventModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+          onClick={() => setEventModalOpen(false)}
+        >
+          <div
+            style={{
+              maxWidth: '680px',
+              width: '100%',
+              background: '#ffffff',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '1.25rem 1.75rem',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, #faf5ff 0%, #fefce8 100%)',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#1e1b4b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>{editingEvent ? '✏️ Edit Event Package' : '✨ Add New Event Package'}</span>
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                  Configure stage decor, royal bridal entry, cold pyro, or custom event package details.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEventModalOpen(false)}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Form Scrollable Body */}
+            <form onSubmit={handleSaveEventSubmit} style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Event Name & Category Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                    Event Package Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={eventForm.name}
+                    onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                    placeholder="e.g. 20ft Aadiyogi Mahadev Stage / Royal Bridal Entry Arch"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.86rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                    Production Category (Stage / Entry / Effects) *
+                  </label>
+                  <select
+                    value={eventForm.category}
+                    onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.86rem',
+                      boxSizing: 'border-box',
+                      background: '#fff',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {EVENT_CATEGORIES.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.icon} {cat.label} ({cat.short})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                  Package Description & Venue Overview
+                </label>
+                <textarea
+                  rows={2}
+                  value={eventForm.description}
+                  onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                  placeholder="Describe dimensions, floral styling, lighting, technical rigs, and suitability for lawns or banquet halls..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.86rem',
+                    boxSizing: 'border-box',
+                    lineHeight: 1.5,
+                  }}
+                />
+              </div>
+
+              {/* Multiple Features (List wise input as requested by user) */}
+              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={14} color="#7e22ce" />
+                    <span>Included Package Features (Bullet List)</span>
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    {eventForm.features.filter(Boolean).length} features added
+                  </span>
+                </div>
+
+                {/* Feature Add Input */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                  <input
+                    type="text"
+                    value={newFeatureInput}
+                    onChange={(e) => setNewFeatureInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddFeature();
+                      }
+                    }}
+                    placeholder="Add a feature (e.g. 8 Cold Pyro Guns, 20ft Mahadev Bust, Red Carpet)..."
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.84rem',
+                      background: '#fff',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddFeature}
+                    style={{
+                      background: '#7e22ce',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Plus size={14} /> Add
+                  </button>
+                </div>
+
+                {/* List of current features */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
+                  {eventForm.features.filter(Boolean).map((feat, fIdx) => (
+                    <div
+                      key={fIdx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        fontSize: '0.82rem',
+                        color: '#334155',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#16a34a', fontWeight: 900 }}>✓</span>
+                        <span>{feat}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFeature(fIdx)}
+                        style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                        title="Remove feature"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {eventForm.features.filter(Boolean).length === 0 && (
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+                      No features added yet. Type above and click "+ Add" to list key inclusions.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing Section (With Toggle for Show/Hide Price as user requested) */}
+              <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '14px', background: '#faf5ff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#1e1b4b' }}>
+                      Pricing Configuration
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      Base rate, discount, and whether to display price or request custom quote.
+                    </div>
+                  </div>
+
+                  {/* Toggle: Show / Hide Price to customers */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: '#fff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #d8b4fe' }}>
+                    <input
+                      type="checkbox"
+                      checked={eventForm.showPrice}
+                      onChange={(e) => setEventForm({ ...eventForm, showPrice: e.target.checked })}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                    />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: eventForm.showPrice ? '#7e22ce' : '#64748b' }}>
+                      {eventForm.showPrice ? 'Show Price on Website' : 'Hide Price (Quote on Request)'}
+                    </span>
+                  </label>
+                </div>
+
+                {eventForm.showPrice ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                        Base Rate / Price (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={eventForm.rate}
+                        onChange={(e) => setEventForm({ ...eventForm, rate: e.target.value })}
+                        placeholder="e.g. 250000"
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                        Discount Amount (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={eventForm.discount}
+                        onChange={(e) => setEventForm({ ...eventForm, discount: e.target.value })}
+                        placeholder="e.g. 25000"
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div style={{ background: '#ffffff', border: '1px solid #86efac', borderRadius: '8px', padding: '9px 12px' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 700 }}>Final Client Offer Price:</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>
+                        ₹{Math.max(0, (Number(eventForm.rate) || 0) - (Number(eventForm.discount) || 0)).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', fontSize: '0.82rem', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertCircle size={16} color="#d97706" style={{ flexShrink: 0 }} />
+                    <span>
+                      <strong>Price Hidden:</strong> Customers will see <em>"Price on Request / Custom Quotation"</em> and submit venue dimensions for a customized quote.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Image Upload & Presets */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                  Event Picture / Banner (Upload File or Enter Image URL)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginBottom: '8px' }}>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileUpload}
+                      style={{ fontSize: '0.8rem', padding: '6px 0', width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="url"
+                      value={eventForm.imageUrl}
+                      onChange={(e) => setEventForm({ ...eventForm, imageUrl: e.target.value })}
+                      placeholder="Or paste direct image URL (https://...)"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Preset Image Quick Selector */}
+                <div style={{ fontSize: '0.76rem', color: '#64748b', marginBottom: '6px', fontWeight: 700 }}>
+                  Or select a quick themed preset:
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {PRESET_EVENT_IMAGES.map((preset, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => setEventForm({ ...eventForm, imageUrl: preset.url })}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: eventForm.imageUrl === preset.url ? '1.5px solid #7e22ce' : '1px solid #cbd5e1',
+                        background: eventForm.imageUrl === preset.url ? '#f3e8ff' : '#ffffff',
+                        color: eventForm.imageUrl === preset.url ? '#7e22ce' : '#334155',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Preview Box */}
+                {eventForm.imageUrl && (
+                  <div style={{ marginTop: '10px', height: '120px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#0f172a' }}>
+                    <img
+                      src={eventForm.imageUrl}
+                      alt="Preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.target.src = PRESET_EVENT_IMAGES[0].url;
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Status & Operational Specs Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Status *
+                  </label>
+                  <select
+                    value={eventForm.status}
+                    onChange={(e) => setEventForm({ ...eventForm, status: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 800, background: '#fff' }}
+                  >
+                    <option value="ACTIVE">🟢 Active (Live)</option>
+                    <option value="INACTIVE">⚪ Inactive (Draft)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Setup Time Required
+                  </label>
+                  <input
+                    type="text"
+                    value={eventForm.setupTime}
+                    onChange={(e) => setEventForm({ ...eventForm, setupTime: e.target.value })}
+                    placeholder="e.g. 4-6 Hours"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Crew Size
+                  </label>
+                  <input
+                    type="text"
+                    value={eventForm.crewSize}
+                    onChange={(e) => setEventForm({ ...eventForm, crewSize: e.target.value })}
+                    placeholder="e.g. 6 Riggers"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Advance Required
+                  </label>
+                  <input
+                    type="text"
+                    value={eventForm.advanceRequired}
+                    onChange={(e) => setEventForm({ ...eventForm, advanceRequired: e.target.value })}
+                    placeholder="e.g. 40% Advance"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEventModalOpen(false)}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#475569',
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #7e22ce 0%, #ca8a04 100%)',
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(126, 34, 206, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{editingEvent ? 'Save Changes' : 'Create Event Package'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Delete Confirmation ── */}
+      {deleteConfirmEvent && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setDeleteConfirmEvent(null)}
+        >
+          <div
+            style={{
+              maxWidth: '460px',
+              width: '100%',
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '1.75rem',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+              textAlign: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <AlertTriangle size={28} />
+            </div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+              Delete Event Package?
+            </h3>
+            <p style={{ margin: '0 0 1.5rem', fontSize: '0.86rem', color: '#64748b', lineHeight: 1.5 }}>
+              Are you sure you want to delete <strong>"{deleteConfirmEvent.name}"</strong>? This will remove the package from client storefront and quote generator.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmEvent(null)}
+                style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                style={{ padding: '9px 22px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 900, cursor: 'pointer' }}
+              >
+                Yes, Delete Package
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Event Package Preview ── */}
+      {previewEventModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.8)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+          }}
+          onClick={() => setPreviewEventModal(null)}
+        >
+          <div
+            style={{
+              maxWidth: '640px',
+              width: '100%',
+              background: '#ffffff',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ position: 'relative', height: '220px', background: '#0f172a' }}>
+              <img
+                src={previewEventModal.imageUrl}
+                alt={previewEventModal.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.target.src = PRESET_EVENT_IMAGES[0].url;
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setPreviewEventModal(null)}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'rgba(0,0,0,0.6)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>
+                  {previewEventModal.name}
+                </h3>
+                <span
+                  style={{
+                    background: previewEventModal.status === 'ACTIVE' ? '#dcfce7' : '#f1f5f9',
+                    color: previewEventModal.status === 'ACTIVE' ? '#15803d' : '#64748b',
+                    fontSize: '0.74rem',
+                    fontWeight: 900,
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  {previewEventModal.status || 'ACTIVE'}
+                </span>
+              </div>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5 }}>
+                {previewEventModal.description}
+              </p>
+
+              <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 14px', marginBottom: '1rem', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Specifications & Inclusions:
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.84rem', color: '#334155', lineHeight: 1.7 }}>
+                  {(previewEventModal.features || []).map((f, i) => (
+                    <li key={i}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                <div>
+                  {previewEventModal.showPrice ? (
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Package Price</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7e22ce' }}>
+                        ₹{Number(previewEventModal.finalPrice || previewEventModal.rate).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#b45309' }}>
+                      💬 Price on Request / Custom Quote
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewEventModal(null);
+                      handleOpenEditModal(previewEventModal);
+                    }}
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer' }}
+                  >
+                    Edit Package
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewEventModal(null)}
+                    style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#7e22ce', color: '#fff', fontWeight: 800, fontSize: '0.84rem', cursor: 'pointer' }}
+                  >
+                    Close Preview
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
