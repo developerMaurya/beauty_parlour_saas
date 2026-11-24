@@ -2293,25 +2293,19 @@ Please call 76519 72973 to finalize contract.`;
       })()}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 6: EVENT PACKAGES (COMBOS OF MULTIPLE EVENTS)
+          TAB 6: EVENT PACKAGES (PROFESSIONAL LUXURY DESIGN & BUNDLED LIST)
          ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'PACKAGES' && (() => {
         const packageItems = eventCatalogList.filter((item) => {
-          // Only Packages
           if ((item.itemType || 'EVENT').toUpperCase() !== 'PACKAGE') return false;
-
-          // Status filter
           if (catalogStatusFilter !== 'ALL' && (item.status || 'ACTIVE').toUpperCase() !== catalogStatusFilter.toUpperCase()) {
             return false;
           }
-          // Search query
           if (!catalogSearch.trim()) return true;
           const q = catalogSearch.toLowerCase().trim();
           return (
             (item.name || '').toLowerCase().includes(q) ||
             (item.description || '').toLowerCase().includes(q) ||
-            (item.categoryName || '').toLowerCase().includes(q) ||
-            (item.features || []).some((f) => f.toLowerCase().includes(q)) ||
             (item.includedServices || []).some((s) => (s.name || '').toLowerCase().includes(q))
           );
         }).sort((a, b) => {
@@ -2326,108 +2320,98 @@ Please call 76519 72973 to finalize contract.`;
 
         return (
           <div style={{ padding: '0 2rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Packages Luxury Banner */}
+            {/* Top Luxury Banner */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #3b0764 0%, #1e112a 50%, #831843 100%)',
+                background: 'linear-gradient(135deg, #241434 0%, #3b0764 50%, #1e112a 100%)',
                 borderRadius: '20px',
-                padding: '1.75rem 2rem',
+                padding: '1.5rem 2rem',
                 color: '#ffffff',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                boxShadow: '0 10px 25px rgba(59, 7, 100, 0.35)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '1.5rem',
-                border: '1px solid rgba(244, 114, 182, 0.35)',
+                gap: '1.25rem',
+                border: '1px solid rgba(236, 72, 153, 0.35)',
               }}
             >
-              <div style={{ maxWidth: '640px' }}>
+              <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '18px' }}>📦</span>
+                  <span style={{ fontSize: '20px' }}>📦</span>
                   <span style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: '#ec4899', color: '#ffffff', padding: '2px 8px', borderRadius: '6px' }}>
-                    Multi-Event Bundled Combos
+                    Event Package Management
                   </span>
                 </div>
-                <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '0 0 8px', letterSpacing: '-0.02em', color: '#ffffff' }}>
-                  Event Packages Management
+                <h2 style={{ fontSize: '1.55rem', fontWeight: 900, margin: '0 0 6px', color: '#f8fafc' }}>
+                  Curated Multi-Event Packages & Combo Pricing
                 </h2>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: '#e2e8f0', lineHeight: 1.5 }}>
-                  Combine multiple event services (e.g. 20ft Aadiyogi Stage + Royal Bridal Entry Arch + Cold Pyro) into complete discounted package offerings with custom pricing & deliverables.
+                <p style={{ margin: 0, fontSize: '0.86rem', color: '#c084fc', lineHeight: 1.5 }}>
+                  Combine multiple event services into attractive bundled packages with dedicated package pricing and description.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={handleOpenAddPackageModal}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '12px 22px',
-                    borderRadius: '12px',
-                    fontSize: '0.92rem',
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 18px rgba(236, 72, 153, 0.4)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Plus size={18} />
-                  <span>+ Create New Event Package</span>
-                </button>
+              <button
+                onClick={handleOpenAddPackageModal}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 22px',
+                  borderRadius: '12px',
+                  fontSize: '0.92rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 18px rgba(236, 72, 153, 0.45)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Plus size={18} />
+                <span>+ Create New Package</span>
+              </button>
+            </div>
+
+            {/* Quick Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.1rem 1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Total Packages</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#db2777', marginTop: '4px' }}>{packageItems.length} Packages</div>
+                <div style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 700, marginTop: '2px' }}>{activePackages} Active on website</div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.1rem 1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Database Event Services</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#7e22ce', marginTop: '4px' }}>{allEventServices.length} Services</div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>Ready for multi-service bundling</div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.1rem 1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Average Package Value</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#047857', marginTop: '4px' }}>
+                  ₹{packageItems.length > 0
+                    ? Math.round(packageItems.reduce((acc, p) => acc + (Number(p.finalPrice || p.rate) || 0), 0) / packageItems.length).toLocaleString('en-IN')
+                    : 0}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>High-ticket wedding bundles</div>
               </div>
             </div>
 
-            {/* Quick Metrics Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                  📦
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Packages</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#db2777' }}>{packageItems.length} Combos</div>
-                </div>
-              </div>
-
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#faf5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                  🎪
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Available Event Services</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7e22ce' }}>{allEventServices.length} Services</div>
-                </div>
-              </div>
-
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                  🟢
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Live On Storefront</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#15803d' }}>{activePackages} Active</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Search & Actions Bar */}
+            {/* Search & Sort Bar */}
             <div
               style={{
                 background: '#ffffff',
                 border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '1.25rem',
+                borderRadius: '14px',
+                padding: '1rem 1.25rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 gap: '12px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
               }}
             >
               <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
@@ -2436,11 +2420,11 @@ Please call 76519 72973 to finalize contract.`;
                   type="text"
                   value={catalogSearch}
                   onChange={(e) => setCatalogSearch(e.target.value)}
-                  placeholder="Search packages by package name, bundled events, or inclusions..."
+                  placeholder="Search packages by name, bundled events, or description..."
                   style={{
                     width: '100%',
                     padding: '9px 12px 9px 36px',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.86rem',
                     outline: 'none',
@@ -2473,8 +2457,8 @@ Please call 76519 72973 to finalize contract.`;
                   }}
                 >
                   <option value="ALL">All Status</option>
-                  <option value="ACTIVE">🟢 Active Packages</option>
-                  <option value="INACTIVE">⚪ Inactive Drafts</option>
+                  <option value="ACTIVE">🟢 Active Only</option>
+                  <option value="INACTIVE">⚪ Inactive Only</option>
                 </select>
 
                 <select
@@ -2499,22 +2483,22 @@ Please call 76519 72973 to finalize contract.`;
               </div>
             </div>
 
-            {/* Packages Cards Grid */}
+            {/* Professional Package Cards Grid */}
             {packageItems.length === 0 ? (
               <div
                 style={{
                   background: '#ffffff',
                   border: '1.5px dashed #cbd5e1',
                   borderRadius: '16px',
-                  padding: '3rem 2rem',
+                  padding: '3.5rem 2rem',
                   textAlign: 'center',
                   color: '#64748b',
                 }}
               >
-                <div style={{ fontSize: '40px', marginBottom: '10px' }}>📦</div>
-                <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: '#0f172a' }}>No Event Packages Found</h3>
-                <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem' }}>
-                  Create combo packages by selecting multiple individual event services together.
+                <div style={{ fontSize: '44px', marginBottom: '10px' }}>📦</div>
+                <h3 style={{ margin: '0 0 6px', fontSize: '1.2rem', color: '#0f172a' }}>No Event Packages Found</h3>
+                <p style={{ margin: '0 0 1.25rem', fontSize: '0.86rem' }}>
+                  Create combo packages by bundling multiple event services from the database.
                 </p>
                 <button
                   onClick={handleOpenAddPackageModal}
@@ -2522,14 +2506,14 @@ Please call 76519 72973 to finalize contract.`;
                     background: 'linear-gradient(135deg, #ec4899, #db2777)',
                     color: '#fff',
                     border: 'none',
-                    padding: '10px 20px',
+                    padding: '10px 22px',
                     borderRadius: '8px',
                     fontWeight: 800,
-                    fontSize: '0.86rem',
+                    fontSize: '0.88rem',
                     cursor: 'pointer',
                   }}
                 >
-                  + Create First Event Package
+                  + Create First Package
                 </button>
               </div>
             ) : (
@@ -2553,217 +2537,154 @@ Please call 76519 72973 to finalize contract.`;
                         border: '1.5px solid #fbcfe8',
                         borderRadius: '18px',
                         overflow: 'hidden',
-                        boxShadow: '0 6px 20px rgba(236, 72, 153, 0.08)',
+                        boxShadow: '0 8px 24px rgba(236, 72, 153, 0.08)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                       }}
                     >
-                      <div>
-                        {/* Package Header Banner Image */}
-                        <div style={{ position: 'relative', height: '200px', background: '#0f172a', overflow: 'hidden' }}>
-                          <img
-                            src={pkg.imageUrl || PRESET_EVENT_IMAGES[0].url}
-                            alt={pkg.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onError={(e) => {
-                              e.target.src = PRESET_EVENT_IMAGES[0].url;
-                            }}
-                          />
-
-                          {/* Package Badge */}
-                          <div
+                      {/* Top Header Section */}
+                      <div style={{ padding: '1.35rem 1.35rem 0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
+                          <span
                             style={{
-                              position: 'absolute',
-                              top: '12px',
-                              left: '12px',
-                              background: 'linear-gradient(135deg, #ec4899, #db2777)',
-                              color: '#ffffff',
-                              padding: '4px 10px',
-                              borderRadius: '8px',
-                              fontSize: '0.74rem',
+                              background: '#fdf2f8',
+                              color: '#db2777',
+                              border: '1px solid #fbcfe8',
+                              padding: '3px 9px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
                               fontWeight: 900,
+                              textTransform: 'uppercase',
                               letterSpacing: '0.04em',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                              display: 'flex',
+                              display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px',
                             }}
                           >
-                            <Box size={13} />
+                            <Box size={12} />
                             COMBO PACKAGE
-                          </div>
+                          </span>
 
-                          {/* Status Badge */}
-                          <div
+                          <span
                             style={{
-                              position: 'absolute',
-                              top: '12px',
-                              right: '12px',
-                              background: isActive ? '#15803d' : '#64748b',
-                              color: '#ffffff',
-                              padding: '3px 8px',
+                              background: isActive ? '#ecfdf5' : '#f1f5f9',
+                              color: isActive ? '#059669' : '#64748b',
+                              border: `1px solid ${isActive ? '#a7f3d0' : '#cbd5e1'}`,
+                              padding: '2px 8px',
                               borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 900,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em',
-                            }}
-                          >
-                            {isActive ? '● Active' : '○ Inactive'}
-                          </div>
-
-                          {/* Bundled Count Pill */}
-                          <div
-                            style={{
-                              position: 'absolute',
-                              bottom: '10px',
-                              left: '12px',
-                              background: 'rgba(15, 23, 42, 0.85)',
-                              backdropFilter: 'blur(4px)',
-                              color: '#facc15',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
+                              fontSize: '10.5px',
                               fontWeight: 800,
                             }}
                           >
-                            🔱 {services.length} Event Services Bundled
-                          </div>
+                            {isActive ? '● Live' : '○ Draft'}
+                          </span>
                         </div>
 
-                        {/* Package Info Content */}
-                        <div style={{ padding: '1.25rem 1.25rem 0.5rem' }}>
-                          <h3
-                            style={{
-                              margin: '0 0 6px',
-                              fontSize: '1.15rem',
-                              fontWeight: 900,
-                              color: '#0f172a',
-                              lineHeight: 1.35,
-                            }}
-                          >
-                            {pkg.name}
-                          </h3>
+                        {/* Package Title */}
+                        <h3
+                          style={{
+                            margin: '0 0 6px',
+                            fontSize: '1.2rem',
+                            fontWeight: 900,
+                            color: '#0f172a',
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          {pkg.name}
+                        </h3>
 
-                          <p
-                            style={{
-                              margin: '0 0 12px',
-                              fontSize: '0.82rem',
-                              color: '#64748b',
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {pkg.description}
-                          </p>
+                        {/* Description */}
+                        <p
+                          style={{
+                            margin: '0 0 14px',
+                            fontSize: '0.84rem',
+                            color: '#64748b',
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {pkg.description}
+                        </p>
 
-                          {/* Bundled Services Breakdown Section */}
-                          <div style={{ background: '#fff1f2', borderRadius: '12px', padding: '10px 12px', marginBottom: '10px', border: '1px solid #fecdd3' }}>
-                            <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#9f1239', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <span>🎪 Bundled Events in this Package:</span>
-                            </div>
-                            {services.length === 0 ? (
-                              <div style={{ fontSize: '0.76rem', color: '#881337', fontStyle: 'italic' }}>
-                                No specific individual events mapped. Add events in package edit.
-                              </div>
-                            ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                {services.map((srv, sIdx) => (
-                                  <div
-                                    key={sIdx}
-                                    style={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                      background: '#ffffff',
-                                      padding: '5px 8px',
-                                      borderRadius: '6px',
-                                      fontSize: '0.78rem',
-                                      border: '1px solid #ffe4e6',
-                                    }}
-                                  >
-                                    <span style={{ fontWeight: 700, color: '#1e293b' }}>
-                                      • {srv.name}
-                                    </span>
-                                    {srv.price > 0 && (
-                                      <span style={{ fontWeight: 800, color: '#7e22ce', fontSize: '0.75rem' }}>
-                                        ₹{Number(srv.price).toLocaleString()}
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                        {/* Bundled Event Services List */}
+                        <div
+                          style={{
+                            background: '#fff1f2',
+                            borderRadius: '12px',
+                            padding: '12px 14px',
+                            border: '1px solid #fecdd3',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <div style={{ fontSize: '0.76rem', fontWeight: 900, color: '#9f1239', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>🎪 Included Event Services:</span>
+                            <span style={{ background: '#ffe4e6', color: '#e11d48', padding: '1px 6px', borderRadius: '4px', fontSize: '10.5px' }}>
+                              {services.length} items bundled
+                            </span>
                           </div>
 
-                          {/* Inclusions & Highlights */}
-                          <div style={{ background: '#fdf2f8', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px', border: '1px solid #fbcfe8' }}>
-                            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#831843', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Sparkles size={13} color="#db2777" />
-                              <span>Package Deliverables & Specs:</span>
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.78rem', color: '#334155', lineHeight: 1.6 }}>
-                              {(pkg.features || []).slice(0, 4).map((f, fIdx) => (
-                                <li key={fIdx}>{f}</li>
-                              ))}
-                              {(pkg.features || []).length > 4 && (
-                                <li style={{ color: '#db2777', fontWeight: 700, listStyleType: 'none', marginTop: '2px' }}>
-                                  + {(pkg.features.length - 4)} more specifications
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-
-                          {/* Operational Specs */}
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '0.74rem', color: '#64748b', marginBottom: '1rem' }}>
-                            {pkg.setupTime && (
-                              <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
-                                ⏱️ {pkg.setupTime}
-                              </span>
-                            )}
-                            {pkg.crewSize && (
-                              <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
-                                👥 {pkg.crewSize}
-                              </span>
-                            )}
-                            {pkg.advanceRequired && (
-                              <span style={{ background: '#fefce8', color: '#854d0e', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                                💳 {pkg.advanceRequired}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Package Bottom Pricing & Actions */}
-                      <div style={{ padding: '0.75rem 1.25rem 1.25rem', borderTop: '1px solid #fbcfe8', background: '#fffafc' }}>
-                        <div style={{ marginBottom: '12px' }}>
-                          {pkg.showPrice ? (
-                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                              <div>
-                                {pkg.discount > 0 && (
-                                  <span style={{ fontSize: '0.82rem', color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
-                                    ₹{Number(pkg.rate || 0).toLocaleString('en-IN')}
-                                  </span>
-                                )}
-                                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#be123c' }}>
-                                  ₹{Number(pkg.finalPrice || pkg.rate || 0).toLocaleString('en-IN')}
-                                </span>
-                              </div>
-                              {pkg.discount > 0 && (
-                                <span style={{ fontSize: '0.74rem', background: '#dcfce7', color: '#15803d', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
-                                  Package Savings: ₹{Number(pkg.discount).toLocaleString('en-IN')}
-                                </span>
-                              )}
+                          {services.length === 0 ? (
+                            <div style={{ fontSize: '0.78rem', color: '#881337', fontStyle: 'italic' }}>
+                              No individual services mapped. Click Edit to select services from DB.
                             </div>
                           ) : (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#92400e', padding: '5px 10px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800 }}>
-                              <MessageCircle size={14} />
-                              <span>Package Price on Custom Quotation</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {services.map((srv, sIdx) => (
+                                <div
+                                  key={sIdx}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    background: '#ffffff',
+                                    padding: '6px 10px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ffe4e6',
+                                    fontSize: '0.8rem',
+                                  }}
+                                >
+                                  <span style={{ fontWeight: 700, color: '#1e293b' }}>
+                                    ✓ {srv.name}
+                                  </span>
+                                  {srv.price > 0 && (
+                                    <span style={{ fontWeight: 800, color: '#7e22ce', fontSize: '0.76rem' }}>
+                                      ₹{Number(srv.price).toLocaleString('en-IN')}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
+                      </div>
 
+                      {/* Bottom Pricing & Actions Bar */}
+                      <div style={{ padding: '1rem 1.35rem 1.25rem', borderTop: '1.5px solid #fbcfe8', background: '#fffafc' }}>
+                        {/* Price Block */}
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                          <div>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Package Offer Price</div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                              <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#be123c' }}>
+                                ₹{Number(pkg.finalPrice || pkg.rate || 0).toLocaleString('en-IN')}
+                              </span>
+                              {pkg.discount > 0 && (
+                                <span style={{ fontSize: '0.85rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                                  ₹{Number(pkg.rate || 0).toLocaleString('en-IN')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {pkg.discount > 0 && (
+                            <span style={{ fontSize: '0.74rem', background: '#dcfce7', color: '#15803d', fontWeight: 800, padding: '3px 8px', borderRadius: '6px' }}>
+                              Save ₹{Number(pkg.discount).toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={() => handleOpenEditModal(pkg)}
@@ -2781,6 +2702,7 @@ Please call 76519 72973 to finalize contract.`;
                               fontSize: '0.82rem',
                               fontWeight: 800,
                               cursor: 'pointer',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                             }}
                           >
                             <Edit3 size={14} />
@@ -2820,7 +2742,7 @@ Please call 76519 72973 to finalize contract.`;
                               borderRadius: '8px',
                               cursor: 'pointer',
                             }}
-                            title="Preview Package"
+                            title="Preview Package Details"
                           >
                             <Eye size={14} />
                           </button>
@@ -3224,7 +3146,7 @@ Please call 76519 72973 to finalize contract.`;
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          8. MODAL: ADD / EDIT EVENT PACKAGE
+          8. MODAL: ADD / EDIT EVENT OR PACKAGE (CLEAN & SIMPLE)
          ══════════════════════════════════════════════════════════════════════════ */}
       {eventModalOpen && (
         <div
@@ -3243,7 +3165,7 @@ Please call 76519 72973 to finalize contract.`;
         >
           <div
             style={{
-              maxWidth: '680px',
+              maxWidth: '620px',
               width: '100%',
               background: '#ffffff',
               borderRadius: '20px',
@@ -3263,15 +3185,23 @@ Please call 76519 72973 to finalize contract.`;
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                background: 'linear-gradient(135deg, #faf5ff 0%, #fefce8 100%)',
+                background: (eventForm.itemType || 'EVENT') === 'PACKAGE'
+                  ? 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)'
+                  : 'linear-gradient(135deg, #faf5ff 0%, #fefce8 100%)',
               }}
             >
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#1e1b4b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>{editingEvent ? '✏️ Edit Event Package' : '✨ Add New Event Package'}</span>
+                  <span>
+                    {editingEvent
+                      ? (eventForm.itemType === 'PACKAGE' ? '✏️ Edit Event Package' : '✏️ Edit Event Service')
+                      : (eventForm.itemType === 'PACKAGE' ? '📦 Create New Event Package' : '🎪 Add New Event Service')}
+                  </span>
                 </h3>
                 <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-                  Configure stage decor, royal bridal entry, cold pyro, or custom event package details.
+                  {eventForm.itemType === 'PACKAGE'
+                    ? 'Combine multiple event services into one discounted customer package.'
+                    : 'Add or update an individual event stage, entry arch, or effect service.'}
                 </p>
               </div>
               <button
@@ -3294,125 +3224,51 @@ Please call 76519 72973 to finalize contract.`;
               </button>
             </div>
 
-            {/* Modal Form Scrollable Body */}
+            {/* Modal Form */}
             <form onSubmit={handleSaveEventSubmit} style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {/* Type Switcher: Event Service vs Event Package */}
-              <div style={{ display: 'flex', gap: '10px', background: '#f1f5f9', padding: '6px', borderRadius: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setEventForm({ ...eventForm, itemType: 'EVENT' })}
+              
+              {/* 1. PACKAGE / SERVICE NAME */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                  {eventForm.itemType === 'PACKAGE' ? 'Package Name *' : 'Event / Service Name *'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={eventForm.name}
+                  onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                  placeholder={eventForm.itemType === 'PACKAGE' ? 'e.g. Royal Wedding Grand Theme Combo Package' : 'e.g. 20ft Aadiyogi Mahadev Stage / Royal Bridal Entry Arch'}
                   style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.84rem',
-                    cursor: 'pointer',
-                    background: (eventForm.itemType || 'EVENT') !== 'PACKAGE' ? 'linear-gradient(135deg, #7e22ce, #a855f7)' : 'transparent',
-                    color: (eventForm.itemType || 'EVENT') !== 'PACKAGE' ? '#ffffff' : '#64748b',
-                    boxShadow: (eventForm.itemType || 'EVENT') !== 'PACKAGE' ? '0 2px 8px rgba(126, 34, 206, 0.3)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
+                    width: '100%',
+                    padding: '11px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box',
+                    fontWeight: 600,
                   }}
-                >
-                  <span>🎪 Individual Event Service</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEventForm({ ...eventForm, itemType: 'PACKAGE', category: 'COMPLETE_THEME' })}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.84rem',
-                    cursor: 'pointer',
-                    background: (eventForm.itemType || 'EVENT') === 'PACKAGE' ? 'linear-gradient(135deg, #ec4899, #db2777)' : 'transparent',
-                    color: (eventForm.itemType || 'EVENT') === 'PACKAGE' ? '#ffffff' : '#64748b',
-                    boxShadow: (eventForm.itemType || 'EVENT') === 'PACKAGE' ? '0 2px 8px rgba(236, 72, 153, 0.3)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span>📦 Combo Event Package</span>
-                </button>
+                />
               </div>
 
-              {/* Event / Package Name & Category Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-                    {eventForm.itemType === 'PACKAGE' ? 'Event Package Name *' : 'Event Service Name *'}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={eventForm.name}
-                    onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
-                    placeholder={eventForm.itemType === 'PACKAGE' ? 'e.g. Royal Grand Shiva Mahadev Combo Package' : 'e.g. 20ft Aadiyogi Mahadev Stage / Royal Bridal Entry Arch'}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '0.86rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-                    Category *
-                  </label>
-                  <select
-                    value={eventForm.category}
-                    onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '0.86rem',
-                      boxSizing: 'border-box',
-                      background: '#fff',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {EVENT_CATEGORIES.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.label} ({cat.short})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* IF PACKAGE: MULTI-EVENT SERVICES SELECTOR FROM DB */}
-              {eventForm.itemType === 'PACKAGE' && (
+              {/* 2. CHOOSE EVENT / SERVICE (DYNAMIC DROPDOWN / MULTI-SELECT FROM DB) */}
+              {eventForm.itemType === 'PACKAGE' ? (
                 <div style={{ background: '#fff1f2', border: '1.5px solid #fecdd3', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#9f1239', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🎪 Select Event Services to Bundle in this Package:</span>
-                      </div>
+                      <label style={{ fontSize: '0.84rem', fontWeight: 900, color: '#9f1239', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🎪 Choose Event & Services from DB: *</span>
+                      </label>
                       <div style={{ fontSize: '0.74rem', color: '#881337', marginTop: '2px' }}>
-                        Check all individual services (e.g. Stage + Bridal Entry + Pyro) included in this package.
+                        Select the event services to include in this package:
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#e11d48', background: '#ffe4e6', padding: '2px 8px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#e11d48', background: '#ffe4e6', padding: '3px 8px', borderRadius: '6px' }}>
                       {eventForm.includedServices.length} Selected
                     </span>
                   </div>
 
-                  {/* Checklist of all available individual event services from DB / State */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px', maxHeight: '180px', overflowY: 'auto', padding: '4px' }}>
+                  {/* Multi-Select Dropdown list from DB / State */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px', maxHeight: '180px', overflowY: 'auto', padding: '4px' }}>
                     {eventCatalogList
                       .filter((item) => (item.itemType || 'EVENT').toUpperCase() !== 'PACKAGE' && (item.id || item._id) !== (editingEvent?.id || editingEvent?._id))
                       .map((srv) => {
@@ -3437,14 +3293,14 @@ Please call 76519 72973 to finalize contract.`;
                             <input
                               type="checkbox"
                               checked={isChecked}
-                              onChange={() => {}} // handled by parent onClick
+                              onChange={() => {}}
                               style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#e11d48' }}
                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {srv.name}
                               </div>
-                              <div style={{ fontSize: '0.72rem', color: '#7e22ce', fontWeight: 700 }}>
+                              <div style={{ fontSize: '0.74rem', color: '#7e22ce', fontWeight: 700 }}>
                                 ₹{(Number(srv.finalPrice || srv.rate) || 0).toLocaleString()} · {srv.categoryName || srv.category}
                               </div>
                             </div>
@@ -3453,34 +3309,62 @@ Please call 76519 72973 to finalize contract.`;
                       })}
                   </div>
 
-                  {/* Sum Calculation Info */}
+                  {/* Auto Calculated Sum info */}
                   {eventForm.includedServices.length > 0 && (
-                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
                       <span style={{ color: '#9f1239', fontWeight: 700 }}>
-                        Total Individual Services Worth:
+                        Sum of Selected Event Services:
                       </span>
-                      <strong style={{ color: '#9f1239', fontSize: '0.92rem' }}>
+                      <strong style={{ color: '#9f1239', fontSize: '0.94rem' }}>
                         ₹{eventForm.includedServices.reduce((sum, s) => sum + (Number(s.price) || 0), 0).toLocaleString()}
                       </strong>
                     </div>
                   )}
                 </div>
+              ) : (
+                /* Individual Service Category Dropdown */
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                    Service Category *
+                  </label>
+                  <select
+                    value={eventForm.category}
+                    onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box',
+                      background: '#fff',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {EVENT_CATEGORIES.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.icon} {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
 
-              {/* Description */}
+              {/* 3. DESCRIPTION */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-                  Package Description & Venue Overview
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                  Description *
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
+                  required
                   value={eventForm.description}
                   onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
-                  placeholder="Describe dimensions, floral styling, lighting, technical rigs, and suitability for lawns or banquet halls..."
+                  placeholder={eventForm.itemType === 'PACKAGE' ? 'Enter package details, inclusions, staging highlights, and themes covered...' : 'Describe stage dimensions, floral decor, lighting rigs, and technical features...'}
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.86rem',
                     boxSizing: 'border-box',
@@ -3489,308 +3373,75 @@ Please call 76519 72973 to finalize contract.`;
                 />
               </div>
 
-              {/* Multiple Features (List wise input as requested by user) */}
-              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={14} color="#7e22ce" />
-                    <span>Included Package Features (Bullet List)</span>
-                  </label>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    {eventForm.features.filter(Boolean).length} features added
-                  </span>
-                </div>
-
-                {/* Feature Add Input */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                  <input
-                    type="text"
-                    value={newFeatureInput}
-                    onChange={(e) => setNewFeatureInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddFeature();
-                      }
-                    }}
-                    placeholder="Add a feature (e.g. 8 Cold Pyro Guns, 20ft Mahadev Bust, Red Carpet)..."
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.84rem',
-                      background: '#fff',
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddFeature}
-                    style={{
-                      background: '#7e22ce',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <Plus size={14} /> Add
-                  </button>
-                </div>
-
-                {/* List of current features */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
-                  {eventForm.features.filter(Boolean).map((feat, fIdx) => (
-                    <div
-                      key={fIdx}
+              {/* 4. PRICE & DISCOUNT */}
+              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                      {eventForm.itemType === 'PACKAGE' ? 'Package Price (₹) *' : 'Service Price / Rate (₹) *'}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={eventForm.rate}
+                      onChange={(e) => setEventForm({ ...eventForm, rate: e.target.value })}
+                      placeholder="e.g. 250000"
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        width: '100%',
+                        padding: '10px 12px',
                         borderRadius: '8px',
-                        padding: '6px 10px',
-                        fontSize: '0.82rem',
-                        color: '#334155',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#16a34a', fontWeight: 900 }}>✓</span>
-                        <span>{feat}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFeature(fIdx)}
-                        style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
-                        title="Remove feature"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {eventForm.features.filter(Boolean).length === 0 && (
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
-                      No features added yet. Type above and click "+ Add" to list key inclusions.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Pricing Section (With Toggle for Show/Hide Price as user requested) */}
-              <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '14px', background: '#faf5ff' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <div>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#1e1b4b' }}>
-                      Pricing Configuration
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                      Base rate, discount, and whether to display price or request custom quote.
-                    </div>
-                  </div>
-
-                  {/* Toggle: Show / Hide Price to customers */}
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: '#fff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #d8b4fe' }}>
-                    <input
-                      type="checkbox"
-                      checked={eventForm.showPrice}
-                      onChange={(e) => setEventForm({ ...eventForm, showPrice: e.target.checked })}
-                      style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                    />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: eventForm.showPrice ? '#7e22ce' : '#64748b' }}>
-                      {eventForm.showPrice ? 'Show Price on Website' : 'Hide Price (Quote on Request)'}
-                    </span>
-                  </label>
-                </div>
-
-                {eventForm.showPrice ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
-                        Base Rate / Price (₹) *
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={eventForm.rate}
-                        onChange={(e) => setEventForm({ ...eventForm, rate: e.target.value })}
-                        placeholder="e.g. 250000"
-                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
-                        Discount Amount (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={eventForm.discount}
-                        onChange={(e) => setEventForm({ ...eventForm, discount: e.target.value })}
-                        placeholder="e.g. 25000"
-                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }}
-                      />
-                    </div>
-
-                    <div style={{ background: '#ffffff', border: '1px solid #86efac', borderRadius: '8px', padding: '9px 12px' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 700 }}>Final Client Offer Price:</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>
-                        ₹{Math.max(0, (Number(eventForm.rate) || 0) - (Number(eventForm.discount) || 0)).toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', fontSize: '0.82rem', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <AlertCircle size={16} color="#d97706" style={{ flexShrink: 0 }} />
-                    <span>
-                      <strong>Price Hidden:</strong> Customers will see <em>"Price on Request / Custom Quotation"</em> and submit venue dimensions for a customized quote.
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Image Upload & Presets */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-                  Event Picture / Banner (Upload File or Enter Image URL)
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginBottom: '8px' }}>
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageFileUpload}
-                      style={{ fontSize: '0.8rem', padding: '6px 0', width: '100%' }}
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="url"
-                      value={eventForm.imageUrl}
-                      onChange={(e) => setEventForm({ ...eventForm, imageUrl: e.target.value })}
-                      placeholder="Or paste direct image URL (https://...)"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Preset Image Quick Selector */}
-                <div style={{ fontSize: '0.76rem', color: '#64748b', marginBottom: '6px', fontWeight: 700 }}>
-                  Or select a quick themed preset:
-                </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {PRESET_EVENT_IMAGES.map((preset, pIdx) => (
-                    <button
-                      key={pIdx}
-                      type="button"
-                      onClick={() => setEventForm({ ...eventForm, imageUrl: preset.url })}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        border: eventForm.imageUrl === preset.url ? '1.5px solid #7e22ce' : '1px solid #cbd5e1',
-                        background: eventForm.imageUrl === preset.url ? '#f3e8ff' : '#ffffff',
-                        color: eventForm.imageUrl === preset.url ? '#7e22ce' : '#334155',
-                        fontSize: '0.76rem',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '0.9rem',
+                        boxSizing: 'border-box',
                         fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Preview Box */}
-                {eventForm.imageUrl && (
-                  <div style={{ marginTop: '10px', height: '120px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#0f172a' }}>
-                    <img
-                      src={eventForm.imageUrl}
-                      alt="Preview"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.target.src = PRESET_EVENT_IMAGES[0].url;
                       }}
                     />
                   </div>
-                )}
-              </div>
 
-              {/* Status & Operational Specs Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
-                    Status *
-                  </label>
-                  <select
-                    value={eventForm.status}
-                    onChange={(e) => setEventForm({ ...eventForm, status: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 800, background: '#fff' }}
-                  >
-                    <option value="ACTIVE">🟢 Active (Live)</option>
-                    <option value="INACTIVE">⚪ Inactive (Draft)</option>
-                  </select>
-                </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                      Discount Amount (₹) (Optional)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={eventForm.discount}
+                      onChange={(e) => setEventForm({ ...eventForm, discount: e.target.value })}
+                      placeholder="e.g. 25000"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '0.9rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
-                    Setup Time Required
-                  </label>
-                  <input
-                    type="text"
-                    value={eventForm.setupTime}
-                    onChange={(e) => setEventForm({ ...eventForm, setupTime: e.target.value })}
-                    placeholder="e.g. 4-6 Hours"
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
-                    Crew Size
-                  </label>
-                  <input
-                    type="text"
-                    value={eventForm.crewSize}
-                    onChange={(e) => setEventForm({ ...eventForm, crewSize: e.target.value })}
-                    placeholder="e.g. 6 Riggers"
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
-                    Advance Required
-                  </label>
-                  <input
-                    type="text"
-                    value={eventForm.advanceRequired}
-                    onChange={(e) => setEventForm({ ...eventForm, advanceRequired: e.target.value })}
-                    placeholder="e.g. 40% Advance"
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                  />
+                  <div style={{ background: '#ffffff', border: '1.5px solid #86efac', borderRadius: '10px', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#15803d', fontWeight: 800 }}>Final Offer Price:</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a' }}>
+                      ₹{Math.max(0, (Number(eventForm.rate) || 0) - (Number(eventForm.discount) || 0)).toLocaleString('en-IN')}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Modal Footer Actions */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
                 <button
                   type="button"
                   onClick={() => setEventModalOpen(false)}
                   style={{
-                    padding: '10px 18px',
+                    padding: '10px 20px',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
                     background: '#ffffff',
                     color: '#475569',
                     fontWeight: 700,
-                    fontSize: '0.86rem',
+                    fontSize: '0.88rem',
                     cursor: 'pointer',
                   }}
                 >
@@ -3799,22 +3450,22 @@ Please call 76519 72973 to finalize contract.`;
                 <button
                   type="submit"
                   style={{
-                    padding: '10px 24px',
+                    padding: '10px 26px',
                     borderRadius: '8px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #7e22ce 0%, #ca8a04 100%)',
+                    background: eventForm.itemType === 'PACKAGE' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' : 'linear-gradient(135deg, #7e22ce 0%, #ca8a04 100%)',
                     color: '#ffffff',
                     fontWeight: 900,
-                    fontSize: '0.88rem',
+                    fontSize: '0.9rem',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(126, 34, 206, 0.35)',
+                    boxShadow: eventForm.itemType === 'PACKAGE' ? '0 4px 14px rgba(236, 72, 153, 0.4)' : '0 4px 14px rgba(126, 34, 206, 0.35)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
                   }}
                 >
                   <CheckCircle2 size={16} />
-                  <span>{editingEvent ? 'Save Changes' : 'Create Event Package'}</span>
+                  <span>{editingEvent ? 'Save Changes' : (eventForm.itemType === 'PACKAGE' ? 'Create Package' : 'Create Service')}</span>
                 </button>
               </div>
             </form>

@@ -297,7 +297,7 @@ export const TenantAdminLayout = () => {
       badge: 'Event',
       badgeBg: '#ca8a04',
       items: [
-        { label: 'Event', path: '/admin/event-decoration', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Overview', path: '/admin/event-decoration', icon: LayoutDashboard, badge: 'Overview' },
         { label: 'Events & Services', path: '/admin/event-decoration?tab=EVENTS', icon: Sparkles, badge: 'Services' },
         { label: 'Event Package', path: '/admin/event-decoration?tab=PACKAGES', icon: Package, badge: 'Packages' },
         { label: 'Aadiyogi Stage Inventory', path: '/admin/event-decoration?tab=STAGES', icon: Box, badge: 'Stages' },
