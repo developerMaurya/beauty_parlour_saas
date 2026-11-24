@@ -637,6 +637,42 @@ export const eventController = {
       };
 
       EVENTS_CATALOG_DATABASE[idx] = updated;
+
+      // If an individual EVENT service is updated, automatically propagate changes
+      // (name, price/rate, category, status) to all PACKAGES that include this service!
+      if (updated.itemType === 'EVENT') {
+        EVENTS_CATALOG_DATABASE = EVENTS_CATALOG_DATABASE.map((pkg) => {
+          if (pkg.itemType !== 'PACKAGE' || !Array.isArray(pkg.includedServices)) return pkg;
+
+          let hasChanged = false;
+          const updatedIncluded = pkg.includedServices.map((srv) => {
+            const srvId = srv.id || srv._id;
+            const targetId = updated.id || updated._id;
+            if (srvId === targetId || (srv.name && srv.name === existing.name)) {
+              hasChanged = true;
+              return {
+                ...srv,
+                id: targetId,
+                _id: targetId,
+                name: updated.name,
+                price: updated.finalPrice || updated.rate || 0,
+                category: updated.category,
+              };
+            }
+            return srv;
+          });
+
+          if (hasChanged) {
+            return {
+              ...pkg,
+              includedServices: updatedIncluded,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return pkg;
+        });
+      }
+
       return sendSuccess(res, 'Item updated successfully', updated);
     } catch (err) {
       return sendError(res, err.message, [], 500);
@@ -655,6 +691,20 @@ export const eventController = {
       if (EVENTS_CATALOG_DATABASE.length === initialLen) {
         return sendError(res, 'Event package not found', [], 404);
       }
+
+      // If deleted item is an individual EVENT service, remove it from all packages' includedServices
+      EVENTS_CATALOG_DATABASE = EVENTS_CATALOG_DATABASE.map((pkg) => {
+        if (pkg.itemType !== 'PACKAGE' || !Array.isArray(pkg.includedServices)) return pkg;
+        const filtered = pkg.includedServices.filter((s) => s.id !== id && s._id !== id);
+        if (filtered.length !== pkg.includedServices.length) {
+          return {
+            ...pkg,
+            includedServices: filtered,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return pkg;
+      });
 
       return sendSuccess(res, 'Event package deleted successfully', { id });
     } catch (err) {

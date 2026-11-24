@@ -549,11 +549,36 @@ export function EventDecorationDashboard({ defaultTab }) {
 
     if (editingEvent) {
       const targetId = editingEvent.id || editingEvent._id;
-      const updated = eventCatalogList.map((item) =>
+      let updated = eventCatalogList.map((item) =>
         item.id === targetId || item._id === targetId
           ? { ...item, ...payload, updatedAt: new Date().toISOString() }
           : item
       );
+
+      // If an individual EVENT service is updated, automatically update this service inside any PACKAGES!
+      if (payload.itemType === 'EVENT') {
+        updated = updated.map((item) => {
+          if (item.itemType !== 'PACKAGE' || !Array.isArray(item.includedServices)) return item;
+          let changed = false;
+          const updatedIncluded = item.includedServices.map((srv) => {
+            const srvId = srv.id || srv._id;
+            if (srvId === targetId || (srv.name && srv.name === editingEvent.name)) {
+              changed = true;
+              return {
+                ...srv,
+                id: targetId,
+                _id: targetId,
+                name: payload.name,
+                price: payload.finalPrice || payload.rate || 0,
+                category: payload.category,
+              };
+            }
+            return srv;
+          });
+          return changed ? { ...item, includedServices: updatedIncluded, updatedAt: new Date().toISOString() } : item;
+        });
+      }
+
       setEventCatalogList(updated);
       localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
       triggerToast(`✓ ${payload.itemType === 'PACKAGE' ? 'Event package' : 'Event service'} "${payload.name}" updated successfully!`);
@@ -562,6 +587,12 @@ export function EventDecorationDashboard({ defaultTab }) {
 
       try {
         await eventCatalogFetcher.update(targetId, payload);
+        // Refresh catalog from DB to ensure complete server-side synchronization
+        const res = await eventCatalogFetcher.list({});
+        if (res?.data && Array.isArray(res.data)) {
+          setEventCatalogList(res.data);
+          localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(res.data));
+        }
       } catch (err) {
         console.warn('API update event catalog error:', err);
       }
@@ -606,14 +637,27 @@ export function EventDecorationDashboard({ defaultTab }) {
   const handleConfirmDelete = async () => {
     if (!deleteConfirmEvent) return;
     const targetId = deleteConfirmEvent.id || deleteConfirmEvent._id;
-    const updated = eventCatalogList.filter((i) => i.id !== targetId && i._id !== targetId);
+    let updated = eventCatalogList.filter((i) => i.id !== targetId && i._id !== targetId);
+
+    // If a service was deleted, remove it from all packages' includedServices
+    updated = updated.map((item) => {
+      if (item.itemType !== 'PACKAGE' || !Array.isArray(item.includedServices)) return item;
+      const filtered = item.includedServices.filter((s) => s.id !== targetId && s._id !== targetId);
+      return filtered.length !== item.includedServices.length ? { ...item, includedServices: filtered } : item;
+    });
+
     setEventCatalogList(updated);
     localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
-    triggerToast(`Event package "${deleteConfirmEvent.name}" deleted.`);
+    triggerToast(`"${deleteConfirmEvent.name}" deleted.`);
     setDeleteConfirmEvent(null);
 
     try {
       await eventCatalogFetcher.delete(targetId);
+      const res = await eventCatalogFetcher.list({});
+      if (res?.data && Array.isArray(res.data)) {
+        setEventCatalogList(res.data);
+        localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(res.data));
+      }
     } catch (err) {
       console.warn('API delete event error:', err);
     }
