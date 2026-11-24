@@ -1037,104 +1037,83 @@ export function EventDecorationDashboard({ defaultTab }) {
       {/* ══════════════════════════════════════════════════════════════════════════
           2. PAGE SUBHEADER & SECONDARY NAVIGATION TABS
          ══════════════════════════════════════════════════════════════════════════ */}
-      <div style={{ padding: '1.5rem 2rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+            {/* Subheader */}
+      <div style={{ padding: '1.25rem 2rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #f1f5f9' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '20px' }}>🔱</span>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-              Jay Gurudev Event & Management Dashboard
+            <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+              Jay Gurudev Event & Management
             </h1>
+            <span
+              style={{
+                background: '#fef3c7',
+                color: '#b45309',
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid #fde68a',
+              }}
+            >
+              {activeTab === 'DASHBOARD' && 'Overview'}
+              {activeTab === 'EVENTS' && 'Events & Services'}
+              {activeTab === 'PACKAGES' && 'Event Packages'}
+              {activeTab === 'STAGES' && 'Stage Inventory'}
+              {activeTab === 'PROPOSALS' && 'Customer Quotes'}
+              {activeTab === 'CLIENTS' && 'Couples Ledger'}
+            </span>
           </div>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>
-            Managing <strong>Aadiyogi Mahadev Stage</strong>, Royal Bridal Flower Arches, Cold Pyro, and Dry Ice Fog contracts in Varanasi.
+          <p style={{ margin: '3px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+            Aadiyogi Mahadev Stage, Royal Bridal Entry, Hydraulic Varmala & Fireworks Staging Management
           </p>
         </div>
 
-        {/* Subheader Right Actions: Add Event & Season Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={handleOpenAddModal}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, #7e22ce 0%, #ca8a04 100%)',
-              color: '#ffffff',
-              border: 'none',
-              padding: '9px 18px',
-              borderRadius: '10px',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(126, 34, 206, 0.3)',
-              transition: 'transform 0.15s ease',
-            }}
-          >
-            <Plus size={16} />
-            <span>+ Add Event Package</span>
-          </button>
-
-          {/* Date / Season Filter */}
-          <div style={{ position: 'relative' }}>
+        {/* Header Action Button */}
+        <div>
+          {activeTab === 'PACKAGES' ? (
             <button
-              onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
+              onClick={handleOpenAddPackageModal}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: 600,
-                color: '#334155',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '9px 18px',
+                borderRadius: '10px',
+                fontSize: '0.86rem',
+                fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)',
               }}
             >
-              <span>{rangeFilter}</span>
-              <ChevronDown size={14} color="#64748b" />
+              <Plus size={16} />
+              <span>+ Add Event Package</span>
             </button>
-
-            {rangeDropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '6px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  width: '180px',
-                  zIndex: 50,
-                  overflow: 'hidden',
-                }}
-              >
-                {['Wedding Season 2026', 'This Month', 'Upcoming 90 Days', 'Full Year 2026'].map((r, rIdx) => (
-                  <div
-                    key={rIdx}
-                    onClick={() => {
-                      setRangeFilter(r);
-                      setRangeDropdownOpen(false);
-                    }}
-                    style={{
-                      padding: '8px 14px',
-                      fontSize: '0.82rem',
-                      fontWeight: rangeFilter === r ? 700 : 500,
-                      color: rangeFilter === r ? '#7e22ce' : '#334155',
-                      background: rangeFilter === r ? '#faf5ff' : '#ffffff',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {r}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          ) : (
+            <button
+              onClick={handleOpenAddEventModal}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #7e22ce 0%, #ca8a04 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '9px 18px',
+                borderRadius: '10px',
+                fontSize: '0.86rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(126, 34, 206, 0.3)',
+              }}
+            >
+              <Plus size={16} />
+              <span>+ Add Event Service</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1164,57 +1143,7 @@ export function EventDecorationDashboard({ defaultTab }) {
         </div>
       )}
 
-      {/* ── Sub Tabs Bar (Dashboard | Events | Event Packages | Aadiyogi Inventory | Proposals | Clients) ── */}
-      <div style={{ padding: '0 2rem 1.25rem' }}>
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', overflowX: 'auto' }}>
-          {[
-            { id: 'DASHBOARD', label: '📊 Dashboard Overview' },
-            { id: 'EVENTS', label: '🎪 Events & Services', count: eventCatalogList.filter((i) => (i.itemType || 'EVENT').toUpperCase() !== 'PACKAGE').length },
-            { id: 'PACKAGES', label: '📦 Event Packages', count: eventCatalogList.filter((i) => (i.itemType || 'EVENT').toUpperCase() === 'PACKAGE').length },
-            { id: 'STAGES', label: '🔱 Aadiyogi & Stage Inventory' },
-            { id: 'PROPOSALS', label: '📑 Customer Proposals & Quotes', count: proposals.length },
-            { id: 'CLIENTS', label: '👥 Wedding Couples & Ledger', count: eventContracts.length },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                background: activeTab === tab.id ? '#7e22ce' : '#ffffff',
-                color: activeTab === tab.id ? '#ffffff' : '#475569',
-                border: '1px solid',
-                borderColor: activeTab === tab.id ? '#7e22ce' : '#cbd5e1',
-                padding: '8px 18px',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: activeTab === tab.id ? 800 : 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span
-                  style={{
-                    background: activeTab === tab.id ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-                    color: activeTab === tab.id ? '#ffffff' : '#64748b',
-                    fontSize: '10.5px',
-                    fontWeight: 900,
-                    padding: '1px 6px',
-                    borderRadius: '999px',
-                  }}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════════
+{/* ══════════════════════════════════════════════════════════════════════════
           3. TAB 1: DASHBOARD OVERVIEW
          ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'DASHBOARD' && (
