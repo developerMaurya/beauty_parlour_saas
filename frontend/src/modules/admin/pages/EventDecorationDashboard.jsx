@@ -52,6 +52,9 @@ import {
   Trash2,
   Tag,
   Upload,
+  Printer,
+  Receipt,
+  Download,
   AlertTriangle,
   ArrowUpDown,
   Image as ImageIcon
@@ -95,6 +98,9 @@ export function EventDecorationDashboard({ defaultTab }) {
     ) {
       return 'EVENTS';
     }
+    if (location.pathname.includes('event-bookings') || location.pathname.includes('bookings')) {
+      return 'BOOKINGS';
+    }
     if (defaultTab) return defaultTab.toUpperCase();
     return 'DASHBOARD';
   };
@@ -120,6 +126,36 @@ export function EventDecorationDashboard({ defaultTab }) {
   const [newProposalModalOpen, setNewProposalModalOpen] = useState(false);
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
+  const [selectedReceiptContract, setSelectedReceiptContract] = useState(null);
+
+  // Booking Form State (Customer Select or Add New, Service/Package Picker, Advance & Mode, Dates)
+  const [bookingCustomerType, setBookingCustomerType] = useState('EXISTING'); // 'EXISTING' | 'NEW'
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [bookingFormData, setBookingFormData] = useState({
+    clientName: '',
+    phone: '',
+    email: '',
+    selectedItemId: '',
+    itemType: 'PACKAGE', // 'PACKAGE' | 'EVENT'
+    venue: '',
+    bookingDate: new Date().toISOString().split('T')[0],
+    eventDate: '',
+    totalAmount: '',
+    advancePaid: '',
+    paymentMode: 'UPI', // 'CASH' | 'UPI' | 'BANK_TRANSFER' | 'CHEQUE'
+    transactionRef: '',
+    crewLead: 'Vikram Singh (Stage Master)',
+    notes: '',
+  });
+
+  const [dbCustomers, setDbCustomers] = useState([
+    { id: 'cust_101', name: 'Rahul Sharma & Sneha', phone: '9876543210', email: 'rahul.wedding@gmail.com' },
+    { id: 'cust_102', name: 'Priya & Amit Wedding Gala', phone: '9415288910', email: 'amit.priya@gmail.com' },
+    { id: 'cust_103', name: 'Deepak Agrawal', phone: '9935122334', email: 'deepak.vns@gmail.com' },
+    { id: 'cust_104', name: 'Sanjay Maurya', phone: '9889055667', email: 'sanjay.m@gmail.com' },
+    { id: 'cust_105', name: 'Verma Sangeet Family', phone: '9120044556', email: 'verma.sangeet@gmail.com' },
+    { id: 'cust_106', name: 'Gupta Destination Wedding', phone: '9450077889', email: 'gupta.dest@gmail.com' },
+  ]);
 
   // ══════════════════════════════════════════════════════════════════════════
   // EVENT CATALOG STATE & CRUD DATA (Synced with backend + localStorage)
@@ -666,18 +702,28 @@ export function EventDecorationDashboard({ defaultTab }) {
   // ══════════════════════════════════════════════════════════════════════════
   // 1. EVENT CONTRACTS & BOOKINGS DATA
   // ══════════════════════════════════════════════════════════════════════════
-  const [eventContracts, setEventContracts] = useState([
+  const [eventContracts, setEventContracts] = useState(() => {
+    try {
+      const stored = localStorage.getItem('jaygurudev_event_bookings');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.warn(e);
+    }
+    return [
     {
       id: 'JGD-2026-01',
       client: 'Rahul Sharma & Sneha',
       phone: '+91 98765 43210',
       type: 'Aadiyogi Theme Stage (20ft) + Royal Bridal Entry Arch',
       date: '18 Nov 2026',
+      bookingDate: '01 Nov 2026',
       venue: 'Sarnath Heritage Lawn, Varanasi',
       status: 'In Production',
       totalAmount: 275000,
       advancePaid: 150000,
       balance: 125000,
+      paymentMode: 'UPI',
+      transactionRef: 'UPI-98234-AXIS',
       crewLead: 'Vikram Singh (Stage Master)',
       effects: 'Cold Pyro (8 Guns) + Dry Ice Cloud Fog',
     },
@@ -687,11 +733,14 @@ export function EventDecorationDashboard({ defaultTab }) {
       phone: '+91 94152 88910',
       type: 'Aadiyogi Grand Theme + 15ft Flower Tunnel + Jaimala Platform',
       date: '22 Nov 2026',
+      bookingDate: '05 Nov 2026',
       venue: 'Taj Nadesar Convention Grounds',
       status: 'Confirmed',
       totalAmount: 340000,
       advancePaid: 200000,
       balance: 140000,
+      paymentMode: 'CASH',
+      transactionRef: 'CASH-REC-002',
       crewLead: 'Sunil Verma (Florist Chief)',
       effects: 'Imported Orchids + LED Sun Rays Aura',
     },
@@ -701,11 +750,14 @@ export function EventDecorationDashboard({ defaultTab }) {
       phone: '+91 91200 44556',
       type: '30ft Curved LED Stage + Dynamic Lighting Truss',
       date: '25 Nov 2026',
+      bookingDate: '08 Nov 2026',
       venue: 'Riviera Riverfront Lawns, Sigra',
       status: 'Confirmed',
       totalAmount: 220000,
       advancePaid: 100000,
       balance: 120000,
+      paymentMode: 'UPI',
+      transactionRef: 'UPI-77123-HDFC',
       crewLead: 'Rakesh Yadav (Lighting Tech)',
       effects: 'Sound Line-Array + 4 Pyro Guns',
     },
@@ -715,11 +767,14 @@ export function EventDecorationDashboard({ defaultTab }) {
       phone: '+91 98390 11223',
       type: 'Golden Royale Floral Arch Mandap & Banquet Theme',
       date: '30 Nov 2026',
+      bookingDate: '10 Nov 2026',
       venue: 'Grand Regal Palace, Cantt',
       status: 'Planning',
       totalAmount: 150000,
       advancePaid: 50000,
       balance: 100000,
+      paymentMode: 'BANK_TRANSFER',
+      transactionRef: 'NEFT-554129',
       crewLead: 'Manoj Kumar (Fabricator)',
       effects: 'Fresh Roses + Velvet Draping',
     },
@@ -729,15 +784,19 @@ export function EventDecorationDashboard({ defaultTab }) {
       phone: '+91 94500 77889',
       type: 'Aadiyogi Full Production + 30ft Glowing Floral Tunnel',
       date: '05 Dec 2026',
+      bookingDate: '12 Nov 2026',
       venue: 'Ganga View Palace Grounds, Babatpur',
       status: 'Confirmed',
       totalAmount: 420000,
       advancePaid: 250000,
       balance: 170000,
+      paymentMode: 'UPI',
+      transactionRef: 'UPI-44910-ICICI',
       crewLead: 'Vikram Singh (Stage Master)',
       effects: '12 Pyro Guns + Dual Fog Machines',
     },
-  ]);
+  ];
+  });
 
   // ══════════════════════════════════════════════════════════════════════════
   // 2. PROPOSALS & QUOTATIONS DATA (Syncs with website)
@@ -1103,9 +1162,9 @@ export function EventDecorationDashboard({ defaultTab }) {
               {activeTab === 'DASHBOARD' && 'Overview'}
               {activeTab === 'EVENTS' && 'Events & Services'}
               {activeTab === 'PACKAGES' && 'Event Packages'}
-              {activeTab === 'STAGES' && 'Stage Inventory'}
-              {activeTab === 'PROPOSALS' && 'Customer Quotes'}
-              {activeTab === 'CLIENTS' && 'Couples Ledger'}
+              {activeTab === 'BOOKINGS' && 'Bookings & Inventory Billing'}
+              {activeTab === 'PROPOSALS' && 'Customer Requests & Proposals'}
+              {activeTab === 'STAGES' && 'Stage Blueprint'}
             </span>
           </div>
           <p style={{ margin: '3px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
@@ -1135,6 +1194,48 @@ export function EventDecorationDashboard({ defaultTab }) {
             >
               <Plus size={16} />
               <span>+ Add Event Package</span>
+            </button>
+          ) : activeTab === 'BOOKINGS' ? (
+            <button
+              onClick={() => {
+                // Reset and open unified booking modal
+                setBookingFormData({
+                  clientName: '',
+                  phone: '',
+                  email: '',
+                  selectedItemId: eventCatalogList[0]?.id || '',
+                  itemType: eventCatalogList[0]?.itemType || 'PACKAGE',
+                  venue: '',
+                  bookingDate: new Date().toISOString().split('T')[0],
+                  eventDate: '',
+                  totalAmount: eventCatalogList[0]?.finalPrice || eventCatalogList[0]?.rate || 150000,
+                  advancePaid: 50000,
+                  paymentMode: 'UPI',
+                  transactionRef: '',
+                  crewLead: 'Vikram Singh (Stage Master)',
+                  notes: '',
+                });
+                setBookingCustomerType('EXISTING');
+                setSelectedCustomerId('');
+                setNewBookingModalOpen(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #16a34a 0%, #059669 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '9px 18px',
+                borderRadius: '10px',
+                fontSize: '0.86rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(22, 163, 74, 0.35)',
+              }}
+            >
+              <Plus size={16} />
+              <span>+ New Event Booking & Bill</span>
             </button>
           ) : (
             <button
@@ -1357,10 +1458,10 @@ export function EventDecorationDashboard({ defaultTab }) {
                   Active Wedding Contracts & Schedules
                 </h3>
                 <button
-                  onClick={() => setActiveTab('CLIENTS')}
+                  onClick={() => setActiveTab('BOOKINGS')}
                   style={{ background: 'transparent', border: 'none', color: '#7e22ce', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer' }}
                 >
-                  View All Clients →
+                  View All Bookings & Bills →
                 </button>
               </div>
 
@@ -1554,41 +1655,42 @@ export function EventDecorationDashboard({ defaultTab }) {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          5. TAB 3: PROPOSALS & QUOTATIONS MANAGER
+          TAB: CUSTOMER REQUESTS & PROPOSALS (WITH APPROVE / REJECT ACTIONS)
          ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'PROPOSALS' && (
         <div style={{ padding: '0 2rem' }}>
-          
           <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-                  Client Wedding Proposals & Estimates
+                <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+                  Customer Inquiries, Quotes & Proposals
                 </h3>
                 <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b' }}>
-                  Review custom quotations submitted from the public website or generated by admin.
+                  Review, approve, or reject customized event inquiries received from the public website or telephone.
                 </p>
               </div>
 
-              <button
-                onClick={() => setNewProposalModalOpen(true)}
-                style={{
-                  background: '#7e22ce',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '9px 18px',
-                  borderRadius: '8px',
-                  fontSize: '0.84rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Plus size={16} />
-                <span>+ Create Custom Proposal</span>
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setNewProposalModalOpen(true)}
+                  style={{
+                    background: '#7e22ce',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '9px 18px',
+                    borderRadius: '8px',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>+ Create Custom Proposal</span>
+                </button>
+              </div>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -1601,7 +1703,7 @@ export function EventDecorationDashboard({ defaultTab }) {
                     <th style={{ padding: '10px 12px' }}>Configured Package</th>
                     <th style={{ padding: '10px 12px' }}>Estimated Price</th>
                     <th style={{ padding: '10px 12px' }}>Status</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'center' }}>Actions</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center' }}>Approve / Reject & Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1633,21 +1735,132 @@ export function EventDecorationDashboard({ defaultTab }) {
                             padding: '3px 10px',
                             borderRadius: '999px',
                             fontSize: '0.74rem',
-                            fontWeight: 700,
-                            background: prop.status === 'Accepted' ? '#dcfce7' : prop.status === 'Pending Review' ? '#fef3c7' : '#f3e8ff',
-                            color: prop.status === 'Accepted' ? '#15803d' : prop.status === 'Pending Review' ? '#b45309' : '#7e22ce',
+                            fontWeight: 800,
+                            background:
+                              prop.status === 'Accepted' || prop.status === 'APPROVED'
+                                ? '#dcfce7'
+                                : prop.status === 'REJECTED'
+                                ? '#fee2e2'
+                                : '#fef3c7',
+                            color:
+                              prop.status === 'Accepted' || prop.status === 'APPROVED'
+                                ? '#15803d'
+                                : prop.status === 'REJECTED'
+                                ? '#dc2626'
+                                : '#b45309',
                           }}
                         >
                           {prop.status}
                         </span>
                       </td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
+                          {/* Approve Button */}
+                          <button
+                            onClick={() => {
+                              const updated = proposals.map((p) =>
+                                p.id === prop.id ? { ...p, status: 'APPROVED' } : p
+                              );
+                              setProposals(updated);
+                              localStorage.setItem('jay_gurudev_proposals', JSON.stringify(updated));
+                              triggerToast(`✓ Proposal "${prop.id}" approved successfully!`);
+                            }}
+                            title="Approve Customer Request"
+                            style={{
+                              background: '#16a34a',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Check size={12} />
+                            <span>Approve</span>
+                          </button>
+
+                          {/* Reject Button */}
+                          <button
+                            onClick={() => {
+                              const updated = proposals.map((p) =>
+                                p.id === prop.id ? { ...p, status: 'REJECTED' } : p
+                              );
+                              setProposals(updated);
+                              localStorage.setItem('jay_gurudev_proposals', JSON.stringify(updated));
+                              triggerToast(`Proposal "${prop.id}" marked as Rejected.`);
+                            }}
+                            title="Reject Request"
+                            style={{
+                              background: '#fee2e2',
+                              color: '#dc2626',
+                              border: '1px solid #fca5a5',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <X size={12} />
+                            <span>Reject</span>
+                          </button>
+
+                          {/* Convert to Direct Booking */}
+                          <button
+                            onClick={() => {
+                              setBookingFormData({
+                                clientName: prop.clientName,
+                                phone: prop.phone,
+                                email: '',
+                                selectedItemId: eventCatalogList[0]?.id || '',
+                                itemType: 'PACKAGE',
+                                venue: prop.venue,
+                                bookingDate: new Date().toISOString().split('T')[0],
+                                eventDate: prop.date,
+                                totalAmount: prop.amount,
+                                advancePaid: Math.round(prop.amount * 0.4),
+                                paymentMode: 'UPI',
+                                transactionRef: '',
+                                crewLead: 'Vikram Singh (Stage Master)',
+                                notes: `Converted from Quote ${prop.id}: ${prop.stageSize}`,
+                              });
+                              setBookingCustomerType('NEW');
+                              setSelectedCustomerId('');
+                              setNewBookingModalOpen(true);
+                            }}
+                            title="Book & Bill this proposal"
+                            style={{
+                              background: '#7e22ce',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Plus size={12} />
+                            <span>Book</span>
+                          </button>
+
+                          {/* WhatsApp */}
                           <button
                             onClick={() => {
                               const text = `*JAY GURUDEV EVENT & MANAGEMENT PROPOSAL*
 Dear ${prop.clientName},
-Your quotation for ${prop.eventType} on ${prop.date} at ${prop.venue} is approved!
+Your quotation for ${prop.eventType} on ${prop.date} at ${prop.venue} is ${prop.status === 'APPROVED' ? 'APPROVED' : 'reviewed'}!
 Total Package: ₹${prop.amount.toLocaleString()}
 Please call 76519 72973 to finalize contract.`;
                               window.open(`https://wa.me/${prop.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
@@ -1656,7 +1869,247 @@ Please call 76519 72973 to finalize contract.`;
                               background: '#22c55e',
                               color: '#ffffff',
                               border: 'none',
-                              padding: '5px 10px',
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <MessageCircle size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TAB: BOOKINGS & INVENTORY BILLING (MASTER HISTORY, ADVANCE, BALANCE, INVOICE SLIP)
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {(activeTab === 'BOOKINGS' || activeTab === 'CLIENTS') && (
+        <div style={{ padding: '0 2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* Top KPI row for bookings */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>Total Event Bookings</div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a' }}>{eventContracts.length} Bills</div>
+              <div style={{ fontSize: '0.74rem', color: '#16a34a', marginTop: '4px', fontWeight: 700 }}>Active Production Schedule</div>
+            </div>
+
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>Total Contract Value</div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#7e22ce' }}>
+                ₹{eventContracts.reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>Gross Booked Revenue</div>
+            </div>
+
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>Total Advance Received</div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#16a34a' }}>
+                ₹{eventContracts.reduce((sum, c) => sum + (Number(c.advancePaid) || 0), 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#16a34a', marginTop: '4px', fontWeight: 700 }}>✓ In Bank / Cash Vault</div>
+            </div>
+
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>Pending Balance Due (Baqi)</div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#dc2626' }}>
+                ₹{eventContracts.reduce((sum, c) => sum + (Number(c.balance) || 0), 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#dc2626', marginTop: '4px', fontWeight: 700 }}>Due upon stage handover</div>
+            </div>
+          </div>
+
+          {/* Bookings & Billing Table Card */}
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+                  Event Bookings & Billing History
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b' }}>
+                  Track customer contracts, advance payments, pending balances, payment modes, and generate printable invoice slips.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setBookingFormData({
+                    clientName: '',
+                    phone: '',
+                    email: '',
+                    selectedItemId: eventCatalogList[0]?.id || '',
+                    itemType: eventCatalogList[0]?.itemType || 'PACKAGE',
+                    venue: '',
+                    bookingDate: new Date().toISOString().split('T')[0],
+                    eventDate: '',
+                    totalAmount: eventCatalogList[0]?.finalPrice || eventCatalogList[0]?.rate || 150000,
+                    advancePaid: 50000,
+                    paymentMode: 'UPI',
+                    transactionRef: '',
+                    crewLead: 'Vikram Singh (Stage Master)',
+                    notes: '',
+                  });
+                  setBookingCustomerType('EXISTING');
+                  setSelectedCustomerId('');
+                  setNewBookingModalOpen(true);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #16a34a 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 20px',
+                  borderRadius: '10px',
+                  fontSize: '0.86rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.35)',
+                }}
+              >
+                <Plus size={16} />
+                <span>+ Create New Booking & Bill</span>
+              </button>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontWeight: 700 }}>
+                    <th style={{ padding: '11px 12px' }}>Bill / Contract Ref</th>
+                    <th style={{ padding: '11px 12px' }}>Customer Name & Contact</th>
+                    <th style={{ padding: '11px 12px' }}>Booked Service / Package</th>
+                    <th style={{ padding: '11px 12px' }}>Booking & Event Date</th>
+                    <th style={{ padding: '11px 12px' }}>Payment Mode</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'right' }}>Total Contract</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'right' }}>Advance Paid</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'right' }}>Balance Due (Baqi)</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'center' }}>Actions / Bill</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {eventContracts.map((c) => (
+                    <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ background: '#f3e8ff', color: '#7e22ce', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', fontSize: '11px' }}>
+                          {c.id}
+                        </span>
+                        <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '4px' }}>
+                          {c.status}
+                        </div>
+                      </td>
+
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ fontWeight: 800, color: '#0f172a' }}>{c.client}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>📞 {c.phone}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>📍 {c.venue}</div>
+                      </td>
+
+                      <td style={{ padding: '12px', maxWidth: '240px' }}>
+                        <div style={{ fontWeight: 700, color: '#1e293b' }}>{c.type}</div>
+                        {c.effects && (
+                          <div style={{ fontSize: '0.72rem', color: '#ca8a04', fontWeight: 600 }}>
+                            ✨ {c.effects}
+                          </div>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '12px', fontSize: '0.8rem' }}>
+                        <div><strong style={{ color: '#0f172a' }}>Event:</strong> {c.date}</div>
+                        <div style={{ color: '#64748b', fontSize: '0.74rem' }}>Booked: {c.bookingDate || 'Recent'}</div>
+                      </td>
+
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: c.paymentMode === 'CASH' ? '#ecfdf5' : '#eff6ff',
+                          color: c.paymentMode === 'CASH' ? '#059669' : '#2563eb',
+                          border: `1px solid ${c.paymentMode === 'CASH' ? '#a7f3d0' : '#bfdbfe'}`,
+                        }}>
+                          {c.paymentMode || 'UPI'}
+                        </span>
+                        {c.transactionRef && (
+                          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '3px' }}>
+                            Ref: {c.transactionRef}
+                          </div>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
+                        ₹{(Number(c.totalAmount) || 0).toLocaleString()}
+                      </td>
+
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, color: '#16a34a' }}>
+                        ₹{(Number(c.advancePaid) || 0).toLocaleString()}
+                      </td>
+
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 900, color: Number(c.balance) > 0 ? '#dc2626' : '#16a34a' }}>
+                        ₹{(Number(c.balance) || 0).toLocaleString()}
+                      </td>
+
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => setSelectedReceiptContract(c)}
+                            title="Print / View Invoice Bill Slip"
+                            style={{
+                              background: '#0f172a',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Printer size={13} />
+                            <span>Bill Slip</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              const text = `*JAY GURUDEV EVENT & MANAGEMENT - BILL RECEIPT*
+Bill No: ${c.id}
+Client: ${c.client}
+Phone: ${c.phone}
+Package: ${c.type}
+Event Date: ${c.date}
+Venue: ${c.venue}
+------------------------------
+Total Amount: ₹${(Number(c.totalAmount) || 0).toLocaleString()}
+Advance Paid (${c.paymentMode || 'UPI'}): ₹${(Number(c.advancePaid) || 0).toLocaleString()}
+Remaining Balance: ₹${(Number(c.balance) || 0).toLocaleString()}
+------------------------------
+Thank you for choosing Jay Gurudev Event & Management!
+Call: 76519 72973`;
+                              window.open(`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                            }}
+                            title="Share Bill on WhatsApp"
+                            style={{
+                              background: '#22c55e',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '6px 9px',
                               borderRadius: '6px',
                               fontSize: '11px',
                               fontWeight: 700,
@@ -1667,7 +2120,6 @@ Please call 76519 72973 to finalize contract.`;
                             }}
                           >
                             <MessageCircle size={13} />
-                            <span>WhatsApp</span>
                           </button>
                         </div>
                       </td>
@@ -1677,79 +2129,6 @@ Please call 76519 72973 to finalize contract.`;
               </table>
             </div>
           </div>
-
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════════
-          6. TAB 4: CLIENT & COUPLE DIRECTORY
-         ══════════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'CLIENTS' && (
-        <div style={{ padding: '0 2rem' }}>
-          
-          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-            <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-              Wedding Clients & Payment Ledger
-            </h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
-              {eventContracts.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    padding: '1.25rem',
-                    background: '#f8fafc',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ background: '#7e22ce', color: '#ffffff', fontSize: '10.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px' }}>
-                        {c.id}
-                      </span>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a' }}>
-                        {c.status}
-                      </span>
-                    </div>
-
-                    <h4 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                      {c.client}
-                    </h4>
-                    <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                      📞 {c.phone}
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '4px' }}>
-                      📍 {c.venue}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#7e22ce', fontWeight: 600, marginTop: '4px' }}>
-                      {c.type}
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                    <div>
-                      <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>Contract Value</div>
-                      <div style={{ fontWeight: 800, color: '#0f172a' }}>₹{c.totalAmount.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>Advance Paid</div>
-                      <div style={{ fontWeight: 800, color: '#16a34a' }}>₹{c.advancePaid.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>Balance Due</div>
-                      <div style={{ fontWeight: 800, color: '#dc2626' }}>₹{c.balance.toLocaleString()}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
         </div>
       )}
 
@@ -2888,16 +3267,440 @@ Please call 76519 72973 to finalize contract.`;
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          8. MODAL: + NEW BOOKING CONTRACT
+          8. MODAL: + NEW BOOKING & BILL (CUSTOMER SELECT / ADD, SERVICE/PKG PICKER, ADVANCE & PAYMENT MODE, DATES)
          ══════════════════════════════════════════════════════════════════════════ */}
       {newBookingModalOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(6px)',
-            zIndex: 100,
+            background: 'rgba(15, 23, 42, 0.78)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              maxWidth: '680px',
+              width: '100%',
+              padding: '2rem 2.25rem',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+              position: 'relative',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+            }}
+          >
+            <button
+              onClick={() => setNewBookingModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: '#f1f5f9',
+                border: 'none',
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#475569',
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+                <PartyPopper size={26} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>
+                  Create Event Booking & Billing Contract
+                </h3>
+                <div style={{ fontSize: '0.84rem', color: '#64748b' }}>
+                  Select customer or register new, choose package/service, and record advance payment.
+                </div>
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+
+                // Compute details
+                const clientName = bookingCustomerType === 'EXISTING'
+                  ? (dbCustomers.find((c) => c.id === selectedCustomerId)?.name || bookingFormData.clientName)
+                  : bookingFormData.clientName;
+
+                const phone = bookingCustomerType === 'EXISTING'
+                  ? (dbCustomers.find((c) => c.id === selectedCustomerId)?.phone || bookingFormData.phone)
+                  : bookingFormData.phone;
+
+                if (!clientName || !clientName.trim()) {
+                  alert('Please enter or select a customer name.');
+                  return;
+                }
+
+                const chosenItem = eventCatalogList.find((i) => (i.id || i._id) === bookingFormData.selectedItemId) || eventCatalogList[0];
+                const totalAmt = Number(bookingFormData.totalAmount) || Number(chosenItem?.finalPrice || chosenItem?.rate) || 0;
+                const advPaid = Number(bookingFormData.advancePaid) || 0;
+                const balance = Math.max(0, totalAmt - advPaid);
+
+                const newContract = {
+                  id: `JGD-${new Date().getFullYear()}-${String(eventContracts.length + 1).padStart(2, '0')}`,
+                  client: clientName.trim(),
+                  phone: phone ? (phone.startsWith('+91') ? phone : `+91 ${phone.trim()}`) : '+91 98765 00000',
+                  type: chosenItem?.name || 'Custom Wedding Staging Production',
+                  date: bookingFormData.eventDate ? new Date(bookingFormData.eventDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Upcoming',
+                  bookingDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+                  venue: bookingFormData.venue.trim() || 'Varanasi Event Grounds',
+                  status: 'Confirmed',
+                  totalAmount: totalAmt,
+                  advancePaid: advPaid,
+                  balance: balance,
+                  paymentMode: bookingFormData.paymentMode,
+                  transactionRef: bookingFormData.transactionRef.trim() || `${bookingFormData.paymentMode}-${Date.now().toString().slice(-5)}`,
+                  crewLead: bookingFormData.crewLead || 'Vikram Singh (Stage Master)',
+                  effects: chosenItem?.features?.[0] || 'Aadiyogi Stage + Floral Entry',
+                  notes: bookingFormData.notes.trim(),
+                };
+
+                // If new customer, register into dbCustomers too
+                if (bookingCustomerType === 'NEW' && clientName) {
+                  setDbCustomers((prev) => [
+                    { id: `cust_${Date.now()}`, name: clientName, phone, email: bookingFormData.email },
+                    ...prev,
+                  ]);
+                }
+
+                const updatedContracts = [newContract, ...eventContracts];
+                setEventContracts(updatedContracts);
+                localStorage.setItem('jaygurudev_event_bookings', JSON.stringify(updatedContracts));
+
+                triggerToast(`✓ New Booking & Bill for "${newContract.client}" created successfully!`);
+                setNewBookingModalOpen(false);
+
+                // Auto open bill receipt slip for preview/printing
+                setSelectedReceiptContract(newContract);
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
+              {/* 1. Customer Selection / Add New Customer Toggle */}
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+                    1. Customer Information
+                  </label>
+                  <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: '8px', padding: '2px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setBookingCustomerType('EXISTING')}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: bookingCustomerType === 'EXISTING' ? '#ffffff' : 'transparent',
+                        color: bookingCustomerType === 'EXISTING' ? '#0f172a' : '#64748b',
+                        boxShadow: bookingCustomerType === 'EXISTING' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      }}
+                    >
+                      Select Existing Customer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingCustomerType('NEW')}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: bookingCustomerType === 'NEW' ? '#ffffff' : 'transparent',
+                        color: bookingCustomerType === 'NEW' ? '#0f172a' : '#64748b',
+                        boxShadow: bookingCustomerType === 'NEW' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      }}
+                    >
+                      + Add New Customer
+                    </button>
+                  </div>
+                </div>
+
+                {bookingCustomerType === 'EXISTING' ? (
+                  <div>
+                    <select
+                      value={selectedCustomerId}
+                      onChange={(e) => {
+                        setSelectedCustomerId(e.target.value);
+                        const cust = dbCustomers.find((c) => c.id === e.target.value);
+                        if (cust) {
+                          setBookingFormData((prev) => ({
+                            ...prev,
+                            clientName: cust.name,
+                            phone: cust.phone,
+                            email: cust.email || '',
+                          }));
+                        }
+                      }}
+                      required
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.86rem', background: '#ffffff' }}
+                    >
+                      <option value="">-- Choose Customer from Database --</option>
+                      {dbCustomers.map((cust) => (
+                        <option key={cust.id} value={cust.id}>
+                          👤 {cust.name} ({cust.phone})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                    <div>
+                      <input
+                        required
+                        type="text"
+                        placeholder="Customer / Couple Full Name *"
+                        value={bookingFormData.clientName}
+                        onChange={(e) => setBookingFormData({ ...bookingFormData, clientName: e.target.value })}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <input
+                        required
+                        type="tel"
+                        placeholder="Mobile Phone Number *"
+                        value={bookingFormData.phone}
+                        onChange={(e) => setBookingFormData({ ...bookingFormData, phone: e.target.value })}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Choose Service or Package from DB */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                  2. Select Event Package or Service from Database
+                </label>
+                <select
+                  value={bookingFormData.selectedItemId}
+                  onChange={(e) => {
+                    const selId = e.target.value;
+                    const item = eventCatalogList.find((i) => (i.id || i._id) === selId);
+                    if (item) {
+                      const itemPrice = Number(item.finalPrice || item.rate) || 0;
+                      setBookingFormData((prev) => ({
+                        ...prev,
+                        selectedItemId: selId,
+                        itemType: item.itemType || 'PACKAGE',
+                        totalAmount: itemPrice,
+                        advancePaid: Math.round(itemPrice * 0.4),
+                      }));
+                    }
+                  }}
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.86rem', background: '#f8fafc' }}
+                >
+                  <option value="">-- Choose Package or Service --</option>
+                  <optgroup label="📦 Event Packages (Combos)">
+                    {eventCatalogList
+                      .filter((i) => (i.itemType || 'EVENT').toUpperCase() === 'PACKAGE')
+                      .map((pkg) => (
+                        <option key={pkg.id || pkg._id} value={pkg.id || pkg._id}>
+                          📦 {pkg.name} — ₹{((Number(pkg.finalPrice || pkg.rate)) || 0).toLocaleString()}
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="🎪 Individual Event Services">
+                    {eventCatalogList
+                      .filter((i) => (i.itemType || 'EVENT').toUpperCase() !== 'PACKAGE')
+                      .map((srv) => (
+                        <option key={srv.id || srv._id} value={srv.id || srv._id}>
+                          🎪 {srv.name} — ₹{((Number(srv.finalPrice || srv.rate)) || 0).toLocaleString()}
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* 3. Dates & Venue */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Event Execution Date *
+                  </label>
+                  <input
+                    required
+                    type="date"
+                    value={bookingFormData.eventDate}
+                    onChange={(e) => setBookingFormData({ ...bookingFormData, eventDate: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Booking / Advance Date
+                  </label>
+                  <input
+                    type="date"
+                    value={bookingFormData.bookingDate}
+                    onChange={(e) => setBookingFormData({ ...bookingFormData, bookingDate: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                  Venue Location & Destination
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sarnath Heritage Lawn, Taj Nadesar, or Cantt Grounds"
+                  value={bookingFormData.venue}
+                  onChange={(e) => setBookingFormData({ ...bookingFormData, venue: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* 4. Payment Amounts, Advance, Balance & Mode */}
+              <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '14px', padding: '1.15rem' }}>
+                <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#166534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <DollarSign size={16} />
+                  <span>3. Pricing, Advance Token & Payment Mode</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                      Total Contract Amount (₹) *
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      value={bookingFormData.totalAmount}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, totalAmount: e.target.value })}
+                      placeholder="e.g. 250000"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 800, boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#16a34a', marginBottom: '4px' }}>
+                      Advance Token Received (₹) *
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      value={bookingFormData.advancePaid}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, advancePaid: e.target.value })}
+                      placeholder="e.g. 100000"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #22c55e', fontSize: '0.9rem', fontWeight: 800, color: '#15803d', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                      Payment Mode *
+                    </label>
+                    <select
+                      value={bookingFormData.paymentMode}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, paymentMode: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, background: '#ffffff' }}
+                    >
+                      <option value="UPI">📱 UPI (GooglePay / PhonePe / Paytm)</option>
+                      <option value="CASH">💵 Cash at Office</option>
+                      <option value="BANK_TRANSFER">🏦 Bank Transfer (NEFT / RTGS / IMPS)</option>
+                      <option value="CHEQUE">📑 Bank Cheque</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                      Transaction / Receipt Reference
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. UPI-98124 / CASH-001"
+                      value={bookingFormData.transactionRef}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, transactionRef: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #86efac', paddingTop: '8px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>Auto-calculated Balance Due (Baqi):</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#dc2626' }}>
+                    ₹{Math.max(0, (Number(bookingFormData.totalAmount) || 0) - (Number(bookingFormData.advancePaid) || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Modal Action Buttons */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setNewBookingModalOpen(false)}
+                  style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1.5,
+                    padding: '11px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #16a34a 0%, #059669 100%)',
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    fontSize: '0.92rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(22, 163, 74, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <CheckCircle2 size={18} />
+                  <span>Confirm Booking & Generate Bill</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          MODAL: INVOICE & BILL PRINTABLE SLIP
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {selectedReceiptContract && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.78)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -2908,17 +3711,17 @@ Please call 76519 72973 to finalize contract.`;
             style={{
               background: '#ffffff',
               borderRadius: '20px',
-              maxWidth: '560px',
+              maxWidth: '520px',
               width: '100%',
               padding: '2rem',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
               position: 'relative',
-              maxHeight: '90vh',
+              maxHeight: '92vh',
               overflowY: 'auto',
             }}
           >
             <button
-              onClick={() => setNewBookingModalOpen(false)}
+              onClick={() => setSelectedReceiptContract(null)}
               style={{
                 position: 'absolute',
                 top: '1.25rem',
@@ -2935,131 +3738,124 @@ Please call 76519 72973 to finalize contract.`;
                 color: '#475569',
               }}
             >
-              <X size={18} />
+              <X size={16} />
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.25rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7e22ce' }}>
-                <PartyPopper size={22} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
-                  Create Wedding Decor Contract
+            {/* Printable Receipt Card */}
+            <div id="printable-booking-slip" style={{ border: '2px solid #0f172a', borderRadius: '12px', padding: '1.5rem', background: '#fafafa' }}>
+              <div style={{ textAlign: 'center', borderBottom: '2px dashed #cbd5e1', paddingBottom: '12px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '24px' }}>🔱</div>
+                <h3 style={{ margin: '4px 0 2px', fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                  JAY GURUDEV EVENT & MANAGEMENT
                 </h3>
                 <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                  Jay Gurudev Event & Management • Sarnath, Varanasi
+                  Aadiyogi Theme Stage • Royal Bridal Entry • Cold Pyro Fireworks
                 </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                  Sarnath Heritage Lane, Varanasi • 📞 +91 76519 72973
+                </div>
+              </div>
+
+              {/* Bill Details */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '10px' }}>
+                <div>
+                  <span style={{ color: '#64748b' }}>Bill / Contract No: </span>
+                  <strong style={{ color: '#7e22ce' }}>{selectedReceiptContract.id}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b' }}>Date: </span>
+                  <strong>{selectedReceiptContract.bookingDate || new Date().toLocaleDateString()}</strong>
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 12px', marginBottom: '12px', fontSize: '0.84rem' }}>
+                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{selectedReceiptContract.client}</div>
+                <div style={{ color: '#64748b', fontSize: '0.78rem' }}>📞 {selectedReceiptContract.phone}</div>
+                <div style={{ color: '#475569', fontSize: '0.78rem', marginTop: '2px' }}>📍 Venue: {selectedReceiptContract.venue}</div>
+                <div style={{ color: '#16a34a', fontSize: '0.78rem', fontWeight: 700, marginTop: '2px' }}>📅 Event Date: {selectedReceiptContract.date}</div>
+              </div>
+
+              {/* Service Line Items */}
+              <div style={{ borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: '10px 0', marginBottom: '12px', fontSize: '0.84rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#0f172a' }}>
+                  <span>{selectedReceiptContract.type}</span>
+                  <span>₹{(Number(selectedReceiptContract.totalAmount) || 0).toLocaleString()}</span>
+                </div>
+                {selectedReceiptContract.effects && (
+                  <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '4px' }}>
+                    Includes: {selectedReceiptContract.effects}
+                  </div>
+                )}
+              </div>
+
+              {/* Financial Breakdown */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                  <span>Total Contract Value:</span>
+                  <strong style={{ color: '#0f172a' }}>₹{(Number(selectedReceiptContract.totalAmount) || 0).toLocaleString()}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 700 }}>
+                  <span>Advance Received ({selectedReceiptContract.paymentMode || 'UPI'}):</span>
+                  <span>-₹{(Number(selectedReceiptContract.advancePaid) || 0).toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.76rem' }}>
+                  <span>Payment Ref:</span>
+                  <span>{selectedReceiptContract.transactionRef || 'N/A'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 900, fontSize: '1rem', color: '#dc2626' }}>
+                  <span>Remaining Balance Due (Baqi):</span>
+                  <span>₹{(Number(selectedReceiptContract.balance) || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
+                This is a computer-generated official booking receipt. Balance payable before stage setup.
               </div>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert('Wedding contract created and stage hardware locked!');
-                setNewBookingModalOpen(false);
-              }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            >
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  Couple / Client Name
-                </label>
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. Ramesh & Pooja Wedding"
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
-              </div>
+            {/* Slip Action Buttons */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  window.print();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Printer size={16} />
+                <span>Print Official Slip</span>
+              </button>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    Contact Phone
-                  </label>
-                  <input
-                    required
-                    type="tel"
-                    placeholder="e.g. 98765 43210"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    Event Date
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  Stage Theme Selection
-                </label>
-                <select
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#f8fafc' }}
-                >
-                  <option>🔱 Aadiyogi Grand Theme Stage (20ft) + Royal Bridal Entry Arch</option>
-                  <option>🔱 Aadiyogi Mega Theme Stage (30ft) + 30ft Flower Arch Tunnel</option>
-                  <option>🌸 Royale Heritage Floral Mandap & Floating Aisle</option>
-                  <option>✨ Cinematic Concert LED Stage & 3D Lighting Truss</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  Venue Location
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Sarnath Heritage Lawn / Taj Nadesar"
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    Total Amount (₹)
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="₹2,75,000"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    Advance Token (₹)
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="₹1,00,000"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setNewBookingModalOpen(false)}
-                  style={{ flex: 1, padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{ flex: 1, padding: '11px', borderRadius: '8px', border: 'none', background: '#7e22ce', color: '#ffffff', fontWeight: 800, cursor: 'pointer' }}
-                >
-                  Book & Lock Hardware
-                </button>
-              </div>
-            </form>
+              <button
+                type="button"
+                onClick={() => setSelectedReceiptContract(null)}
+                style={{
+                  padding: '11px 20px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
