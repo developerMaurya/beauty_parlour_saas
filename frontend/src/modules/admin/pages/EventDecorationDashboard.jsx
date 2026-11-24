@@ -86,9 +86,11 @@ export function EventDecorationDashboard({ defaultTab }) {
   const tabParam = searchParams.get('tab');
   const getInitialTab = () => {
     if (tabParam) return tabParam.toUpperCase();
+    if (location.pathname.includes('event-packages')) {
+      return 'PACKAGES';
+    }
     if (
       location.pathname.includes('event-services') ||
-      location.pathname.includes('event-packages') ||
       location.pathname.includes('event-catalog')
     ) {
       return 'EVENTS';
@@ -131,8 +133,9 @@ export function EventDecorationDashboard({ defaultTab }) {
     }
     return [
       {
-        id: 'pkg_101',
-        _id: 'pkg_101',
+        id: 'evt_srv_101',
+        _id: 'evt_srv_101',
+        itemType: 'EVENT',
         name: 'Aadiyogi Theme Grand Wedding Stage (20ft)',
         category: 'STAGE_DECORATION',
         categoryName: 'Stage Decoration & Setup',
@@ -144,6 +147,7 @@ export function EventDecorationDashboard({ defaultTab }) {
           'Sculpted Nandi Bull Floral Enclosure',
           '40x24ft Heavy Duty Iron Rigging Platform',
         ],
+        includedServices: [],
         rate: 250000,
         discount: 25000,
         finalPrice: 225000,
@@ -155,8 +159,9 @@ export function EventDecorationDashboard({ defaultTab }) {
         advanceRequired: '40% Advance',
       },
       {
-        id: 'pkg_102',
-        _id: 'pkg_102',
+        id: 'evt_srv_102',
+        _id: 'evt_srv_102',
+        itemType: 'EVENT',
         name: 'Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel',
         category: 'BRIDAL_ENTRY',
         categoryName: 'Royal Bridal Entry & Walkways',
@@ -168,6 +173,7 @@ export function EventDecorationDashboard({ defaultTab }) {
           'LED Handheld Lotus Flower Props for Bridesmaids',
           'Matching Entry Gate Welcome Signage',
         ],
+        includedServices: [],
         rate: 95000,
         discount: 10000,
         finalPrice: 85000,
@@ -179,8 +185,9 @@ export function EventDecorationDashboard({ defaultTab }) {
         advanceRequired: '30% Advance',
       },
       {
-        id: 'pkg_103',
-        _id: 'pkg_103',
+        id: 'evt_srv_103',
+        _id: 'evt_srv_103',
+        itemType: 'EVENT',
         name: 'Cold Pyro Fireworks & Heavy Dry Ice Cloud Fog Machine',
         category: 'SPECIAL_EFFECTS',
         categoryName: 'Cold Pyro, Fog & Fireworks',
@@ -192,6 +199,7 @@ export function EventDecorationDashboard({ defaultTab }) {
           'Double-barrel Confetti Air Cannon with Golden Foil',
           'Dedicated Trained Pyro Technician on site',
         ],
+        includedServices: [],
         rate: 45000,
         discount: 5000,
         finalPrice: 40000,
@@ -203,8 +211,9 @@ export function EventDecorationDashboard({ defaultTab }) {
         advanceRequired: '50% Advance',
       },
       {
-        id: 'pkg_104',
-        _id: 'pkg_104',
+        id: 'evt_srv_104',
+        _id: 'evt_srv_104',
+        itemType: 'EVENT',
         name: 'Royal Hydraulic Revolving Varmala Stage',
         category: 'VARMALA_STAGE',
         categoryName: 'Hydraulic & Revolving Varmala Stage',
@@ -216,6 +225,7 @@ export function EventDecorationDashboard({ defaultTab }) {
           'Safety Railing wrapped in White Carnations',
           'Synchronized Pyro Trigger upon garland exchange',
         ],
+        includedServices: [],
         rate: 120000,
         discount: 15000,
         finalPrice: 105000,
@@ -227,8 +237,9 @@ export function EventDecorationDashboard({ defaultTab }) {
         advanceRequired: '40% Advance',
       },
       {
-        id: 'pkg_105',
-        _id: 'pkg_105',
+        id: 'evt_srv_105',
+        _id: 'evt_srv_105',
+        itemType: 'EVENT',
         name: 'Traditional Marigold Haldi & Mehendi Cabana Decor',
         category: 'HALDI_MEHENDI',
         categoryName: 'Haldi, Mehendi & Sangeet',
@@ -240,6 +251,7 @@ export function EventDecorationDashboard({ defaultTab }) {
           '8 Floor Gaddi Mattresses with Bandhani Cushions',
           'Photo Booth with Antique Rickshaw / Cycle Prop',
         ],
+        includedServices: [],
         rate: 65000,
         discount: 5000,
         finalPrice: 60000,
@@ -251,28 +263,63 @@ export function EventDecorationDashboard({ defaultTab }) {
         advanceRequired: '30% Advance',
       },
       {
-        id: 'pkg_106',
-        _id: 'pkg_106',
-        name: 'Grand Luxury Destination Wedding Complete Theme Package',
+        id: 'evt_pkg_201',
+        _id: 'evt_pkg_201',
+        itemType: 'PACKAGE',
+        name: 'Grand Royal Shiva Mahadev Wedding Combo Package',
         category: 'COMPLETE_THEME',
         categoryName: 'Complete Grand Theme Package',
-        description: 'All-inclusive royal palace wedding production: Stage, Bridal Walkway, Varmala Platform, Banquet Lighting, Sound Truss, and Full Effects.',
+        description: 'Complete all-in-one VIP Wedding Staging Package bundling 20ft Aadiyogi Stage, 15ft Royal Bridal Entrance Arch Tunnel, and Cold Pyro Sparkle Blasts.',
         features: [
-          'Full Aadiyogi or Crystal Palace Stage Setup',
-          'Complete 100ft Illuminated Entry Pathway',
-          'Complete Pyro + Heavy Fog + Drone Fireworks',
-          'Stage Sound System & Intelligent Moving Head Lights',
-          'Full Day Staging & Dismantling Crew Supervision',
+          'Bundle: 20ft Aadiyogi Theme Stage (Worth ₹2,50,000)',
+          'Bundle: Royal Bridal 15ft Flower Arch Tunnel (Worth ₹95,000)',
+          'Bundle: Cold Pyro Blasts & Low Fog Cloud Machines (Worth ₹45,000)',
+          'Total Savings of ₹65,000 when booked together',
+          'Dedicated Production Director & 15 On-site Riggers',
         ],
-        rate: 0,
-        discount: 0,
-        finalPrice: 0,
-        showPrice: false,
-        imageUrl: 'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&w=1000&q=80',
+        includedServices: [
+          { id: 'evt_srv_101', name: 'Aadiyogi Theme Grand Wedding Stage (20ft)', price: 250000, category: 'STAGE_DECORATION' },
+          { id: 'evt_srv_102', name: 'Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel', price: 95000, category: 'BRIDAL_ENTRY' },
+          { id: 'evt_srv_103', name: 'Cold Pyro Fireworks & Heavy Dry Ice Cloud Fog Machine', price: 45000, category: 'SPECIAL_EFFECTS' },
+        ],
+        rate: 390000,
+        discount: 65000,
+        finalPrice: 325000,
+        showPrice: true,
+        imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80',
         status: 'ACTIVE',
-        setupTime: '12-16 Hours',
-        crewSize: '25 Master Crew',
-        advanceRequired: '50% Advance',
+        setupTime: '8-10 Hours',
+        crewSize: '15 Master Crew + 1 Event Director',
+        advanceRequired: '40% Advance',
+      },
+      {
+        id: 'evt_pkg_202',
+        _id: 'evt_pkg_202',
+        itemType: 'PACKAGE',
+        name: 'Varmala Celebration & Bridal Royalty Duo Package',
+        category: 'COMPLETE_THEME',
+        categoryName: 'Complete Grand Theme Package',
+        description: 'Special combo package combining the Hydraulic Revolving Varmala Stage with the Royal Bridal 15ft Illuminated Flower Arch Tunnel and Pyro entry.',
+        features: [
+          'Bundle: Hydraulic & Revolving Varmala Stage (Worth ₹1,20,000)',
+          'Bundle: Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel (Worth ₹95,000)',
+          'Bundle: Cold Pyro Sparkle Blasts & Dry Ice Cloud Fog (Worth ₹45,000)',
+          'Combined Spectacular Experience with ₹40,000 Package Discount',
+        ],
+        includedServices: [
+          { id: 'evt_srv_104', name: 'Royal Hydraulic Revolving Varmala Stage', price: 120000, category: 'VARMALA_STAGE' },
+          { id: 'evt_srv_102', name: 'Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel', price: 95000, category: 'BRIDAL_ENTRY' },
+          { id: 'evt_srv_103', name: 'Cold Pyro Fireworks & Heavy Dry Ice Cloud Fog Machine', price: 45000, category: 'SPECIAL_EFFECTS' },
+        ],
+        rate: 260000,
+        discount: 40000,
+        finalPrice: 220000,
+        showPrice: true,
+        imageUrl: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=1000&q=80',
+        status: 'ACTIVE',
+        setupTime: '6-7 Hours',
+        crewSize: '10 Technicians & Operators',
+        advanceRequired: '35% Advance',
       },
     ];
   });
@@ -305,9 +352,11 @@ export function EventDecorationDashboard({ defaultTab }) {
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventForm, setEventForm] = useState({
     name: '',
+    itemType: 'EVENT',
     category: 'STAGE_DECORATION',
     description: '',
     features: [''],
+    includedServices: [],
     rate: '',
     discount: '',
     showPrice: true,
@@ -327,10 +376,12 @@ export function EventDecorationDashboard({ defaultTab }) {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleOpenAddModal = () => {
+  // Open modal to add an individual Event Service
+  const handleOpenAddEventModal = () => {
     setEditingEvent(null);
     setEventForm({
       name: '',
+      itemType: 'EVENT',
       category: 'STAGE_DECORATION',
       description: '',
       features: [
@@ -338,6 +389,7 @@ export function EventDecorationDashboard({ defaultTab }) {
         'Warm Tone Atmospheric LED Lighting',
         'Experienced On-site Technical Operator',
       ],
+      includedServices: [],
       rate: '',
       discount: '',
       showPrice: true,
@@ -351,13 +403,51 @@ export function EventDecorationDashboard({ defaultTab }) {
     setEventModalOpen(true);
   };
 
+  // Open modal to add a combo Package bundling multiple Event Services
+  const handleOpenAddPackageModal = () => {
+    setEditingEvent(null);
+    setEventForm({
+      name: '',
+      itemType: 'PACKAGE',
+      category: 'COMPLETE_THEME',
+      description: '',
+      features: [
+        'Complete Theme Staging with Multiple Services Bundled',
+        'Dedicated On-site Production Director',
+        'Combined Discount Savings on Package Booking',
+      ],
+      includedServices: [],
+      rate: '',
+      discount: '',
+      showPrice: true,
+      imageUrl: PRESET_EVENT_IMAGES[0].url,
+      status: 'ACTIVE',
+      setupTime: '8-10 Hours',
+      crewSize: '12-15 Master Crew',
+      advanceRequired: '40% Advance',
+    });
+    setNewFeatureInput('');
+    setEventModalOpen(true);
+  };
+
+  // Legacy fallback for general add button
+  const handleOpenAddModal = () => {
+    if (activeTab === 'PACKAGES') {
+      handleOpenAddPackageModal();
+    } else {
+      handleOpenAddEventModal();
+    }
+  };
+
   const handleOpenEditModal = (item) => {
     setEditingEvent(item);
     setEventForm({
       name: item.name || '',
+      itemType: (item.itemType || (item.includedServices && item.includedServices.length > 0 ? 'PACKAGE' : 'EVENT')).toUpperCase(),
       category: item.category || 'STAGE_DECORATION',
       description: item.description || '',
       features: Array.isArray(item.features) && item.features.length > 0 ? [...item.features] : [''],
+      includedServices: Array.isArray(item.includedServices) ? [...item.includedServices] : [],
       rate: item.rate !== undefined && item.rate !== null ? item.rate : '',
       discount: item.discount !== undefined && item.discount !== null ? item.discount : '',
       showPrice: item.showPrice !== undefined ? Boolean(item.showPrice) : true,
@@ -387,6 +477,37 @@ export function EventDecorationDashboard({ defaultTab }) {
     }));
   };
 
+  // Toggle selection of an individual event service inside a package
+  const handleToggleServiceInPackage = (service) => {
+    const sId = service.id || service._id;
+    setEventForm((prev) => {
+      const exists = prev.includedServices.some((s) => (s.id || s._id) === sId);
+      let updatedServices;
+      if (exists) {
+        updatedServices = prev.includedServices.filter((s) => (s.id || s._id) !== sId);
+      } else {
+        updatedServices = [
+          ...prev.includedServices,
+          {
+            id: sId,
+            _id: sId,
+            name: service.name,
+            price: Number(service.finalPrice || service.rate) || 0,
+            category: service.category,
+          },
+        ];
+      }
+
+      // Auto-calculate suggested package price if rate not customized yet or empty
+      const totalSuggestedRate = updatedServices.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+      return {
+        ...prev,
+        includedServices: updatedServices,
+        rate: prev.rate === '' || prev.rate === 0 ? totalSuggestedRate : prev.rate,
+      };
+    });
+  };
+
   const handleImageFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -409,10 +530,12 @@ export function EventDecorationDashboard({ defaultTab }) {
 
     const payload = {
       name: eventForm.name.trim(),
+      itemType: (eventForm.itemType || 'EVENT').toUpperCase(),
       category: eventForm.category,
       categoryName: categoryObj.label,
       description: eventForm.description.trim(),
       features: eventForm.features.filter(Boolean),
+      includedServices: eventForm.itemType === 'PACKAGE' ? eventForm.includedServices : [],
       rate: numRate,
       discount: numDiscount,
       finalPrice,
@@ -433,7 +556,7 @@ export function EventDecorationDashboard({ defaultTab }) {
       );
       setEventCatalogList(updated);
       localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
-      triggerToast(`✓ Event package "${payload.name}" updated successfully!`);
+      triggerToast(`✓ ${payload.itemType === 'PACKAGE' ? 'Event package' : 'Event service'} "${payload.name}" updated successfully!`);
       setEventModalOpen(false);
       setEditingEvent(null);
 
@@ -444,15 +567,15 @@ export function EventDecorationDashboard({ defaultTab }) {
       }
     } else {
       const newItem = {
-        id: `pkg_${Date.now()}`,
-        _id: `pkg_${Date.now()}`,
+        id: payload.itemType === 'PACKAGE' ? `evt_pkg_${Date.now()}` : `evt_srv_${Date.now()}`,
+        _id: payload.itemType === 'PACKAGE' ? `evt_pkg_${Date.now()}` : `evt_srv_${Date.now()}`,
         ...payload,
         createdAt: new Date().toISOString(),
       };
       const updated = [newItem, ...eventCatalogList];
       setEventCatalogList(updated);
       localStorage.setItem('jaygurudev_event_catalog', JSON.stringify(updated));
-      triggerToast(`✓ New event package "${newItem.name}" added to catalog!`);
+      triggerToast(`✓ New ${newItem.itemType === 'PACKAGE' ? 'Event Package' : 'Event Service'} "${newItem.name}" added to catalog!`);
       setEventModalOpen(false);
 
       try {
@@ -1041,12 +1164,13 @@ export function EventDecorationDashboard({ defaultTab }) {
         </div>
       )}
 
-      {/* ── Sub Tabs Bar (Dashboard | Events Catalog | Aadiyogi Inventory | Proposals | Clients) ── */}
+      {/* ── Sub Tabs Bar (Dashboard | Events | Event Packages | Aadiyogi Inventory | Proposals | Clients) ── */}
       <div style={{ padding: '0 2rem 1.25rem' }}>
         <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', overflowX: 'auto' }}>
           {[
             { id: 'DASHBOARD', label: '📊 Dashboard Overview' },
-            { id: 'EVENTS', label: '🎪 Events & Services Catalog', count: eventCatalogList.length },
+            { id: 'EVENTS', label: '🎪 Events & Services', count: eventCatalogList.filter((i) => (i.itemType || 'EVENT').toUpperCase() !== 'PACKAGE').length },
+            { id: 'PACKAGES', label: '📦 Event Packages', count: eventCatalogList.filter((i) => (i.itemType || 'EVENT').toUpperCase() === 'PACKAGE').length },
             { id: 'STAGES', label: '🔱 Aadiyogi & Stage Inventory' },
             { id: 'PROPOSALS', label: '📑 Customer Proposals & Quotes', count: proposals.length },
             { id: 'CLIENTS', label: '👥 Wedding Couples & Ledger', count: eventContracts.length },
@@ -1657,10 +1781,14 @@ Please call 76519 72973 to finalize contract.`;
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 5: EVENTS & SERVICES MASTER CATALOG
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TAB 5: EVENTS & SERVICES MASTER LIST (INDIVIDUAL EVENT SERVICES)
          ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'EVENTS' && (() => {
-        const filteredCatalog = eventCatalogList.filter((item) => {
+        const filteredEvents = eventCatalogList.filter((item) => {
+          // Exclude Packages here
+          if ((item.itemType || 'EVENT').toUpperCase() === 'PACKAGE') return false;
+
           // Category filter
           if (catalogCategoryFilter !== 'ALL' && (item.category || '').toUpperCase() !== catalogCategoryFilter.toUpperCase()) {
             return false;
@@ -1685,14 +1813,14 @@ Please call 76519 72973 to finalize contract.`;
           return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
         });
 
-        const stageCount = eventCatalogList.filter((i) => i.category === 'STAGE_DECORATION').length;
-        const entryCount = eventCatalogList.filter((i) => i.category === 'BRIDAL_ENTRY').length;
-        const effectsCount = eventCatalogList.filter((i) => i.category === 'SPECIAL_EFFECTS').length;
-        const activeCount = eventCatalogList.filter((i) => (i.status || 'ACTIVE').toUpperCase() === 'ACTIVE').length;
+        const stageCount = eventCatalogList.filter((i) => (i.itemType || 'EVENT') !== 'PACKAGE' && i.category === 'STAGE_DECORATION').length;
+        const entryCount = eventCatalogList.filter((i) => (i.itemType || 'EVENT') !== 'PACKAGE' && i.category === 'BRIDAL_ENTRY').length;
+        const effectsCount = eventCatalogList.filter((i) => (i.itemType || 'EVENT') !== 'PACKAGE' && i.category === 'SPECIAL_EFFECTS').length;
+        const activeCount = eventCatalogList.filter((i) => (i.itemType || 'EVENT') !== 'PACKAGE' && (i.status || 'ACTIVE').toUpperCase() === 'ACTIVE').length;
 
         return (
           <div style={{ padding: '0 2rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Catalog Banner & Stats */}
+            {/* Events Banner & Stats */}
             <div
               style={{
                 background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 60%, #451a03 100%)',
@@ -1712,20 +1840,20 @@ Please call 76519 72973 to finalize contract.`;
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                   <span style={{ fontSize: '18px' }}>🔱</span>
                   <span style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: '#facc15', color: '#1e1b4b', padding: '2px 8px', borderRadius: '6px' }}>
-                    Jay Gurudev Productions Master
+                    Jay Gurudev Event Services
                   </span>
                 </div>
                 <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '0 0 8px', letterSpacing: '-0.02em', color: '#ffffff' }}>
-                  Events & Stage Decoration Packages
+                  Event Services & Productions Catalog
                 </h2>
                 <p style={{ margin: 0, fontSize: '0.88rem', color: '#e2e8f0', lineHeight: 1.5 }}>
-                  Manage client-facing wedding themes, 20ft Aadiyogi setups, royal bridal entrance tunnels, cold pyro effects, and custom pricing ledgers.
+                  Manage individual event services: 20ft Aadiyogi Mahadev Stage, Royal Bridal Walkway Arches, Revolving Varmala Stages, and Cold Pyro machines.
                 </p>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
-                  onClick={handleOpenAddModal}
+                  onClick={handleOpenAddEventModal}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1743,7 +1871,7 @@ Please call 76519 72973 to finalize contract.`;
                   }}
                 >
                   <Plus size={18} />
-                  <span>+ Add New Event Package</span>
+                  <span>+ Add New Event Service</span>
                 </button>
               </div>
             </div>
@@ -1751,7 +1879,7 @@ Please call 76519 72973 to finalize contract.`;
             {/* Quick Metrics Bar */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               {[
-                { label: 'Total Packages', count: eventCatalogList.length, icon: '🎪', color: '#7e22ce', bg: '#faf5ff' },
+                { label: 'Total Event Services', count: eventCatalogList.filter((i) => (i.itemType || 'EVENT') !== 'PACKAGE').length, icon: '🎪', color: '#7e22ce', bg: '#faf5ff' },
                 { label: 'Stage Setups', count: stageCount, icon: '🏛️', color: '#ca8a04', bg: '#fefce8' },
                 { label: 'Bridal Entries', count: entryCount, icon: '👑', color: '#be123c', bg: '#fff1f2' },
                 { label: 'Special Effects', count: effectsCount, icon: '🎆', color: '#0284c7', bg: '#f0f9ff' },
@@ -1867,103 +1995,84 @@ Please call 76519 72973 to finalize contract.`;
                       cursor: 'pointer',
                     }}
                   >
-                    <option value="newest">Newest First</option>
+                    <option value="newest">Latest Added</option>
                     <option value="rate_desc">Price: High to Low</option>
                     <option value="rate_asc">Price: Low to High</option>
-                    <option value="name_asc">Package Name (A-Z)</option>
+                    <option value="name_asc">Name: A to Z</option>
                   </select>
                 </div>
               </div>
 
-              {/* Category Filter Chips */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+              {/* Category Pills */}
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
                 <button
                   onClick={() => setCatalogCategoryFilter('ALL')}
                   style={{
                     padding: '6px 14px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: catalogCategoryFilter === 'ALL' ? '#7e22ce' : '#f1f5f9',
-                    color: catalogCategoryFilter === 'ALL' ? '#ffffff' : '#475569',
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    border: '1px solid',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    background: catalogCategoryFilter === 'ALL' ? '#1e1b4b' : '#ffffff',
+                    color: catalogCategoryFilter === 'ALL' ? '#ffffff' : '#475569',
+                    borderColor: catalogCategoryFilter === 'ALL' ? '#1e1b4b' : '#cbd5e1',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  All ({eventCatalogList.length})
+                  All Categories ({eventCatalogList.filter((i) => (i.itemType || 'EVENT') !== 'PACKAGE').length})
                 </button>
                 {EVENT_CATEGORIES.map((cat) => {
-                  const count = eventCatalogList.filter((i) => i.category === cat.id).length;
-                  const isSelected = catalogCategoryFilter === cat.id;
+                  const count = eventCatalogList.filter((i) => (i.itemType || 'EVENT') !== 'PACKAGE' && i.category === cat.id).length;
+                  const isSel = catalogCategoryFilter === cat.id;
                   return (
                     <button
                       key={cat.id}
                       onClick={() => setCatalogCategoryFilter(cat.id)}
                       style={{
                         padding: '6px 14px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: isSelected ? '#7e22ce' : '#f1f5f9',
-                        color: isSelected ? '#ffffff' : '#475569',
-                        fontSize: '0.8rem',
-                        fontWeight: 800,
+                        borderRadius: '20px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        border: '1px solid',
                         cursor: 'pointer',
+                        background: isSel ? '#7e22ce' : '#ffffff',
+                        color: isSel ? '#ffffff' : '#475569',
+                        borderColor: isSel ? '#7e22ce' : '#cbd5e1',
+                        whiteSpace: 'nowrap',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        transition: 'all 0.15s ease',
+                        gap: '5px',
                       }}
                     >
                       <span>{cat.icon}</span>
                       <span>{cat.short}</span>
-                      <span style={{ fontSize: '10px', background: isSelected ? 'rgba(255,255,255,0.3)' : '#e2e8f0', color: isSelected ? '#fff' : '#64748b', padding: '1px 5px', borderRadius: '99px' }}>
-                        {count}
-                      </span>
+                      <span style={{ fontSize: '10px', opacity: 0.8 }}>({count})</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Results Counter */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem', color: '#64748b' }}>
-              <span>
-                Showing <strong>{filteredCatalog.length}</strong> of <strong>{eventCatalogList.length}</strong> event packages
-              </span>
-              {(catalogCategoryFilter !== 'ALL' || catalogStatusFilter !== 'ALL' || catalogSearch) && (
-                <button
-                  onClick={() => {
-                    setCatalogCategoryFilter('ALL');
-                    setCatalogStatusFilter('ALL');
-                    setCatalogSearch('');
-                  }}
-                  style={{ background: 'none', border: 'none', color: '#7e22ce', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
-                >
-                  Clear All Filters
-                </button>
-              )}
-            </div>
-
-            {/* Event Cards Grid */}
-            {filteredCatalog.length === 0 ? (
+            {/* Events Grid */}
+            {filteredEvents.length === 0 ? (
               <div
                 style={{
                   background: '#ffffff',
+                  border: '1.5px dashed #cbd5e1',
                   borderRadius: '16px',
-                  border: '1px dashed #cbd5e1',
                   padding: '3rem 2rem',
                   textAlign: 'center',
                   color: '#64748b',
                 }}
               >
                 <div style={{ fontSize: '40px', marginBottom: '10px' }}>🎪</div>
-                <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: '#0f172a' }}>No Event Packages Found</h3>
+                <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: '#0f172a' }}>No Event Services Found</h3>
                 <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem' }}>
-                  No event package matches the selected category or search filter.
+                  No individual event service matches the selected category or search filter.
                 </p>
                 <button
-                  onClick={handleOpenAddModal}
+                  onClick={handleOpenAddEventModal}
                   style={{
                     background: '#7e22ce',
                     color: '#fff',
@@ -1975,36 +2084,38 @@ Please call 76519 72973 to finalize contract.`;
                     cursor: 'pointer',
                   }}
                 >
-                  + Add New Package
+                  + Add New Event Service
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
-                {filteredCatalog.map((pkg) => {
-                  const catMeta = EVENT_CATEGORIES.find((c) => c.id === pkg.category) || {
-                    icon: '🎪',
-                    label: pkg.categoryName || 'Event Service',
-                    short: 'Event',
-                  };
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                  gap: '1.25rem',
+                }}
+              >
+                {filteredEvents.map((pkg) => {
+                  const targetId = pkg.id || pkg._id;
                   const isActive = (pkg.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
 
                   return (
                     <div
-                      key={pkg.id || pkg._id}
+                      key={targetId}
                       style={{
                         background: '#ffffff',
-                        borderRadius: '18px',
-                        border: '1.5px solid #e2e8f0',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '16px',
                         overflow: 'hidden',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                       }}
                     >
-                      {/* Top: Image, Category Badge & Status Pill */}
                       <div>
+                        {/* Event Card Image & Badges */}
                         <div style={{ position: 'relative', height: '190px', background: '#0f172a', overflow: 'hidden' }}>
                           <img
                             src={pkg.imageUrl || PRESET_EVENT_IMAGES[0].url}
@@ -2014,71 +2125,87 @@ Please call 76519 72973 to finalize contract.`;
                               e.target.src = PRESET_EVENT_IMAGES[0].url;
                             }}
                           />
-                          {/* Category Badge (Top Left) */}
+
+                          {/* Category Badge */}
                           <div
                             style={{
                               position: 'absolute',
                               top: '12px',
                               left: '12px',
                               background: 'rgba(15, 23, 42, 0.85)',
-                              backdropFilter: 'blur(6px)',
+                              backdropFilter: 'blur(4px)',
                               color: '#facc15',
                               padding: '4px 10px',
                               borderRadius: '8px',
                               fontSize: '0.74rem',
-                              fontWeight: 900,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              border: '1px solid rgba(250, 204, 21, 0.4)',
+                              fontWeight: 800,
+                              border: '1px solid rgba(250, 204, 21, 0.3)',
                             }}
                           >
-                            <span>{catMeta.icon}</span>
-                            <span>{catMeta.label}</span>
+                            {pkg.categoryName || pkg.category}
                           </div>
 
-                          {/* Status Badge (Top Right - Clickable Toggle) */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(pkg)}
-                            title="Click to toggle Active / Inactive"
+                          {/* Status Badge */}
+                          <div
                             style={{
                               position: 'absolute',
                               top: '12px',
                               right: '12px',
-                              background: isActive ? 'rgba(22, 163, 74, 0.9)' : 'rgba(100, 116, 139, 0.9)',
-                              backdropFilter: 'blur(6px)',
+                              background: isActive ? '#15803d' : '#64748b',
                               color: '#ffffff',
-                              padding: '4px 10px',
-                              borderRadius: '8px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
                               fontSize: '0.72rem',
                               fontWeight: 900,
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
                             }}
                           >
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fff' }} />
-                            <span>{isActive ? 'ACTIVE' : 'INACTIVE'}</span>
-                          </button>
+                            {isActive ? '● Active' : '○ Inactive'}
+                          </div>
                         </div>
 
-                        {/* Body Details */}
-                        <div style={{ padding: '1.25rem 1.25rem 0.75rem' }}>
-                          <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
+                        {/* Event Content */}
+                        <div style={{ padding: '1.25rem 1.25rem 0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#7e22ce', background: '#f3e8ff', padding: '2px 6px', borderRadius: '4px' }}>
+                              EVENT SERVICE
+                            </span>
+                          </div>
+
+                          <h3
+                            style={{
+                              margin: '0 0 6px',
+                              fontSize: '1.1rem',
+                              fontWeight: 900,
+                              color: '#0f172a',
+                              lineHeight: 1.35,
+                              minHeight: '44px',
+                            }}
+                          >
                             {pkg.name}
                           </h3>
-                          <p style={{ margin: '0 0 1rem', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5, minHeight: '38px' }}>
-                            {pkg.description || 'Premium wedding & event production setup customized for lawns and banquets.'}
+
+                          <p
+                            style={{
+                              margin: '0 0 10px',
+                              fontSize: '0.82rem',
+                              color: '#64748b',
+                              lineHeight: 1.5,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {pkg.description}
                           </p>
 
-                          {/* Features List (User requested: list wise multiple features) */}
-                          <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '10px 12px', border: '1px solid #f1f5f9', marginBottom: '1rem' }}>
-                            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          {/* Features List */}
+                          <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px', border: '1px solid #f1f5f9' }}>
+                            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Sparkles size={13} color="#ca8a04" />
-                              <span>Included Features & Specifications:</span>
+                              <span>Service Inclusions:</span>
                             </div>
                             <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.8rem', color: '#334155', lineHeight: 1.6 }}>
                               {(pkg.features || []).slice(0, 4).map((f, fIdx) => (
@@ -2088,7 +2215,7 @@ Please call 76519 72973 to finalize contract.`;
                               ))}
                               {(pkg.features || []).length > 4 && (
                                 <li style={{ color: '#7e22ce', fontWeight: 700, listStyleType: 'none', marginTop: '2px' }}>
-                                  + {(pkg.features.length - 4)} more features included
+                                  + {(pkg.features.length - 4)} more features
                                 </li>
                               )}
                             </ul>
@@ -2172,7 +2299,7 @@ Please call 76519 72973 to finalize contract.`;
 
                           <button
                             onClick={() => handleToggleStatus(pkg)}
-                            title={isActive ? 'Deactivate Package' : 'Activate Package'}
+                            title={isActive ? 'Deactivate Service' : 'Activate Service'}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -2221,7 +2348,568 @@ Please call 76519 72973 to finalize contract.`;
                               borderRadius: '8px',
                               cursor: 'pointer',
                             }}
-                            title="Delete Event Package"
+                            title="Delete Event Service"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TAB 6: EVENT PACKAGES (COMBOS OF MULTIPLE EVENTS)
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'PACKAGES' && (() => {
+        const packageItems = eventCatalogList.filter((item) => {
+          // Only Packages
+          if ((item.itemType || 'EVENT').toUpperCase() !== 'PACKAGE') return false;
+
+          // Status filter
+          if (catalogStatusFilter !== 'ALL' && (item.status || 'ACTIVE').toUpperCase() !== catalogStatusFilter.toUpperCase()) {
+            return false;
+          }
+          // Search query
+          if (!catalogSearch.trim()) return true;
+          const q = catalogSearch.toLowerCase().trim();
+          return (
+            (item.name || '').toLowerCase().includes(q) ||
+            (item.description || '').toLowerCase().includes(q) ||
+            (item.categoryName || '').toLowerCase().includes(q) ||
+            (item.features || []).some((f) => f.toLowerCase().includes(q)) ||
+            (item.includedServices || []).some((s) => (s.name || '').toLowerCase().includes(q))
+          );
+        }).sort((a, b) => {
+          if (catalogSort === 'rate_desc') return (b.finalPrice || b.rate || 0) - (a.finalPrice || a.rate || 0);
+          if (catalogSort === 'rate_asc') return (a.finalPrice || a.rate || 0) - (b.finalPrice || b.rate || 0);
+          if (catalogSort === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+
+        const allEventServices = eventCatalogList.filter((i) => (i.itemType || 'EVENT').toUpperCase() !== 'PACKAGE');
+        const activePackages = packageItems.filter((i) => (i.status || 'ACTIVE').toUpperCase() === 'ACTIVE').length;
+
+        return (
+          <div style={{ padding: '0 2rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Packages Luxury Banner */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #3b0764 0%, #1e112a 50%, #831843 100%)',
+                borderRadius: '20px',
+                padding: '1.75rem 2rem',
+                color: '#ffffff',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1.5rem',
+                border: '1px solid rgba(244, 114, 182, 0.35)',
+              }}
+            >
+              <div style={{ maxWidth: '640px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '18px' }}>📦</span>
+                  <span style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: '#ec4899', color: '#ffffff', padding: '2px 8px', borderRadius: '6px' }}>
+                    Multi-Event Bundled Combos
+                  </span>
+                </div>
+                <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '0 0 8px', letterSpacing: '-0.02em', color: '#ffffff' }}>
+                  Event Packages Management
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#e2e8f0', lineHeight: 1.5 }}>
+                  Combine multiple event services (e.g. 20ft Aadiyogi Stage + Royal Bridal Entry Arch + Cold Pyro) into complete discounted package offerings with custom pricing & deliverables.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleOpenAddPackageModal}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 22px',
+                    borderRadius: '12px',
+                    fontSize: '0.92rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 18px rgba(236, 72, 153, 0.4)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Plus size={18} />
+                  <span>+ Create New Event Package</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                  📦
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Packages</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#db2777' }}>{packageItems.length} Combos</div>
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#faf5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                  🎪
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Available Event Services</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7e22ce' }}>{allEventServices.length} Services</div>
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                  🟢
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Live On Storefront</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#15803d' }}>{activePackages} Active</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Search & Actions Bar */}
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              }}
+            >
+              <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+                <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  placeholder="Search packages by package name, bundled events, or inclusions..."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px 9px 36px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.86rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                {catalogSearch && (
+                  <button
+                    onClick={() => setCatalogSearch('')}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <select
+                  value={catalogStatusFilter}
+                  onChange={(e) => setCatalogStatusFilter(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    background: '#fff',
+                    color: '#0f172a',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="ACTIVE">🟢 Active Packages</option>
+                  <option value="INACTIVE">⚪ Inactive Drafts</option>
+                </select>
+
+                <select
+                  value={catalogSort}
+                  onChange={(e) => setCatalogSort(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    background: '#fff',
+                    color: '#0f172a',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="newest">Latest Added</option>
+                  <option value="rate_desc">Price: High to Low</option>
+                  <option value="rate_asc">Price: Low to High</option>
+                  <option value="name_asc">Name: A to Z</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Packages Cards Grid */}
+            {packageItems.length === 0 ? (
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px dashed #cbd5e1',
+                  borderRadius: '16px',
+                  padding: '3rem 2rem',
+                  textAlign: 'center',
+                  color: '#64748b',
+                }}
+              >
+                <div style={{ fontSize: '40px', marginBottom: '10px' }}>📦</div>
+                <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: '#0f172a' }}>No Event Packages Found</h3>
+                <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem' }}>
+                  Create combo packages by selecting multiple individual event services together.
+                </p>
+                <button
+                  onClick={handleOpenAddPackageModal}
+                  style={{
+                    background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  + Create First Event Package
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                  gap: '1.5rem',
+                }}
+              >
+                {packageItems.map((pkg) => {
+                  const targetId = pkg.id || pkg._id;
+                  const isActive = (pkg.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
+                  const services = Array.isArray(pkg.includedServices) ? pkg.includedServices : [];
+
+                  return (
+                    <div
+                      key={targetId}
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid #fbcfe8',
+                        borderRadius: '18px',
+                        overflow: 'hidden',
+                        boxShadow: '0 6px 20px rgba(236, 72, 153, 0.08)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        {/* Package Header Banner Image */}
+                        <div style={{ position: 'relative', height: '200px', background: '#0f172a', overflow: 'hidden' }}>
+                          <img
+                            src={pkg.imageUrl || PRESET_EVENT_IMAGES[0].url}
+                            alt={pkg.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.target.src = PRESET_EVENT_IMAGES[0].url;
+                            }}
+                          />
+
+                          {/* Package Badge */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '12px',
+                              left: '12px',
+                              background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                              color: '#ffffff',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              fontSize: '0.74rem',
+                              fontWeight: 900,
+                              letterSpacing: '0.04em',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Box size={13} />
+                            COMBO PACKAGE
+                          </div>
+
+                          {/* Status Badge */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '12px',
+                              right: '12px',
+                              background: isActive ? '#15803d' : '#64748b',
+                              color: '#ffffff',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 900,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            {isActive ? '● Active' : '○ Inactive'}
+                          </div>
+
+                          {/* Bundled Count Pill */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '10px',
+                              left: '12px',
+                              background: 'rgba(15, 23, 42, 0.85)',
+                              backdropFilter: 'blur(4px)',
+                              color: '#facc15',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                            }}
+                          >
+                            🔱 {services.length} Event Services Bundled
+                          </div>
+                        </div>
+
+                        {/* Package Info Content */}
+                        <div style={{ padding: '1.25rem 1.25rem 0.5rem' }}>
+                          <h3
+                            style={{
+                              margin: '0 0 6px',
+                              fontSize: '1.15rem',
+                              fontWeight: 900,
+                              color: '#0f172a',
+                              lineHeight: 1.35,
+                            }}
+                          >
+                            {pkg.name}
+                          </h3>
+
+                          <p
+                            style={{
+                              margin: '0 0 12px',
+                              fontSize: '0.82rem',
+                              color: '#64748b',
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {pkg.description}
+                          </p>
+
+                          {/* Bundled Services Breakdown Section */}
+                          <div style={{ background: '#fff1f2', borderRadius: '12px', padding: '10px 12px', marginBottom: '10px', border: '1px solid #fecdd3' }}>
+                            <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#9f1239', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <span>🎪 Bundled Events in this Package:</span>
+                            </div>
+                            {services.length === 0 ? (
+                              <div style={{ fontSize: '0.76rem', color: '#881337', fontStyle: 'italic' }}>
+                                No specific individual events mapped. Add events in package edit.
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                {services.map((srv, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      background: '#ffffff',
+                                      padding: '5px 8px',
+                                      borderRadius: '6px',
+                                      fontSize: '0.78rem',
+                                      border: '1px solid #ffe4e6',
+                                    }}
+                                  >
+                                    <span style={{ fontWeight: 700, color: '#1e293b' }}>
+                                      • {srv.name}
+                                    </span>
+                                    {srv.price > 0 && (
+                                      <span style={{ fontWeight: 800, color: '#7e22ce', fontSize: '0.75rem' }}>
+                                        ₹{Number(srv.price).toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Inclusions & Highlights */}
+                          <div style={{ background: '#fdf2f8', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px', border: '1px solid #fbcfe8' }}>
+                            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#831843', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Sparkles size={13} color="#db2777" />
+                              <span>Package Deliverables & Specs:</span>
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.78rem', color: '#334155', lineHeight: 1.6 }}>
+                              {(pkg.features || []).slice(0, 4).map((f, fIdx) => (
+                                <li key={fIdx}>{f}</li>
+                              ))}
+                              {(pkg.features || []).length > 4 && (
+                                <li style={{ color: '#db2777', fontWeight: 700, listStyleType: 'none', marginTop: '2px' }}>
+                                  + {(pkg.features.length - 4)} more specifications
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+
+                          {/* Operational Specs */}
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '0.74rem', color: '#64748b', marginBottom: '1rem' }}>
+                            {pkg.setupTime && (
+                              <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
+                                ⏱️ {pkg.setupTime}
+                              </span>
+                            )}
+                            {pkg.crewSize && (
+                              <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
+                                👥 {pkg.crewSize}
+                              </span>
+                            )}
+                            {pkg.advanceRequired && (
+                              <span style={{ background: '#fefce8', color: '#854d0e', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                                💳 {pkg.advanceRequired}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Package Bottom Pricing & Actions */}
+                      <div style={{ padding: '0.75rem 1.25rem 1.25rem', borderTop: '1px solid #fbcfe8', background: '#fffafc' }}>
+                        <div style={{ marginBottom: '12px' }}>
+                          {pkg.showPrice ? (
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                              <div>
+                                {pkg.discount > 0 && (
+                                  <span style={{ fontSize: '0.82rem', color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
+                                    ₹{Number(pkg.rate || 0).toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#be123c' }}>
+                                  ₹{Number(pkg.finalPrice || pkg.rate || 0).toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                              {pkg.discount > 0 && (
+                                <span style={{ fontSize: '0.74rem', background: '#dcfce7', color: '#15803d', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                                  Package Savings: ₹{Number(pkg.discount).toLocaleString('en-IN')}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#92400e', padding: '5px 10px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800 }}>
+                              <MessageCircle size={14} />
+                              <span>Package Price on Custom Quotation</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => handleOpenEditModal(pkg)}
+                            style={{
+                              flex: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              color: '#334155',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Edit3 size={14} />
+                            <span>Edit Package</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleToggleStatus(pkg)}
+                            title={isActive ? 'Deactivate Package' : 'Activate Package'}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: isActive ? '#f0fdf4' : '#f8fafc',
+                              border: isActive ? '1px solid #86efac' : '1px solid #cbd5e1',
+                              color: isActive ? '#15803d' : '#64748b',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isActive ? 'Live' : 'Draft'}
+                          </button>
+
+                          <button
+                            onClick={() => setPreviewEventModal(pkg)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              color: '#475569',
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                            }}
+                            title="Preview Package"
+                          >
+                            <Eye size={14} />
+                          </button>
+
+                          <button
+                            onClick={() => setDeleteConfirmEvent(pkg)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#fff1f2',
+                              border: '1px solid #fecdd3',
+                              color: '#e11d48',
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                            }}
+                            title="Delete Package"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -2679,18 +3367,66 @@ Please call 76519 72973 to finalize contract.`;
 
             {/* Modal Form Scrollable Body */}
             <form onSubmit={handleSaveEventSubmit} style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {/* Event Name & Category Grid */}
+              {/* Type Switcher: Event Service vs Event Package */}
+              <div style={{ display: 'flex', gap: '10px', background: '#f1f5f9', padding: '6px', borderRadius: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEventForm({ ...eventForm, itemType: 'EVENT' })}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    background: (eventForm.itemType || 'EVENT') !== 'PACKAGE' ? 'linear-gradient(135deg, #7e22ce, #a855f7)' : 'transparent',
+                    color: (eventForm.itemType || 'EVENT') !== 'PACKAGE' ? '#ffffff' : '#64748b',
+                    boxShadow: (eventForm.itemType || 'EVENT') !== 'PACKAGE' ? '0 2px 8px rgba(126, 34, 206, 0.3)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>🎪 Individual Event Service</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventForm({ ...eventForm, itemType: 'PACKAGE', category: 'COMPLETE_THEME' })}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    background: (eventForm.itemType || 'EVENT') === 'PACKAGE' ? 'linear-gradient(135deg, #ec4899, #db2777)' : 'transparent',
+                    color: (eventForm.itemType || 'EVENT') === 'PACKAGE' ? '#ffffff' : '#64748b',
+                    boxShadow: (eventForm.itemType || 'EVENT') === 'PACKAGE' ? '0 2px 8px rgba(236, 72, 153, 0.3)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>📦 Combo Event Package</span>
+                </button>
+              </div>
+
+              {/* Event / Package Name & Category Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-                    Event Package Name *
+                    {eventForm.itemType === 'PACKAGE' ? 'Event Package Name *' : 'Event Service Name *'}
                   </label>
                   <input
                     type="text"
                     required
                     value={eventForm.name}
                     onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
-                    placeholder="e.g. 20ft Aadiyogi Mahadev Stage / Royal Bridal Entry Arch"
+                    placeholder={eventForm.itemType === 'PACKAGE' ? 'e.g. Royal Grand Shiva Mahadev Combo Package' : 'e.g. 20ft Aadiyogi Mahadev Stage / Royal Bridal Entry Arch'}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
@@ -2704,7 +3440,7 @@ Please call 76519 72973 to finalize contract.`;
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-                    Production Category (Stage / Entry / Effects) *
+                    Category *
                   </label>
                   <select
                     value={eventForm.category}
@@ -2728,6 +3464,79 @@ Please call 76519 72973 to finalize contract.`;
                   </select>
                 </div>
               </div>
+
+              {/* IF PACKAGE: MULTI-EVENT SERVICES SELECTOR FROM DB */}
+              {eventForm.itemType === 'PACKAGE' && (
+                <div style={{ background: '#fff1f2', border: '1.5px solid #fecdd3', borderRadius: '12px', padding: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#9f1239', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🎪 Select Event Services to Bundle in this Package:</span>
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#881337', marginTop: '2px' }}>
+                        Check all individual services (e.g. Stage + Bridal Entry + Pyro) included in this package.
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#e11d48', background: '#ffe4e6', padding: '2px 8px', borderRadius: '6px' }}>
+                      {eventForm.includedServices.length} Selected
+                    </span>
+                  </div>
+
+                  {/* Checklist of all available individual event services from DB / State */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px', maxHeight: '180px', overflowY: 'auto', padding: '4px' }}>
+                    {eventCatalogList
+                      .filter((item) => (item.itemType || 'EVENT').toUpperCase() !== 'PACKAGE' && (item.id || item._id) !== (editingEvent?.id || editingEvent?._id))
+                      .map((srv) => {
+                        const sId = srv.id || srv._id;
+                        const isChecked = eventForm.includedServices.some((s) => (s.id || s._id) === sId);
+                        return (
+                          <div
+                            key={sId}
+                            onClick={() => handleToggleServiceInPackage(srv)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              background: isChecked ? '#ffe4e6' : '#ffffff',
+                              border: isChecked ? '1.5px solid #e11d48' : '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              padding: '8px 10px',
+                              cursor: 'pointer',
+                              transition: 'all 0.1s ease',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}} // handled by parent onClick
+                              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#e11d48' }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {srv.name}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#7e22ce', fontWeight: 700 }}>
+                                ₹{(Number(srv.finalPrice || srv.rate) || 0).toLocaleString()} · {srv.categoryName || srv.category}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  {/* Sum Calculation Info */}
+                  {eventForm.includedServices.length > 0 && (
+                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                      <span style={{ color: '#9f1239', fontWeight: 700 }}>
+                        Total Individual Services Worth:
+                      </span>
+                      <strong style={{ color: '#9f1239', fontSize: '0.92rem' }}>
+                        ₹{eventForm.includedServices.reduce((sum, s) => sum + (Number(s.price) || 0), 0).toLocaleString()}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Description */}
               <div>

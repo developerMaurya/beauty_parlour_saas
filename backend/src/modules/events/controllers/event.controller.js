@@ -71,8 +71,9 @@ const EVENTS_DATABASE = [
 // Seeded event packages / catalog
 let EVENTS_CATALOG_DATABASE = [
   {
-    id: 'pkg_101',
-    _id: 'pkg_101',
+    id: 'evt_srv_101',
+    _id: 'evt_srv_101',
+    itemType: 'EVENT', // 'EVENT' (Individual Service) vs 'PACKAGE' (Combo of multiple events)
     name: 'Aadiyogi Theme Grand Wedding Stage (20ft)',
     category: 'STAGE_DECORATION',
     categoryName: 'Stage Decoration & Setup',
@@ -84,6 +85,7 @@ let EVENTS_CATALOG_DATABASE = [
       'Sculpted Nandi Bull Floral Enclosure',
       '40x24ft Heavy Duty Iron Rigging Platform'
     ],
+    includedServices: [],
     rate: 250000,
     discount: 25000,
     finalPrice: 225000,
@@ -96,8 +98,9 @@ let EVENTS_CATALOG_DATABASE = [
     createdAt: new Date().toISOString(),
   },
   {
-    id: 'pkg_102',
-    _id: 'pkg_102',
+    id: 'evt_srv_102',
+    _id: 'evt_srv_102',
+    itemType: 'EVENT',
     name: 'Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel',
     category: 'BRIDAL_ENTRY',
     categoryName: 'Royal Bridal Entry & Walkways',
@@ -109,6 +112,7 @@ let EVENTS_CATALOG_DATABASE = [
       'LED Handheld Lotus Flower Props for Bridesmaids',
       'Matching Entry Gate Welcome Signage'
     ],
+    includedServices: [],
     rate: 95000,
     discount: 10000,
     finalPrice: 85000,
@@ -121,8 +125,123 @@ let EVENTS_CATALOG_DATABASE = [
     createdAt: new Date().toISOString(),
   },
   {
-    id: 'pkg_103',
-    _id: 'pkg_103',
+    id: 'evt_srv_103',
+    _id: 'evt_srv_103',
+    itemType: 'EVENT',
+    name: 'Cold Pyro Sparkle Blasts & Dry Ice Heavy Cloud Fog',
+    category: 'SPECIAL_EFFECTS',
+    categoryName: 'Cold Pyro, Fog & Fireworks',
+    description: 'Indoor-safe electronic cold fireworks (4-6 shots) + high-density low fog dry ice cloud for royal varmala stage and bridal entry moments.',
+    features: [
+      '6 Wireless DMX Cold Sparkle Pyro Fountain Guns',
+      '2 Heavy Fog Dry Ice Sub-Zero Machines (Clouds Floor Effect)',
+      'Certified Smokeless & Odorless Chemical Cartridges',
+      'Dedicated Pyrotechnic Technician Operator',
+      'Instant Emergency Kill Switch Controller'
+    ],
+    includedServices: [],
+    rate: 45000,
+    discount: 5000,
+    finalPrice: 40000,
+    showPrice: true,
+    imageUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=80',
+    status: 'ACTIVE',
+    setupTime: '1-2 Hours',
+    crewSize: '2 FX Specialists',
+    advanceRequired: '50% Advance',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt_srv_104',
+    _id: 'evt_srv_104',
+    itemType: 'EVENT',
+    name: 'Hydraulic & Revolving Varmala Stage with Lotus Pod',
+    category: 'VARMALA_STAGE',
+    categoryName: 'Hydraulic & Revolving Varmala Stage',
+    description: 'Automated 360-degree motorized rotating varmala platform with lifting mechanism and blooming mechanical petal backdrop.',
+    features: [
+      'Motorized 360° Rotating Steel Turntable Platform (10ft diameter)',
+      'Hydraulic Elevating Scissor Mechanism up to 6ft height',
+      'Synchronized Rose Flower Cannon Blast on Jaimala',
+      'Heavy-duty safety railings & velvet steps',
+    ],
+    includedServices: [],
+    rate: 80000,
+    discount: 10000,
+    finalPrice: 70000,
+    showPrice: true,
+    imageUrl: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=1000&q=80',
+    status: 'ACTIVE',
+    setupTime: '4-5 Hours',
+    crewSize: '4 Operators',
+    advanceRequired: '30% Advance',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt_pkg_201',
+    _id: 'evt_pkg_201',
+    itemType: 'PACKAGE', // Combo Package containing multiple event services
+    name: 'Grand Royal Shiva Mahadev Wedding Combo Package',
+    category: 'COMPLETE_THEME',
+    categoryName: 'Complete Grand Theme Package',
+    description: 'Complete all-in-one VIP Wedding Staging Package bundling 20ft Aadiyogi Stage, 15ft Royal Bridal Entrance Arch Tunnel, and Cold Pyro Sparkle Blasts.',
+    features: [
+      'Bundle: 20ft Aadiyogi Theme Stage (Worth ₹2,50,000)',
+      'Bundle: Royal Bridal 15ft Flower Arch Tunnel (Worth ₹95,000)',
+      'Bundle: Cold Pyro Blasts & Low Fog Cloud Machines (Worth ₹45,000)',
+      'Total Savings of ₹65,000 when booked together',
+      'Dedicated Production Director & 15 On-site Riggers',
+    ],
+    includedServices: [
+      { id: 'evt_srv_101', name: 'Aadiyogi Theme Grand Wedding Stage (20ft)', price: 250000, category: 'STAGE_DECORATION' },
+      { id: 'evt_srv_102', name: 'Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel', price: 95000, category: 'BRIDAL_ENTRY' },
+      { id: 'evt_srv_103', name: 'Cold Pyro Sparkle Blasts & Dry Ice Heavy Cloud Fog', price: 45000, category: 'SPECIAL_EFFECTS' },
+    ],
+    rate: 390000,
+    discount: 65000,
+    finalPrice: 325000,
+    showPrice: true,
+    imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80',
+    status: 'ACTIVE',
+    setupTime: '8-10 Hours',
+    crewSize: '15 Master Crew + 1 Event Director',
+    advanceRequired: '40% Advance',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt_pkg_202',
+    _id: 'evt_pkg_202',
+    itemType: 'PACKAGE',
+    name: 'Varmala Celebration & Bridal Royalty Duo Package',
+    category: 'COMPLETE_THEME',
+    categoryName: 'Complete Grand Theme Package',
+    description: 'Special combo package combining the Hydraulic Revolving Varmala Stage with the Royal Bridal 15ft Illuminated Flower Arch Tunnel and Pyro entry.',
+    features: [
+      'Bundle: Hydraulic & Revolving Varmala Stage with Lotus Pod (Worth ₹80,000)',
+      'Bundle: Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel (Worth ₹95,000)',
+      'Bundle: Cold Pyro Sparkle Blasts & Dry Ice Cloud Fog (Worth ₹45,000)',
+      'Combined Spectacular Experience with ₹30,000 Package Discount',
+    ],
+    includedServices: [
+      { id: 'evt_srv_104', name: 'Hydraulic & Revolving Varmala Stage with Lotus Pod', price: 80000, category: 'VARMALA_STAGE' },
+      { id: 'evt_srv_102', name: 'Royal Bridal Entry: 15ft Illuminated Flower Arch Tunnel', price: 95000, category: 'BRIDAL_ENTRY' },
+      { id: 'evt_srv_103', name: 'Cold Pyro Sparkle Blasts & Dry Ice Heavy Cloud Fog', price: 45000, category: 'SPECIAL_EFFECTS' },
+    ],
+    rate: 220000,
+    discount: 30000,
+    finalPrice: 190000,
+    showPrice: true,
+    imageUrl: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=1000&q=80',
+    status: 'ACTIVE',
+    setupTime: '6-7 Hours',
+    crewSize: '10 Technicians & Operators',
+    advanceRequired: '35% Advance',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt_srv_103',
+    _id: 'evt_srv_103',
+    itemType: 'EVENT',
     name: 'Cold Pyro Fireworks & Heavy Dry Ice Cloud Fog Machine',
     category: 'SPECIAL_EFFECTS',
     categoryName: 'Cold Pyro, Fog & Fireworks',
@@ -134,6 +253,7 @@ let EVENTS_CATALOG_DATABASE = [
       'Double-barrel Confetti Air Cannon with Golden Foil',
       'Dedicated Trained Pyro Technician on site'
     ],
+    includedServices: [],
     rate: 45000,
     discount: 5000,
     finalPrice: 40000,
@@ -324,9 +444,15 @@ export const eventController = {
   async listCatalog(req, res) {
     try {
       const payload = { ...req.query, ...(req.body || {}) };
-      const { search = '', category = 'ALL', status = 'ALL' } = payload;
+      const { search = '', category = 'ALL', status = 'ALL', itemType = 'ALL' } = payload;
 
       let filtered = [...EVENTS_CATALOG_DATABASE];
+
+      if (itemType && itemType !== 'ALL') {
+        filtered = filtered.filter(
+          (item) => (item.itemType || 'EVENT').toUpperCase() === itemType.toUpperCase()
+        );
+      }
 
       if (category && category !== 'ALL') {
         filtered = filtered.filter(
@@ -347,7 +473,8 @@ export const eventController = {
             (item.name || '').toLowerCase().includes(q) ||
             (item.description || '').toLowerCase().includes(q) ||
             (item.categoryName || '').toLowerCase().includes(q) ||
-            (item.features || []).some((f) => f.toLowerCase().includes(q))
+            (item.features || []).some((f) => f.toLowerCase().includes(q)) ||
+            (item.includedServices || []).some((s) => (s.name || '').toLowerCase().includes(q))
         );
       }
 
@@ -381,10 +508,12 @@ export const eventController = {
     try {
       const {
         name,
+        itemType = 'EVENT', // 'EVENT' or 'PACKAGE'
         category = 'STAGE_DECORATION',
         categoryName,
         description = '',
         features = [],
+        includedServices = [],
         rate = 0,
         discount = 0,
         showPrice = true,
@@ -396,7 +525,7 @@ export const eventController = {
       } = req.body;
 
       if (!name || !name.trim()) {
-        return sendError(res, 'Event package name is required', [], 400);
+        return sendError(res, 'Event or Package name is required', [], 400);
       }
 
       const numRate = Number(rate) || 0;
@@ -414,13 +543,15 @@ export const eventController = {
       };
 
       const newItem = {
-        id: `pkg_${Date.now()}`,
-        _id: `pkg_${Date.now()}`,
+        id: itemType === 'PACKAGE' ? `evt_pkg_${Date.now()}` : `evt_srv_${Date.now()}`,
+        _id: itemType === 'PACKAGE' ? `evt_pkg_${Date.now()}` : `evt_srv_${Date.now()}`,
+        itemType: (itemType || 'EVENT').toUpperCase(),
         name: name.trim(),
         category: category.toUpperCase(),
         categoryName: categoryName || categoryLabels[category.toUpperCase()] || 'Event Service',
         description: description.trim(),
         features: Array.isArray(features) ? features.filter(Boolean) : [],
+        includedServices: Array.isArray(includedServices) ? includedServices : [],
         rate: numRate,
         discount: numDiscount,
         finalPrice,
@@ -434,7 +565,7 @@ export const eventController = {
       };
 
       EVENTS_CATALOG_DATABASE.unshift(newItem);
-      return sendSuccess(res, 'Event package created successfully', newItem, 201);
+      return sendSuccess(res, `${newItem.itemType === 'PACKAGE' ? 'Event Package' : 'Event Service'} created successfully`, newItem, 201);
     } catch (err) {
       return sendError(res, err.message, [], 500);
     }
@@ -448,16 +579,18 @@ export const eventController = {
       const { id } = req.params;
       const idx = EVENTS_CATALOG_DATABASE.findIndex((item) => item.id === id || item._id === id);
       if (idx === -1) {
-        return sendError(res, 'Event package not found', [], 404);
+        return sendError(res, 'Event or Package not found', [], 404);
       }
 
       const existing = EVENTS_CATALOG_DATABASE[idx];
       const {
         name,
+        itemType,
         category,
         categoryName,
         description,
         features,
+        includedServices,
         rate,
         discount,
         showPrice,
@@ -485,10 +618,12 @@ export const eventController = {
       const updated = {
         ...existing,
         name: name !== undefined ? name.trim() : existing.name,
+        itemType: itemType !== undefined ? itemType.toUpperCase() : (existing.itemType || 'EVENT'),
         category: category !== undefined ? category.toUpperCase() : existing.category,
         categoryName: categoryName || (category ? categoryLabels[category.toUpperCase()] : existing.categoryName),
         description: description !== undefined ? description.trim() : existing.description,
         features: Array.isArray(features) ? features.filter(Boolean) : existing.features,
+        includedServices: Array.isArray(includedServices) ? includedServices : (existing.includedServices || []),
         rate: numRate,
         discount: numDiscount,
         finalPrice,
@@ -502,7 +637,7 @@ export const eventController = {
       };
 
       EVENTS_CATALOG_DATABASE[idx] = updated;
-      return sendSuccess(res, 'Event package updated successfully', updated);
+      return sendSuccess(res, 'Item updated successfully', updated);
     } catch (err) {
       return sendError(res, err.message, [], 500);
     }
