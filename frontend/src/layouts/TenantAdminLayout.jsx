@@ -314,8 +314,12 @@ export const TenantAdminLayout = () => {
       badge: 'Plots',
       badgeBg: '#16a34a',
       items: [
-        { label: 'Plotting & Real Estate Overview', path: '/admin/plotting', icon: LayoutDashboard, badge: 'Overview' },
-        { label: 'Plotting Users', path: '/admin/users?business=PLOTTING', icon: Users, badge: 'Users' },
+        { label: 'Plotting Overview', path: '/admin/plotting', icon: LayoutDashboard, badge: 'Overview' },
+        { label: 'Plot Inquiries & Requests', path: '/admin/plotting-inquiries', icon: MessageSquare, badge: 'Inquiries' },
+        { label: 'Plots & Land Inventory', path: '/admin/plotting-inventory', icon: Trees, badge: 'Plots' },
+        { label: 'Project Media & Video Gallery', path: '/admin/plotting-gallery', icon: Video, badge: 'Gallery' },
+        { label: 'Plot Buyers & Clients', path: '/admin/plotting-users', icon: Users, badge: 'Buyers' },
+        { label: 'Sales Agents & Commission', path: '/admin/plotting-agents', icon: Compass, badge: 'Agents' },
       ],
     },
     {
@@ -608,6 +612,20 @@ export const TenantAdminLayout = () => {
                       const isItemActive =
                         item.path === '/admin/system/config'
                           ? location.pathname.includes('/admin/system')
+                          : item.path === '/admin/parlour-appointments'
+                          ? location.pathname.includes('appointments') || (location.pathname.includes('golden-beauty-parlour') && location.search.includes('tab=appointments'))
+                          : item.path === '/admin/parlour-inquiries'
+                          ? location.pathname.includes('inquiries') || (location.pathname.includes('golden-beauty-parlour') && location.search.includes('tab=requests'))
+                          : item.path === '/admin/golden-beauty-parlour'
+                          ? location.pathname === '/admin/golden-beauty-parlour' && (!location.search || location.search === '' || location.search === '?tab=overview')
+                          : item.path === '/admin/plotting-inquiries'
+                          ? location.pathname.includes('plotting-inquiries') || (location.pathname === '/admin/plotting' && location.search.includes('tab=requests'))
+                          : item.path === '/admin/plotting-inventory'
+                          ? location.pathname.includes('plotting-inventory') || (location.pathname === '/admin/plotting' && location.search.includes('tab=inventory'))
+                          : item.path === '/admin/plotting-gallery'
+                          ? location.pathname.includes('plotting-gallery') || (location.pathname === '/admin/plotting' && location.search.includes('tab=gallery'))
+                          : item.path === '/admin/plotting'
+                          ? location.pathname === '/admin/plotting' && (!location.search || location.search === '' || location.search === '?tab=overview')
                           : item.path.includes('?')
                           ? currentFullPath === item.path
                           : location.pathname === item.path && (!location.search || location.search === '');

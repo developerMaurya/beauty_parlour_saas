@@ -35,6 +35,7 @@ import {
   MapPin,
   Clock,
   ArrowUpRight,
+  ArrowRight,
   Award,
   Calendar,
   UserCheck,
@@ -53,7 +54,55 @@ import {
   Server,
   CircleDot,
   IndianRupee,
+  MessageSquare,
+  Trees,
+  Video,
+  Play,
+  Phone,
+  FileText,
+  Search,
+  Plus,
 } from 'lucide-react';
+
+// ── Direct Business Submodules Config ──
+const VERTICAL_SUBMODULES = {
+  'golden-beauty-parlour': [
+    { label: 'Parlour Overview', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard },
+    { label: 'Customer Inquiries & Requests', path: '/admin/parlour-inquiries', icon: MessageSquare },
+    { label: 'Appointment Requests & Meet', path: '/admin/parlour-appointments', icon: Calendar },
+    { label: 'Sale (POS Billing)', path: '/admin/parlour-sales', icon: ShoppingBag },
+    { label: 'Products & Inventory', path: '/admin/parlour-products', icon: Package },
+    { label: 'Academy Students', path: '/admin/parlour-students', icon: GraduationCap },
+    { label: 'Certificate Generator', path: '/admin/parlour-certificates', icon: Award },
+    { label: 'Parlour Staff & Users', path: '/admin/parlour-users', icon: Users },
+  ],
+  'event-decoration': [
+    { label: 'Events Overview', path: '/admin/event-decoration', icon: LayoutDashboard },
+    { label: 'Events & Packages Catalog', path: '/admin/event-decoration?tab=EVENTS', icon: Sparkles },
+    { label: 'Stage & Aadiyogi Inventory', path: '/admin/event-decoration?tab=STAGES', icon: Layers },
+    { label: 'Proposals & Quotes', path: '/admin/event-decoration?tab=PROPOSALS', icon: FileText },
+    { label: 'Wedding Couples & Ledger', path: '/admin/event-decoration?tab=CLIENTS', icon: Users },
+    { label: 'Event CRM & Bookings', path: '/admin/crm', icon: Phone },
+  ],
+  'plotting': [
+    { label: 'Plotting Overview', path: '/admin/plotting', icon: LayoutDashboard },
+    { label: 'Plot Inquiries & Client Calls', path: '/admin/plotting-inquiries', icon: MessageSquare },
+    { label: 'Land & Plots Inventory (+Add Plot)', path: '/admin/plotting-inventory', icon: Trees },
+    { label: 'Drone Videos & YouTube Tour', path: '/admin/plotting-gallery', icon: Video },
+    { label: 'Plot Buyers & Registry', path: '/admin/plotting-users', icon: Users },
+    { label: 'Sales Agents & Commission', path: '/admin/plotting-agents', icon: Compass },
+  ],
+  'rent-office': [
+    { label: 'Commercial Rent Overview', path: '/admin/rent-office', icon: LayoutDashboard },
+    { label: 'Office Units & Leased Spaces', path: '/admin/rent-office', icon: Building },
+    { label: 'Tenants & Rent Receipts', path: '/admin/rent-tenants', icon: Users },
+  ],
+  'rb-software': [
+    { label: 'Software & Tech Overview', path: '/admin/rb-software', icon: LayoutDashboard },
+    { label: 'Cloud Services & APIs', path: '/admin/rb-software', icon: Server },
+    { label: 'Software Clients & Licenses', path: '/admin/software-clients', icon: Users },
+  ],
+};
 
 // ── Currency Formatter ──
 const formatCurrency = (amount) => {
@@ -223,6 +272,7 @@ const PULSE_CSS = `
 export default function BusinessDirectoryManager() {
   const navigate = useNavigate();
   const [selectedVerticalFilter, setSelectedVerticalFilter] = useState('ALL');
+  const [searchFilter, setSearchFilter] = useState('');
   const [openFolders, setOpenFolders] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -230,185 +280,223 @@ export default function BusinessDirectoryManager() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(null);
 
-  // Fallback demo data to guarantee 100% resilient UI
-  const getFallbackOverview = () => ({
-    globalRollup: {
-      totalRevenue: 6385500,
-      monthlyRevenue: 1794000,
-      todayRevenue: 66000,
-      totalUsers: 302,
-      totalStaff: 58,
-      totalStudents: 38,
-      totalBusinesses: 5,
-      totalPendingPayments: 1469200,
-      totalMonthlyExpenses: 507000,
-      totalNetProfit: 1287000,
-    },
-    verticals: {
-      'golden-beauty-parlour': {
-        name: 'Golden Beauty Parlour & Salon',
-        type: 'Luxury Salon & Academy',
-        color: '#ec4899',
-        totalRevenue: 348500,
-        monthlyRevenue: 82000,
-        todayRevenue: 12500,
-        totalUsers: 142,
-        newUsersThisMonth: 18,
-        totalStaff: 12,
+  // Fallback demo data to guarantee 100% resilient UI, enriched dynamically from live localStorage
+  const getFallbackOverview = () => {
+    let parlourInquiriesCount = 6;
+    let plottingInquiriesCount = 4;
+    let totalPlotsCount = 24;
+    let availablePlotsCount = 14;
+    let eventPackagesCount = 6;
+    let mediaGalleryCount = 5;
+
+    try {
+      const storedReqs = localStorage.getItem('all_customer_service_requests');
+      if (storedReqs) {
+        const reqs = JSON.parse(storedReqs);
+        const pInq = reqs.filter((r) => r.serviceType === 'parlour' || !r.serviceType).length;
+        if (pInq > 0) parlourInquiriesCount = pInq;
+        const plInq = reqs.filter((r) => r.serviceType === 'plotting').length;
+        if (plInq > 0) plottingInquiriesCount = plInq;
+      }
+      const storedPlots = localStorage.getItem('kashi_plotting_inventory');
+      if (storedPlots) {
+        const pList = JSON.parse(storedPlots);
+        totalPlotsCount = pList.length;
+        availablePlotsCount = pList.filter((p) => p.status === 'AVAILABLE').length;
+      }
+      const storedEvents = localStorage.getItem('jaygurudev_event_catalog');
+      if (storedEvents) {
+        const eList = JSON.parse(storedEvents);
+        eventPackagesCount = eList.length;
+      }
+      const storedGallery = localStorage.getItem('kashi_plotting_gallery');
+      if (storedGallery) {
+        const gList = JSON.parse(storedGallery);
+        mediaGalleryCount = gList.length;
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+
+    return {
+      globalRollup: {
+        totalRevenue: 6385500,
+        monthlyRevenue: 1794000,
+        todayRevenue: 66000,
+        totalUsers: 302,
+        totalStaff: 58,
         totalStudents: 38,
-        activeItems: 28,
-        activeItemsLabel: 'Appointments Today',
-        inventoryCount: 94,
-        inventoryLabel: 'Master Products',
-        totalServices: 24,
-        totalPackages: 8,
-        totalBranches: 2,
-        pendingPayments: 14200,
-        monthlyExpenses: 42000,
-        netProfit: 40000,
-        metrics: [
-          { label: 'Monthly Appointments', value: '184', trend: '+12%' },
-          { label: 'Academy Students', value: '38', trend: '+5' },
-          { label: 'Active Staff on Duty', value: '12', trend: 'GPS Tracked' },
-          { label: 'GST Billed (Month)', value: '₹1.15L', trend: '+18%' },
-        ],
+        totalBusinesses: 5,
+        totalPendingPayments: 1469200,
+        totalMonthlyExpenses: 507000,
+        totalNetProfit: 1287000,
       },
-      'event-decoration': {
-        name: 'Event & Decoration (Jay Gurudev)',
-        type: 'Stage Decor & Weddings',
-        color: '#a855f7',
-        totalRevenue: 820000,
-        monthlyRevenue: 285000,
-        todayRevenue: 45000,
-        totalUsers: 34,
-        newUsersThisMonth: 6,
-        totalStaff: 28,
-        totalStudents: 0,
-        activeItems: 6,
-        activeItemsLabel: 'Upcoming Weddings',
-        inventoryCount: 18,
-        inventoryLabel: 'Stage Themes & LED Truss',
-        totalServices: 12,
-        totalPackages: 4,
-        totalBranches: 1,
-        pendingPayments: 125000,
-        monthlyExpenses: 180000,
-        netProfit: 105000,
-        metrics: [
-          { label: 'Confirmed Bookings', value: '14', trend: '+3 this week' },
-          { label: 'QR Gate Passes', value: '1,420', trend: 'Checked In' },
-          { label: 'Production Crew', value: '18', trend: 'Sound & Truss' },
-          { label: 'Vendor Expenses', value: '₹4.6L', trend: 'Cleared' },
-        ],
+      verticals: {
+        'golden-beauty-parlour': {
+          name: 'Golden Beauty Parlour & Salon',
+          type: 'Luxury Salon & Academy',
+          color: '#ec4899',
+          totalRevenue: 348500,
+          monthlyRevenue: 82000,
+          todayRevenue: 12500,
+          totalUsers: 142,
+          newUsersThisMonth: 18,
+          totalStaff: 12,
+          totalStudents: 38,
+          activeItems: parlourInquiriesCount,
+          activeItemsLabel: 'Active Inquiries',
+          inventoryCount: 94,
+          inventoryLabel: 'Master Products',
+          totalServices: 24,
+          totalPackages: 8,
+          totalBranches: 2,
+          pendingPayments: 14200,
+          monthlyExpenses: 42000,
+          netProfit: 40000,
+          metrics: [
+            { label: 'Monthly Appointments', value: '184', trend: '+12%' },
+            { label: 'Customer Inquiries', value: `${parlourInquiriesCount}`, trend: 'Pending' },
+            { label: 'Active Staff on Duty', value: '12', trend: 'GPS Tracked' },
+            { label: 'GST Billed (Month)', value: '₹1.15L', trend: '+18%' },
+          ],
+        },
+        'event-decoration': {
+          name: 'Event & Decoration (Jay Gurudev)',
+          type: 'Stage Decor & Weddings',
+          color: '#a855f7',
+          totalRevenue: 820000,
+          monthlyRevenue: 285000,
+          todayRevenue: 45000,
+          totalUsers: 34,
+          newUsersThisMonth: 6,
+          totalStaff: 28,
+          totalStudents: 0,
+          activeItems: eventPackagesCount,
+          activeItemsLabel: 'Active Packages',
+          inventoryCount: 18,
+          inventoryLabel: 'Stage Themes & LED Truss',
+          totalServices: 12,
+          totalPackages: eventPackagesCount,
+          totalBranches: 1,
+          pendingPayments: 125000,
+          monthlyExpenses: 180000,
+          netProfit: 105000,
+          metrics: [
+            { label: 'Catalog Packages', value: `${eventPackagesCount}`, trend: 'Active' },
+            { label: 'Confirmed Bookings', value: '14', trend: '+3 this week' },
+            { label: 'QR Gate Passes', value: '1,420', trend: 'Checked In' },
+            { label: 'Production Crew', value: '18', trend: 'Sound & Truss' },
+          ],
+        },
+        'plotting': {
+          name: 'Real Estate Plotting & Colonies',
+          type: 'Residential Townships & Lands',
+          color: '#059669',
+          totalRevenue: 4250000,
+          monthlyRevenue: 850000,
+          todayRevenue: 0,
+          totalUsers: 84,
+          newUsersThisMonth: 8,
+          totalStaff: 6,
+          totalStudents: 0,
+          activeItems: availablePlotsCount,
+          activeItemsLabel: 'Available Plots',
+          inventoryCount: totalPlotsCount,
+          inventoryLabel: 'Plots In Inventory',
+          totalServices: 0,
+          totalPackages: 0,
+          totalBranches: 1,
+          pendingPayments: 1250000,
+          monthlyExpenses: 125000,
+          netProfit: 725000,
+          metrics: [
+            { label: 'Available Plots', value: `${availablePlotsCount} / ${totalPlotsCount}`, trend: 'For Sale' },
+            { label: 'Plot Inquiries', value: `${plottingInquiriesCount}`, trend: 'Active Leads' },
+            { label: 'Drone & YouTube Media', value: `${mediaGalleryCount} Items`, trend: 'Video Tour' },
+            { label: 'Active EMI Buyers', value: '52', trend: 'Running' },
+          ],
+        },
+        'rent-office': {
+          name: 'Office & Commercial Rent',
+          type: 'Commercial Leasing & Suites',
+          color: '#0284c7',
+          totalRevenue: 392000,
+          monthlyRevenue: 392000,
+          todayRevenue: 0,
+          totalUsers: 24,
+          newUsersThisMonth: 2,
+          totalStaff: 4,
+          totalStudents: 0,
+          activeItems: 18,
+          activeItemsLabel: 'Leased Units',
+          inventoryCount: 2,
+          inventoryLabel: 'Commercial Towers',
+          totalServices: 0,
+          totalPackages: 0,
+          totalBranches: 1,
+          pendingPayments: 48000,
+          monthlyExpenses: 65000,
+          netProfit: 327000,
+          metrics: [
+            { label: 'Occupancy Rate', value: '82%', trend: 'Occupied' },
+            { label: 'Monthly Rent', value: '₹3.92L', trend: 'Collected' },
+            { label: 'WhatsApp Receipts', value: '24', trend: 'Auto Sent' },
+            { label: 'CAM Maintenance', value: '₹42.5K', trend: 'Managed' },
+          ],
+        },
+        'rb-software': {
+          name: 'RB Software & Tech Hub',
+          type: 'Cloud Microservices & POS',
+          color: '#6366f1',
+          totalRevenue: 575000,
+          monthlyRevenue: 185000,
+          todayRevenue: 8500,
+          totalUsers: 18,
+          newUsersThisMonth: 3,
+          totalStaff: 8,
+          totalStudents: 0,
+          activeItems: 14,
+          activeItemsLabel: 'Running Cloud APIs',
+          inventoryCount: 4,
+          inventoryLabel: 'Flagship ERP Products',
+          totalServices: 6,
+          totalPackages: 2,
+          totalBranches: 1,
+          pendingPayments: 32000,
+          monthlyExpenses: 95000,
+          netProfit: 90000,
+          metrics: [
+            { label: 'API Latency', value: '142ms', trend: 'Avg Response' },
+            { label: 'Daily Transactions', value: '86.4K', trend: 'Requests/Day' },
+            { label: 'Cloud Uptime', value: '99.98%', trend: 'Available' },
+            { label: 'Mobile Apps', value: '6', trend: 'Published' },
+          ],
+        },
       },
-      'plotting': {
-        name: 'Real Estate Plotting & Colonies',
-        type: 'Residential Townships & Lands',
-        color: '#059669',
-        totalRevenue: 4250000,
-        monthlyRevenue: 850000,
-        todayRevenue: 0,
-        totalUsers: 84,
-        newUsersThisMonth: 8,
-        totalStaff: 6,
-        totalStudents: 0,
-        activeItems: 42,
-        activeItemsLabel: 'Available Plots',
-        inventoryCount: 4,
-        inventoryLabel: 'Colony Townships',
-        totalServices: 0,
-        totalPackages: 0,
-        totalBranches: 1,
-        pendingPayments: 1250000,
-        monthlyExpenses: 125000,
-        netProfit: 725000,
-        metrics: [
-          { label: 'Sold Plots (Registry)', value: '32', trend: 'Legal Deeds' },
-          { label: 'Active EMI Buyers', value: '52', trend: 'Running' },
-          { label: 'Agent Commission', value: '₹1.85L', trend: 'Distributed' },
-          { label: 'Total Land Area', value: '1,28,000 sq.ft', trend: '4 Colonies' },
-        ],
+      revenueTrend: [
+        { day: 'Mon', revenue: 28000, appointments: 14 },
+        { day: 'Tue', revenue: 35000, appointments: 18 },
+        { day: 'Wed', revenue: 32000, appointments: 16 },
+        { day: 'Thu', revenue: 38000, appointments: 22 },
+        { day: 'Fri', revenue: 45000, appointments: 26 },
+        { day: 'Sat', revenue: 58000, appointments: 34 },
+        { day: 'Sun', revenue: 64000, appointments: 40 },
+      ],
+      revenueDistribution: [
+        { key: 'plotting', name: 'Real Estate Plotting', color: '#059669', revenue: 4250000, percentage: 67 },
+        { key: 'event-decoration', name: 'Jay Gurudev Events', color: '#a855f7', revenue: 820000, percentage: 13 },
+        { key: 'rb-software', name: 'RB Software Hub', color: '#6366f1', revenue: 575000, percentage: 9 },
+        { key: 'rent-office', name: 'Office & Rent', color: '#0284c7', revenue: 392000, percentage: 6 },
+        { key: 'golden-beauty-parlour', name: 'Golden Beauty Parlour', color: '#ec4899', revenue: 348500, percentage: 5 },
+      ],
+      systemHealth: {
+        dbStatus: 'connected',
+        apiLatency: '42ms',
+        uptime: '99.98%',
+        lastSync: new Date().toISOString(),
       },
-      'rent-office': {
-        name: 'Office & Commercial Rent',
-        type: 'Commercial Leasing & Suites',
-        color: '#0284c7',
-        totalRevenue: 392000,
-        monthlyRevenue: 392000,
-        todayRevenue: 0,
-        totalUsers: 24,
-        newUsersThisMonth: 2,
-        totalStaff: 4,
-        totalStudents: 0,
-        activeItems: 18,
-        activeItemsLabel: 'Leased Units',
-        inventoryCount: 2,
-        inventoryLabel: 'Commercial Towers',
-        totalServices: 0,
-        totalPackages: 0,
-        totalBranches: 1,
-        pendingPayments: 48000,
-        monthlyExpenses: 65000,
-        netProfit: 327000,
-        metrics: [
-          { label: 'Occupancy Rate', value: '82%', trend: 'Occupied' },
-          { label: 'Monthly Rent', value: '₹3.92L', trend: 'Collected' },
-          { label: 'WhatsApp Receipts', value: '24', trend: 'Auto Sent' },
-          { label: 'CAM Maintenance', value: '₹42.5K', trend: 'Managed' },
-        ],
-      },
-      'rb-software': {
-        name: 'RB Software & Tech Hub',
-        type: 'Cloud Microservices & POS',
-        color: '#6366f1',
-        totalRevenue: 575000,
-        monthlyRevenue: 185000,
-        todayRevenue: 8500,
-        totalUsers: 18,
-        newUsersThisMonth: 3,
-        totalStaff: 8,
-        totalStudents: 0,
-        activeItems: 14,
-        activeItemsLabel: 'Running Cloud APIs',
-        inventoryCount: 4,
-        inventoryLabel: 'Flagship ERP Products',
-        totalServices: 6,
-        totalPackages: 2,
-        totalBranches: 1,
-        pendingPayments: 32000,
-        monthlyExpenses: 95000,
-        netProfit: 90000,
-        metrics: [
-          { label: 'API Latency', value: '142ms', trend: 'Avg Response' },
-          { label: 'Daily Transactions', value: '86.4K', trend: 'Requests/Day' },
-          { label: 'Cloud Uptime', value: '99.98%', trend: 'Available' },
-          { label: 'Mobile Apps', value: '6', trend: 'Published' },
-        ],
-      },
-    },
-    revenueTrend: [
-      { day: 'Mon', revenue: 28000, appointments: 14 },
-      { day: 'Tue', revenue: 35000, appointments: 18 },
-      { day: 'Wed', revenue: 32000, appointments: 16 },
-      { day: 'Thu', revenue: 38000, appointments: 22 },
-      { day: 'Fri', revenue: 45000, appointments: 26 },
-      { day: 'Sat', revenue: 58000, appointments: 34 },
-      { day: 'Sun', revenue: 64000, appointments: 40 },
-    ],
-    revenueDistribution: [
-      { key: 'plotting', name: 'Real Estate Plotting', color: '#059669', revenue: 4250000, percentage: 67 },
-      { key: 'event-decoration', name: 'Jay Gurudev Events', color: '#a855f7', revenue: 820000, percentage: 13 },
-      { key: 'rb-software', name: 'RB Software Hub', color: '#6366f1', revenue: 575000, percentage: 9 },
-      { key: 'rent-office', name: 'Office & Rent', color: '#0284c7', revenue: 392000, percentage: 6 },
-      { key: 'golden-beauty-parlour', name: 'Golden Beauty Parlour', color: '#ec4899', revenue: 348500, percentage: 5 },
-    ],
-    systemHealth: {
-      dbStatus: 'connected',
-      apiLatency: '42ms',
-      uptime: '99.98%',
-      lastSync: new Date().toISOString(),
-    },
-  });
+    };
+  };
 
   // ── Fetch Business Overview Data ──
   const fetchData = useCallback(async (isRefresh = false) => {
@@ -465,14 +553,28 @@ export default function BusinessDirectoryManager() {
   const systemHealth = data?.systemHealth || {};
 
   const verticalEntries = useMemo(() => {
-    const entries = Object.entries(verticals).map(([key, v]) => ({
+    let entries = Object.entries(verticals).map(([key, v]) => ({
       key,
       ...v,
       ...VERTICAL_CONFIG[key],
+      submodules: VERTICAL_SUBMODULES[key] || [],
     }));
-    if (selectedVerticalFilter === 'ALL') return entries;
-    return entries.filter(e => e.key === selectedVerticalFilter);
-  }, [verticals, selectedVerticalFilter]);
+    if (selectedVerticalFilter !== 'ALL') {
+      entries = entries.filter((e) => e.key === selectedVerticalFilter);
+    }
+    if (searchFilter.trim()) {
+      const q = searchFilter.toLowerCase();
+      entries = entries.filter((e) => {
+        return (
+          e.name?.toLowerCase().includes(q) ||
+          e.type?.toLowerCase().includes(q) ||
+          e.key?.toLowerCase().includes(q) ||
+          e.submodules?.some((sm) => sm.label.toLowerCase().includes(q))
+        );
+      });
+    }
+    return entries;
+  }, [verticals, selectedVerticalFilter, searchFilter]);
 
   // ══════════════════════════════════════════════════════════════════════════
   // ██  RENDER
@@ -733,6 +835,168 @@ export default function BusinessDirectoryManager() {
               </div>
             </div>
 
+            {/* ── Executive Operations & Quick Access Hub Strip ── */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #e2e8f0',
+              padding: '1.1rem 1.35rem',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff',
+                  }}>
+                    <Zap size={16} />
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>
+                      Executive Operations & Quick Access Hub
+                    </span>
+                    <span style={{ fontSize: '11.5px', color: '#64748b', marginLeft: 8 }}>
+                      Jump directly to high-priority business operations across all 5 verticals
+                    </span>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', background: '#ecfdf5', color: '#059669', padding: '3px 10px', borderRadius: 20, fontWeight: 800, border: '1px solid #bbf7d0' }}>
+                  ⚡ Real-Time Active
+                </span>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                gap: '10px',
+                marginTop: '4px',
+              }}>
+                {[
+                  {
+                    label: 'Parlour Customer Inquiries',
+                    sub: 'Bridal & Hair Makeup Bookings',
+                    path: '/admin/parlour-inquiries',
+                    color: '#c084fc',
+                    bg: '#faf5ff',
+                    border: '#f3e8ff',
+                    icon: MessageSquare,
+                    badge: 'Inquiries',
+                  },
+                  {
+                    label: 'Video & Salon Appointments',
+                    sub: 'Approve, Meet & Virtual Calls',
+                    path: '/admin/parlour-appointments',
+                    color: '#0284c7',
+                    bg: '#f0f9ff',
+                    border: '#e0f2fe',
+                    icon: Calendar,
+                    badge: 'Bookings',
+                  },
+                  {
+                    label: 'Jaygurudev Event Packages',
+                    sub: 'Aadiyogi Stage, Cold Pyro, Arches',
+                    path: '/admin/event-decoration?tab=catalog',
+                    color: '#ca8a04',
+                    bg: '#fefce8',
+                    border: '#fef08a',
+                    icon: PartyPopper,
+                    badge: 'Catalog',
+                  },
+                  {
+                    label: 'Land & Plot Inquiries',
+                    sub: 'Calls & Site Visit Approvals',
+                    path: '/admin/plotting-inquiries',
+                    color: '#059669',
+                    bg: '#ecfdf5',
+                    border: '#a7f3d0',
+                    icon: Phone,
+                    badge: 'Requests',
+                  },
+                  {
+                    label: 'Plot Inventory & Automation',
+                    sub: 'Lakh/Biswa, EMI & Dimensions',
+                    path: '/admin/plotting-inventory',
+                    color: '#10b981',
+                    bg: '#f0fdf4',
+                    border: '#bbf7d0',
+                    icon: Trees,
+                    badge: 'Inventory',
+                  },
+                  {
+                    label: 'Drone & YouTube Gallery',
+                    sub: '16:9 Video Embeds & Land Visuals',
+                    path: '/admin/plotting-gallery',
+                    color: '#ef4444',
+                    bg: '#fef2f2',
+                    border: '#fecaca',
+                    icon: Video,
+                    badge: 'Videos',
+                  },
+                ].map((item, idx) => {
+                  const OpIcon = item.icon;
+                  return (
+                    <NavLink
+                      key={idx}
+                      to={item.path}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        background: item.bg,
+                        border: `1px solid ${item.border}`,
+                        textDecoration: 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 8,
+                        background: '#ffffff', color: item.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                      }}>
+                        <OpIcon size={17} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: '12.5px', fontWeight: 800, color: '#0f172a',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>
+                          {item.label}
+                        </div>
+                        <div style={{
+                          fontSize: '10.5px', color: '#64748b',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>
+                          {item.sub}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: '9.5px', fontWeight: 800, padding: '2px 6px',
+                        borderRadius: 6, background: '#ffffff', color: item.color,
+                        border: `1px solid ${item.border}`, flexShrink: 0,
+                      }}>
+                        {item.badge}
+                      </span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* ── Charts Row: Revenue Trend + Revenue Distribution ── */}
             <div style={{
               display: 'grid',
@@ -814,14 +1078,14 @@ export default function BusinessDirectoryManager() {
               </div>
             </div>
 
-            {/* ── Filter Bar ── */}
+            {/* ── Filter & Search Bar ── */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               flexWrap: 'wrap', gap: '0.75rem',
             }}>
               <div style={{
                 display: 'flex', gap: '6px', background: '#f1f5f9', padding: '4px',
-                borderRadius: '12px', flexWrap: 'wrap',
+                borderRadius: '12px', flexWrap: 'wrap', alignItems: 'center',
               }}>
                 {[
                   { id: 'ALL', label: '📁 All Verticals' },
@@ -849,8 +1113,55 @@ export default function BusinessDirectoryManager() {
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-                {verticalEntries.length} vertical{verticalEntries.length !== 1 ? 's' : ''} showing
+
+              {/* Real-Time Live Search Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '6px 12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                }}>
+                  <Search size={15} color="#94a3b8" />
+                  <input
+                    type="text"
+                    placeholder="Search vertical or submodule..."
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '12.5px',
+                      color: '#0f172a',
+                      width: '200px',
+                      background: 'transparent',
+                    }}
+                  />
+                  {searchFilter && (
+                    <button
+                      onClick={() => setSearchFilter('')}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        padding: 0,
+                        color: '#94a3b8',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <CircleDot size={12} />
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  {verticalEntries.length} vertical{verticalEntries.length !== 1 ? 's' : ''} showing
+                </div>
               </div>
             </div>
 
@@ -1064,6 +1375,90 @@ export default function BusinessDirectoryManager() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Direct Business Submodules & Operational Hub */}
+                        {b.submodules && b.submodules.length > 0 && (
+                          <div style={{
+                            background: '#f8fafc',
+                            borderRadius: '14px',
+                            border: '1px solid #e2e8f0',
+                            padding: '1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                ⚡ Direct Business Modules & Operations
+                              </span>
+                              <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600 }}>
+                                {b.submodules.length} quick access routes
+                              </span>
+                            </div>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                              gap: '8px',
+                            }}>
+                              {b.submodules.map((sm, sIdx) => {
+                                const SubIcon = sm.icon || CircleDot;
+                                return (
+                                  <NavLink
+                                    key={sIdx}
+                                    to={sm.path}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '8px 12px',
+                                      borderRadius: '10px',
+                                      background: '#ffffff',
+                                      border: '1px solid #e2e8f0',
+                                      textDecoration: 'none',
+                                      transition: 'all 0.15s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.borderColor = bColor;
+                                      e.currentTarget.style.transform = 'translateY(-1px)';
+                                      e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.04)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.borderColor = '#e2e8f0';
+                                      e.currentTarget.style.transform = 'translateY(0)';
+                                      e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                      <SubIcon size={14} color={bColor} />
+                                      <span style={{
+                                        fontSize: '11.5px',
+                                        fontWeight: 700,
+                                        color: '#1e293b',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                      }}>
+                                        {sm.label}
+                                      </span>
+                                    </div>
+                                    <span style={{
+                                      fontSize: '9.5px',
+                                      fontWeight: 800,
+                                      padding: '2px 6px',
+                                      borderRadius: '5px',
+                                      background: bBg,
+                                      color: bColor,
+                                      flexShrink: 0,
+                                      marginLeft: '6px',
+                                    }}>
+                                      {sm.badge}
+                                    </span>
+                                  </NavLink>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Action Sub-Folders: Dashboard & Users */}
                         <div style={{

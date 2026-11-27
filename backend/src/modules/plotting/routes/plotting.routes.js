@@ -14,5 +14,11 @@ router.get('/colonies/:colonyId', plottingController.getColonyById);
 router.post('/calculate-emi', plottingController.calculateEmi);
 router.post('/book-plot', plottingController.bookPlot);
 
+// ── Plot CRUD Endpoints ──
+router.get('/plots', plottingController.listPlots);
+router.post('/plots', plottingController.createPlot);
+router.put('/plots/:plotId', plottingController.updatePlot);
+router.delete('/plots/:plotId', plottingController.deletePlot);
+
 export default router;
 

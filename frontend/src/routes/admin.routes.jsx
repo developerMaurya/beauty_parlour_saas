@@ -155,11 +155,14 @@ export const AdminRoutes = (
       <Route path="event-clients" element={<EventUsersManagement />} />
 
       {/* ── 3. Real Estate Plotting Sub-Routes ── */}
-      <Route path="plotting" element={<PlottingDashboard />} />
+      <Route path="plotting" element={<PlottingDashboard defaultTab="overview" />} />
+      <Route path="plotting-inquiries" element={<PlottingDashboard defaultTab="requests" />} />
+      <Route path="plotting-inventory" element={<PlottingDashboard defaultTab="inventory" />} />
+      <Route path="plotting-gallery" element={<PlottingDashboard defaultTab="gallery" />} />
       <Route path="kashiplot" element={<PlottingDashboard />} />
       <Route path="real-estate" element={<PlottingDashboard />} />
       <Route path="plotting-users" element={<PlottingUsersManagement />} />
-      <Route path="plotting-agents" element={<PlottingUsersManagement />} />
+      <Route path="plotting-agents" element={<PlottingUsersManagement defaultTab="agents" />} />
 
       {/* ── 4. Office & Commercial Rent Sub-Routes ── */}
       <Route path="rent-office" element={<AdminRentDashboard />} />

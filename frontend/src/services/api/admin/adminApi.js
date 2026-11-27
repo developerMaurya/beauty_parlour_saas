@@ -732,3 +732,14 @@ export const eventCatalogFetcher = {
   delete: (id) => adminAxiosClient.delete(`/events/catalog/${id}`),
   toggleStatus: (id, data) => adminAxiosClient.patch(`/events/catalog/${id}/status`, data),
 };
+
+// 56. Plotting & Real Estate Fetcher
+export const plottingFetcher = {
+  listPlots: (params) => adminAxiosClient.get('/plotting/plots', { params: buildParams(params) }),
+  getColonies: () => adminAxiosClient.get('/plotting/colonies'),
+  createPlot: (data) => adminAxiosClient.post('/plotting/plots', data),
+  updatePlot: (plotId, data) => adminAxiosClient.put(`/plotting/plots/${plotId}`, data),
+  deletePlot: (plotId) => adminAxiosClient.delete(`/plotting/plots/${plotId}`),
+  calculateEmi: (data) => adminAxiosClient.post('/plotting/calculate-emi', data),
+  bookPlot: (data) => adminAxiosClient.post('/plotting/book-plot', data),
+};

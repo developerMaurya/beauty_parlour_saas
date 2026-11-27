@@ -1,20 +1,18 @@
 /**
  * @file PlottingDashboard.jsx
- * @description Master Plotting Admin Dashboard for Kashi Plotting Services matching the reference design.
- * Features:
- *   - Top Bar with notifications, messages & Admin profile
- *   - 4 Top KPI Cards (Total Plots: 245, Total Bookings: 128, Total Customers: 3,560, Total Revenue: ₹45,80,000)
- *   - Bookings Overview curve chart (Jan-Jul) + Top Locations progress bars
- *   - Recent Bookings Table (#BK001, #BK002, #BK003) with status badges
- *   - Quick Actions Grid (Add Plot, View Bookings, Manage Customers, View Reports)
- *   - Plot Listings grid (Residential, Commercial, Farmhouse)
- *   - Grow Your Business SaaS Promo Card
- *   - Interactive Add Plot & Booking Modals
+ * @description Master Plotting & Real Estate Workspace for Kashi Plotting Services.
+ * Fully managed through Left Sidebar & Top Tabs:
+ *   - Overview: KPIs, Revenue Analytics, Quick Actions, Colony Locations
+ *   - Inquiries & Booking Requests: Customer Land Requests, Approve, Site Visit Schedule, Direct Call & WhatsApp
+ *   - Plots & Land Inventory: Detailed Plot Management with Automation Mode (Rate per Biswa, Road Width,
+ *     Front/Depth Dimensions, Landmarks, Family Selection, Nearby Amenities, Discounts, Real-time calculations)
+ *   - Media & Video Gallery: Photo & Drone Gallery with Embedded Interactive YouTube Video Player
+ *   - Plot Buyers & Clients: Customer Roster, Registry Status, Token & Ledger
  * @module frontend/src/modules/admin/pages/PlottingDashboard
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Trees,
   Home,
@@ -37,92 +35,741 @@ import {
   ExternalLink,
   ChevronDown,
   Globe,
+  Video,
+  Play,
+  Phone,
+  MessageSquare,
+  MessageCircle,
+  Edit3,
+  Trash2,
+  Check,
+  AlertCircle,
+  Sparkles,
+  Filter,
+  SlidersHorizontal,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Share2,
+  Compass,
+  ShieldCheck,
+  Eye,
+  Layers,
+  PhoneCall,
+  UserCheck,
+  DollarSign,
+  Camera,
+  Film,
 } from 'lucide-react';
 
-export default function PlottingDashboard() {
+import { plottingFetcher } from '../../../services/api/admin/adminApi.js';
+
+// ── Default Seed Data for Plots Inventory ──
+const INITIAL_PLOTS = [
+  {
+    id: 'plot_101',
+    number: 'A-101',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    location: 'Varanasi-Prayagraj 6-Lane Expressway Corridor, UP',
+    biswa: 1.5,
+    sizeSqFt: 1350,
+    ratePerBiswa: 1450000,
+    grossPrice: 2175000,
+    discount: 50000,
+    price: 2125000,
+    roadWidth: '30 Ft Wide Blacktop Road',
+    dimensions: '30 × 45 ft',
+    frontFt: 30,
+    depthFt: 45,
+    facing: 'East Facing (Vastu Compliant)',
+    landmark: '500m from NH-19 Highway, Near DPS Varanasi',
+    familyZone: 'Gated Family Residential Township (Park Facing)',
+    amenities: ['24x7 Water Pipeline', 'Electricity Transformer', 'RCC Drainage', 'Street LED Lights', 'Gated Security', '143 Conversion Approved'],
+    images: ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80'],
+    status: 'AVAILABLE',
+    tokenAmount: 51000,
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+  {
+    id: 'plot_102',
+    number: 'A-102',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    location: 'Varanasi-Prayagraj 6-Lane Expressway Corridor, UP',
+    biswa: 2.0,
+    sizeSqFt: 1800,
+    ratePerBiswa: 1450000,
+    grossPrice: 2900000,
+    discount: 100000,
+    price: 2800000,
+    roadWidth: '40 Ft Main Boulevard Road',
+    dimensions: '40 × 45 ft',
+    frontFt: 40,
+    depthFt: 45,
+    facing: 'North Facing Corner',
+    landmark: 'Direct Expressway entry, 10 min to Cantt Station',
+    familyZone: 'Residential Gated Society with Children Park',
+    amenities: ['Electricity', 'Water', 'RCC Drainage', 'Boundary Wall', 'Clubhouse & Temple'],
+    images: ['https://images.unsplash.com/photo-1524813686514-a57563d77d66?auto=format&fit=crop&w=600&q=80'],
+    status: 'BOOKED',
+    buyer: 'Sunil Pandey',
+    tokenAmount: 100000,
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+  },
+  {
+    id: 'plot_103',
+    number: 'SCO-01',
+    colonyName: 'Ganga Enclave SCO Commercial Plaza',
+    location: 'Ring Road Phase-2, Near Sarnath Junction, Varanasi',
+    biswa: 2.5,
+    sizeSqFt: 2250,
+    ratePerBiswa: 2250000,
+    grossPrice: 5625000,
+    discount: 125000,
+    price: 5500000,
+    roadWidth: '60 Ft Commercial Highway',
+    dimensions: '50 × 45 ft',
+    frontFt: 50,
+    depthFt: 45,
+    facing: 'Highway Frontage SCO Commercial',
+    landmark: 'Adjacent to Ring Road Overbridge & Sarnath Tourist Hub',
+    familyZone: 'High ROI Commercial Plaza (Banks, Hospital & Showrooms)',
+    amenities: ['3-Phase Commercial Power', 'Heavy Truck Loading', 'Underground Drainage', 'Street Lights'],
+    images: ['https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=600&q=80'],
+    status: 'AVAILABLE',
+    tokenAmount: 200000,
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+  },
+  {
+    id: 'plot_104',
+    number: 'B-205',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    location: 'Varanasi-Prayagraj 6-Lane Expressway Corridor, UP',
+    biswa: 1.0,
+    sizeSqFt: 900,
+    ratePerBiswa: 1500000,
+    grossPrice: 1500000,
+    discount: 50000,
+    price: 1450000,
+    roadWidth: '25 Ft Interlocking Road',
+    dimensions: '25 × 36 ft',
+    frontFt: 25,
+    depthFt: 36,
+    facing: 'East Facing',
+    landmark: 'Near Colony Meditation Center & Park',
+    familyZone: 'Affordable Residential Gated Society',
+    amenities: ['Water Connection', 'Electricity Meter Ready', '24x7 Security', '143 Conversion'],
+    images: ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80'],
+    status: 'AVAILABLE',
+    tokenAmount: 31000,
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'plot_105',
+    number: 'C-310',
+    colonyName: 'Royal Orchid Township',
+    location: 'Babatpur Airport Highway Corridor, Varanasi',
+    biswa: 3.0,
+    sizeSqFt: 2700,
+    ratePerBiswa: 1400000,
+    grossPrice: 4200000,
+    discount: 100000,
+    price: 4100000,
+    roadWidth: '40 Ft Wide Sector Road',
+    dimensions: '45 × 60 ft',
+    frontFt: 45,
+    depthFt: 60,
+    facing: 'North-East Corner (Double Road)',
+    landmark: '5 Mins from Lal Bahadur Shastri International Airport',
+    familyZone: 'Luxury Villa & Farmhouse Residential Community',
+    amenities: ['Gated Boundary Wall', 'Solar Street Lighting', 'Plantation & Green Belt', 'Bank Loan Available'],
+    images: ['https://images.unsplash.com/photo-1524813686514-a57563d77d66?auto=format&fit=crop&w=600&q=80'],
+    status: 'SOLD',
+    buyer: 'Dr. Amit Tripathi',
+    tokenAmount: 100000,
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+  },
+];
+
+// ── Default Seed Data for Customer Inquiries & Requests ──
+const INITIAL_INQUIRIES = [
+  {
+    id: 'PLT-REQ-101',
+    customerName: 'Rajesh Verma',
+    customerPhone: '9812345678',
+    customerEmail: 'rajesh.verma@outlook.com',
+    serviceName: 'Green Valley Enclave - Plot #A-101 (1.5 Biswa)',
+    location: 'Varanasi-Prayagraj Expressway',
+    preferredDate: '2026-11-29',
+    timeSlot: '11:00 AM',
+    budget: '₹20,00,000 - ₹25,00,000',
+    notes: 'Interested in registry paperwork and 24-month bank loan EMI plan. Wants East-facing plot.',
+    status: 'Pending',
+    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'PLT-REQ-102',
+    customerName: 'Sunil Kumar Maurya',
+    customerPhone: '9876543210',
+    customerEmail: 'sk.maurya@gmail.com',
+    serviceName: 'Ganga Enclave Commercial SCO Plot',
+    location: 'Ring Road Phase-2, Sarnath',
+    preferredDate: '2026-11-30',
+    timeSlot: '03:30 PM',
+    budget: '₹50,00,000+',
+    notes: 'Looking for main highway road frontage for retail pharmacy & clinic showroom.',
+    status: 'Approved',
+    visitDate: '2026-11-30',
+    assignedStaff: 'Vinod Tiwari (Senior Consultant)',
+    approvalRemarks: 'Site visit confirmed with buyer. Pick up arranged from Cantt.',
+    createdAt: new Date(Date.now() - 3600000 * 18).toISOString(),
+  },
+  {
+    id: 'PLT-REQ-103',
+    customerName: 'Smt. Anjali Singh',
+    customerPhone: '9935123456',
+    customerEmail: 'anjali.singh.vns@yahoo.com',
+    serviceName: 'Royal Orchid Township - Residential Villa Plot',
+    location: 'Babatpur Airport Road',
+    preferredDate: '2026-12-02',
+    timeSlot: '01:00 PM',
+    budget: '₹35,00,000',
+    notes: 'Family wants gated society with park facing and 24x7 security for building dream house.',
+    status: 'Pending',
+    createdAt: new Date(Date.now() - 3600000 * 28).toISOString(),
+  },
+  {
+    id: 'PLT-REQ-104',
+    customerName: 'Vikramaditya Pandey',
+    customerPhone: '9794012345',
+    customerEmail: 'vikram.pandey@gmail.com',
+    serviceName: 'Affordable Residential Plot (1 Biswa)',
+    location: 'Mohansarai Ring Road Bypass',
+    preferredDate: '2026-12-05',
+    timeSlot: '04:00 PM',
+    budget: '₹15,00,000',
+    notes: 'Immediate token payment ready if 143 conversion paper is verified.',
+    status: 'Contacted',
+    createdAt: new Date(Date.now() - 3600000 * 45).toISOString(),
+  },
+];
+
+// ── Default Seed Data for Media Gallery (Photos, Videos & YouTube Links) ──
+const INITIAL_GALLERY = [
+  {
+    id: 'gal_yt_01',
+    type: 'YOUTUBE',
+    title: 'Drone Aerial Shoot & Complete Site Tour - Kashi Green Valley City',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Sample clean YouTube video
+    youtubeId: 'dQw4w9WgXcQ',
+    thumbnail: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    category: 'DRONE_AERIAL',
+    description: '4K Drone view of 40ft blacktop entrance boulevard, underground drainage and ready-to-build plots in Varanasi.',
+    createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
+  },
+  {
+    id: 'gal_yt_02',
+    type: 'YOUTUBE',
+    title: 'Customer Site Visit & Client Registry Review - Ganga Enclave SCO',
+    youtubeUrl: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
+    youtubeId: 'L_LUpnjgPso',
+    thumbnail: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=600&q=80',
+    colonyName: 'Ganga Enclave SCO Commercial Plaza',
+    category: 'SITE_TOUR',
+    description: 'Actual video discussion with clients during on-spot registry paper verification and landmark inspection.',
+    createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
+  },
+  {
+    id: 'gal_img_01',
+    type: 'IMAGE',
+    title: 'Main Grand Entrance Arch & 40ft Wide Road Construction',
+    imageUrl: 'https://images.unsplash.com/photo-1524813686514-a57563d77d66?auto=format&fit=crop&w=800&q=80',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    category: 'ROAD_CONSTRUCTION',
+    description: 'Finished blacktop 40ft sector road with electricity poles and tree plantation.',
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+  },
+  {
+    id: 'gal_img_02',
+    type: 'IMAGE',
+    title: 'Township Master Layout Map & Boundary Demarcation',
+    imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80',
+    colonyName: 'Royal Orchid Township',
+    category: 'MASTERPLAN',
+    description: 'Approved VDA/143 zoned layout showing Sector A, Sector B and central park.',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+];
+
+// Helper to extract clean YouTube Video ID from any format of YouTube link
+function extractYouTubeId(url) {
+  if (!url) return '';
+  const cleanUrl = url.trim();
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+  const match = cleanUrl.match(regExp);
+  return match && match[2].length === 11 ? match[2] : '';
+}
+
+export default function PlottingDashboard({ defaultTab }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Range filter
-  const [dateRange, setDateRange] = useState('30_DAYS');
-
-  // Interactive Modals
-  const [modalType, setModalType] = useState(null); // 'ADD_PLOT' | 'BOOKINGS' | 'REPORTS'
-  const [modalSuccessMsg, setModalSuccessMsg] = useState('');
-
-  // Sample Plot Listings
-  const [plotListings, setPlotListings] = useState([
-    {
-      id: 'pl_01',
-      title: 'Residential Plot',
-      price: '₹15,00,000',
-      location: 'Varanasi',
-      status: 'Active',
-      img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: 'pl_02',
-      title: 'Commercial Plot',
-      price: '₹35,00,000',
-      location: 'Sarnath',
-      status: 'Active',
-      img: 'https://images.unsplash.com/photo-1524813686514-a57563d77d66?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: 'pl_03',
-      title: 'Farmhouse Plot',
-      price: '₹22,00,000',
-      location: 'Bhaisodi',
-      status: 'Active',
-      img: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=400&q=80',
-    },
-  ]);
-
-  // Recent Bookings
-  const recentBookings = [
-    {
-      id: '#BK001',
-      customer: 'Rahul Sharma',
-      plot: 'Residential Plot',
-      amount: '₹15,00,000',
-      status: 'Confirmed',
-      statusColor: '#16a34a',
-      statusBg: '#dcfce7',
-      img: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80',
-    },
-    {
-      id: '#BK002',
-      customer: 'Priya Singh',
-      plot: 'Commercial Plot',
-      amount: '₹35,00,000',
-      status: 'Pending',
-      statusColor: '#ea580c',
-      statusBg: '#ffedd5',
-      img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-    },
-    {
-      id: '#BK003',
-      customer: 'Amit Kumar',
-      plot: 'Farmhouse Plot',
-      amount: '₹22,00,000',
-      status: 'Confirmed',
-      statusColor: '#16a34a',
-      statusBg: '#dcfce7',
-      img: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80',
-    },
-  ];
-
-  const handleAddPlotSubmit = (e) => {
-    e.preventDefault();
-    setModalSuccessMsg('Plot successfully added to inventory!');
-    setTimeout(() => {
-      setModalType(null);
-      setModalSuccessMsg('');
-    }, 1800);
+  // Active view determined strictly from tab query, route path, or defaultTab
+  const tabParam = searchParams.get('tab');
+  const getInitialView = () => {
+    if (tabParam) return tabParam.toLowerCase();
+    if (location.pathname.includes('inquiries') || location.pathname.includes('requests')) return 'requests';
+    if (location.pathname.includes('inventory') || location.pathname.includes('plots')) return 'inventory';
+    if (location.pathname.includes('gallery') || location.pathname.includes('media')) return 'gallery';
+    if (location.pathname.includes('users') || location.pathname.includes('buyers')) return 'users';
+    if (location.pathname.includes('agents')) return 'agents';
+    if (defaultTab) return defaultTab.toLowerCase();
+    return 'overview';
   };
+
+  const [activeView, setActiveView] = useState(getInitialView);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveView(tabParam.toLowerCase());
+    } else if (location.pathname.includes('inquiries')) {
+      setActiveView('requests');
+    } else if (location.pathname.includes('inventory')) {
+      setActiveView('inventory');
+    } else if (location.pathname.includes('gallery')) {
+      setActiveView('gallery');
+    } else if (defaultTab) {
+      setActiveView(defaultTab.toLowerCase());
+    }
+  }, [tabParam, defaultTab, location.pathname]);
+
+  const handleTabSwitch = (viewKey) => {
+    setActiveView(viewKey);
+    setSearchParams({ tab: viewKey });
+  };
+
+  const [toastMessage, setToastMessage] = useState('');
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 1. PLOTS INVENTORY STATE (Synchronized with localStorage + backend fallback)
+  // ══════════════════════════════════════════════════════════════════════════
+  const [plots, setPlots] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kashi_plotting_plots');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.warn(e);
+    }
+    return INITIAL_PLOTS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('kashi_plotting_plots', JSON.stringify(plots));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [plots]);
+
+  // Plots Filter & Search
+  const [plotSearch, setPlotSearch] = useState('');
+  const [plotStatusFilter, setPlotStatusFilter] = useState('ALL');
+  const [plotRoadFilter, setPlotRoadFilter] = useState('ALL');
+  const [plotSort, setPlotSort] = useState('newest');
+
+  // Add / Edit Plot Modal State
+  const [plotModalOpen, setPlotModalOpen] = useState(false);
+  const [editingPlot, setEditingPlot] = useState(null);
+
+  // AUTOMATION MODE FORM STATE for Plot Entry
+  const [plotForm, setPlotForm] = useState({
+    number: '',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    location: 'Varanasi-Prayagraj 6-Lane Expressway Corridor, UP',
+    biswa: '1.5',
+    ratePerBiswa: '1500000', // ₹15 Lakh / Biswa
+    discount: '50000',
+    roadWidth: '30 Ft Wide Blacktop Road',
+    frontFt: '30',
+    depthFt: '45',
+    facing: 'East Facing (Vastu Compliant)',
+    landmark: '500m from NH-19 Highway, Near DPS School',
+    familyZone: 'Gated Family Residential Township (Park Facing)',
+    amenities: ['24x7 Water Pipeline', 'Electricity Transformer', 'RCC Drainage', 'Street LED Lights', 'Gated Security', '143 Conversion Approved'],
+    imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
+    status: 'AVAILABLE',
+    tokenAmount: '51000',
+  });
+
+  // Reactive Automation Calculations
+  const autoCalculations = useMemo(() => {
+    const b = Number(plotForm.biswa) || 0;
+    const r = Number(plotForm.ratePerBiswa) || 0;
+    const gross = Math.round(b * r);
+    const d = Number(plotForm.discount) || 0;
+    const net = Math.max(0, gross - d);
+    const sqft = Math.round(b * 900); // 1 Biswa = 900 Sq.Ft in East UP
+    const estEmi24 = net > 0 ? Math.round((net * 0.9) / 24) : 0;
+    return { gross, net, sqft, estEmi24 };
+  }, [plotForm.biswa, plotForm.ratePerBiswa, plotForm.discount]);
+
+  const handleOpenAddPlot = () => {
+    setEditingPlot(null);
+    setPlotForm({
+      number: `A-${Math.floor(100 + Math.random() * 900)}`,
+      colonyName: 'Kashi Green Valley City (Phase 1)',
+      location: 'Varanasi-Prayagraj 6-Lane Expressway Corridor, UP',
+      biswa: '1.5',
+      ratePerBiswa: '1500000',
+      discount: '50000',
+      roadWidth: '30 Ft Wide Blacktop Road',
+      frontFt: '30',
+      depthFt: '45',
+      facing: 'East Facing (Vastu Compliant)',
+      landmark: '500m from NH-19 Highway, Near DPS School',
+      familyZone: 'Gated Family Residential Township (Park Facing)',
+      amenities: ['24x7 Water Pipeline', 'Electricity Transformer', 'RCC Drainage', 'Street LED Lights', 'Gated Security', '143 Conversion Approved'],
+      imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
+      status: 'AVAILABLE',
+      tokenAmount: '51000',
+    });
+    setPlotModalOpen(true);
+  };
+
+  const handleOpenEditPlot = (p) => {
+    setEditingPlot(p);
+    setPlotForm({
+      number: p.number,
+      colonyName: p.colonyName,
+      location: p.location,
+      biswa: String(p.biswa || '1.5'),
+      ratePerBiswa: String(p.ratePerBiswa || '1500000'),
+      discount: String(p.discount || '0'),
+      roadWidth: p.roadWidth || '30 Ft Wide Blacktop Road',
+      frontFt: String(p.frontFt || '30'),
+      depthFt: String(p.depthFt || '45'),
+      facing: p.facing || 'East Facing',
+      landmark: p.landmark || '',
+      familyZone: p.familyZone || 'Gated Family Residential Township',
+      amenities: p.amenities || [],
+      imageUrl: p.images?.[0] || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
+      status: p.status || 'AVAILABLE',
+      tokenAmount: String(p.tokenAmount || '51000'),
+    });
+    setPlotModalOpen(true);
+  };
+
+  const handleSavePlot = (e) => {
+    e.preventDefault();
+    const dimensions = `${plotForm.frontFt} × ${plotForm.depthFt} ft`;
+    if (editingPlot) {
+      setPlots((prev) =>
+        prev.map((item) =>
+          item.id === editingPlot.id
+            ? {
+                ...item,
+                ...plotForm,
+                biswa: Number(plotForm.biswa),
+                ratePerBiswa: Number(plotForm.ratePerBiswa),
+                grossPrice: autoCalculations.gross,
+                discount: Number(plotForm.discount),
+                price: autoCalculations.net,
+                sizeSqFt: autoCalculations.sqft,
+                dimensions,
+                frontFt: Number(plotForm.frontFt),
+                depthFt: Number(plotForm.depthFt),
+                images: [plotForm.imageUrl],
+                tokenAmount: Number(plotForm.tokenAmount),
+              }
+            : item
+        )
+      );
+      showToast(`Plot #${plotForm.number} updated successfully!`);
+    } else {
+      const newEntry = {
+        id: `plot_${Date.now()}`,
+        ...plotForm,
+        biswa: Number(plotForm.biswa),
+        ratePerBiswa: Number(plotForm.ratePerBiswa),
+        grossPrice: autoCalculations.gross,
+        discount: Number(plotForm.discount),
+        price: autoCalculations.net,
+        sizeSqFt: autoCalculations.sqft,
+        dimensions,
+        frontFt: Number(plotForm.frontFt),
+        depthFt: Number(plotForm.depthFt),
+        images: [plotForm.imageUrl],
+        tokenAmount: Number(plotForm.tokenAmount),
+        createdAt: new Date().toISOString(),
+      };
+      setPlots((prev) => [newEntry, ...prev]);
+      showToast(`New Plot #${plotForm.number} added to inventory!`);
+    }
+    setPlotModalOpen(false);
+  };
+
+  const handleDeletePlot = (plotId) => {
+    if (window.confirm('Are you sure you want to delete this plot from inventory?')) {
+      setPlots((prev) => prev.filter((p) => p.id !== plotId));
+      showToast('Plot deleted from inventory.');
+    }
+  };
+
+  const handleTogglePlotStatus = (plotId) => {
+    setPlots((prev) =>
+      prev.map((p) => {
+        if (p.id !== plotId) return p;
+        const nextStatus = p.status === 'AVAILABLE' ? 'BOOKED' : p.status === 'BOOKED' ? 'SOLD' : 'AVAILABLE';
+        return { ...p, status: nextStatus };
+      })
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 2. INQUIRIES & CUSTOMER BOOKING REQUESTS STATE
+  // ══════════════════════════════════════════════════════════════════════════
+  const [inquiries, setInquiries] = useState(() => {
+    try {
+      const stored = localStorage.getItem('all_customer_service_requests');
+      if (stored) {
+        const all = JSON.parse(stored);
+        const plottingOnes = all.filter((r) => r.serviceType === 'plotting');
+        if (plottingOnes.length > 0) return plottingOnes;
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+    return INITIAL_INQUIRIES;
+  });
+
+  // Inquiries Filters
+  const [inquirySearch, setInquirySearch] = useState('');
+  const [inquiryStatusFilter, setInquiryStatusFilter] = useState('ALL');
+  const [inquirySort, setInquirySort] = useState('newest');
+
+  // Approval Modal State
+  const [approveModalInquiry, setApproveModalInquiry] = useState(null);
+  const [approveForm, setApproveForm] = useState({
+    visitDate: '',
+    timeSlot: '11:00 AM',
+    assignedStaff: 'Vinod Tiwari (Senior Consultant)',
+    remarks: 'Approved. Pick-up arranged from Cantt Station for site inspection.',
+  });
+
+  // Call Discussion Log Modal State
+  const [callModalInquiry, setCallModalInquiry] = useState(null);
+  const [callNote, setCallNote] = useState('Spoke with customer. They confirmed interest in East-facing plot and requested Sunday 11 AM site visit.');
+
+  const handleOpenApproveModal = (inq) => {
+    setApproveModalInquiry(inq);
+    setApproveForm({
+      visitDate: inq.preferredDate || new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
+      timeSlot: inq.timeSlot || '11:00 AM',
+      assignedStaff: 'Vinod Tiwari (Senior Consultant)',
+      remarks: 'Site visit approved. Dedicated vehicle and legal 143 conversion docs file prepared.',
+    });
+  };
+
+  const handleConfirmApproval = (e) => {
+    e.preventDefault();
+    if (!approveModalInquiry) return;
+    setInquiries((prev) =>
+      prev.map((item) =>
+        item.id === approveModalInquiry.id
+          ? {
+              ...item,
+              status: 'Approved',
+              visitDate: approveForm.visitDate,
+              timeSlot: approveForm.timeSlot,
+              assignedStaff: approveForm.assignedStaff,
+              approvalRemarks: approveForm.remarks,
+            }
+          : item
+      )
+    );
+    showToast(`Request #${approveModalInquiry.id} approved! Site visit scheduled.`);
+    setApproveModalInquiry(null);
+  };
+
+  const handleSaveCallLog = (e) => {
+    e.preventDefault();
+    if (!callModalInquiry) return;
+    setInquiries((prev) =>
+      prev.map((item) =>
+        item.id === callModalInquiry.id
+          ? {
+              ...item,
+              lastCallAt: new Date().toISOString(),
+              callNotes: callNote,
+              status: item.status === 'Pending' ? 'Contacted' : item.status,
+            }
+          : item
+      )
+    );
+    showToast(`Call notes recorded for ${callModalInquiry.customerName}.`);
+    setCallModalInquiry(null);
+  };
+
+  const handleRejectInquiry = (inqId) => {
+    const reason = window.prompt('Enter reason for cancellation / archiving:', 'Budget mismatch / plot not available');
+    if (reason !== null) {
+      setInquiries((prev) =>
+        prev.map((item) => (item.id === inqId ? { ...item, status: 'Cancelled', cancelReason: reason } : item))
+      );
+      showToast('Inquiry status updated to Cancelled.');
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 3. MEDIA & VIDEO GALLERY STATE (Photos, Drone Shoots & Embedded YouTube Player)
+  // ══════════════════════════════════════════════════════════════════════════
+  const [gallery, setGallery] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kashi_plotting_gallery');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.warn(e);
+    }
+    return INITIAL_GALLERY;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('kashi_plotting_gallery', JSON.stringify(gallery));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [gallery]);
+
+  const [galleryFilter, setGalleryFilter] = useState('ALL'); // 'ALL' | 'YOUTUBE' | 'IMAGE' | 'DRONE'
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [previewMedia, setPreviewMedia] = useState(null);
+
+  const [mediaForm, setMediaForm] = useState({
+    type: 'YOUTUBE', // 'YOUTUBE' | 'IMAGE'
+    title: '',
+    youtubeUrl: '',
+    imageUrl: '',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    category: 'DRONE_AERIAL',
+    description: '',
+  });
+
+  const handleSaveMedia = (e) => {
+    e.preventDefault();
+    if (mediaForm.type === 'YOUTUBE') {
+      const yId = extractYouTubeId(mediaForm.youtubeUrl);
+      if (!yId) {
+        alert('Please enter a valid YouTube video link (e.g. https://www.youtube.com/watch?v=... or https://youtu.be/...)');
+        return;
+      }
+      const newMedia = {
+        id: `gal_yt_${Date.now()}`,
+        type: 'YOUTUBE',
+        title: mediaForm.title || 'Project Drone & Site Video',
+        youtubeUrl: mediaForm.youtubeUrl,
+        youtubeId: yId,
+        thumbnail: `https://img.youtube.com/vi/${yId}/hqdefault.jpg`,
+        colonyName: mediaForm.colonyName,
+        category: mediaForm.category,
+        description: mediaForm.description,
+        createdAt: new Date().toISOString(),
+      };
+      setGallery((prev) => [newMedia, ...prev]);
+      showToast('YouTube video successfully embedded into project gallery!');
+    } else {
+      const newMedia = {
+        id: `gal_img_${Date.now()}`,
+        type: 'IMAGE',
+        title: mediaForm.title || 'Township Site Photo',
+        imageUrl: mediaForm.imageUrl || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80',
+        colonyName: mediaForm.colonyName,
+        category: mediaForm.category,
+        description: mediaForm.description,
+        createdAt: new Date().toISOString(),
+      };
+      setGallery((prev) => [newMedia, ...prev]);
+      showToast('Project photo added to gallery!');
+    }
+    setMediaModalOpen(false);
+  };
+
+  const handleDeleteMedia = (id) => {
+    if (window.confirm('Delete this media item from gallery?')) {
+      setGallery((prev) => prev.filter((m) => m.id !== id));
+      showToast('Media removed.');
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FILTERED DATASETS
+  // ══════════════════════════════════════════════════════════════════════════
+  const filteredPlots = useMemo(() => {
+    return plots
+      .filter((p) => {
+        if (plotStatusFilter !== 'ALL' && p.status !== plotStatusFilter) return false;
+        if (plotRoadFilter !== 'ALL' && !p.roadWidth?.toLowerCase().includes(plotRoadFilter.toLowerCase())) return false;
+        if (!plotSearch.trim()) return true;
+        const q = plotSearch.toLowerCase();
+        return (
+          p.number?.toLowerCase().includes(q) ||
+          p.colonyName?.toLowerCase().includes(q) ||
+          p.location?.toLowerCase().includes(q) ||
+          p.landmark?.toLowerCase().includes(q) ||
+          p.facing?.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        if (plotSort === 'price_low') return a.price - b.price;
+        if (plotSort === 'price_high') return b.price - a.price;
+        if (plotSort === 'size_high') return b.biswa - a.biswa;
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      });
+  }, [plots, plotStatusFilter, plotRoadFilter, plotSearch, plotSort]);
+
+  const filteredInquiries = useMemo(() => {
+    return inquiries
+      .filter((inq) => {
+        if (inquiryStatusFilter !== 'ALL' && inq.status?.toUpperCase() !== inquiryStatusFilter.toUpperCase()) return false;
+        if (!inquirySearch.trim()) return true;
+        const q = inquirySearch.toLowerCase();
+        return (
+          inq.customerName?.toLowerCase().includes(q) ||
+          inq.customerPhone?.toLowerCase().includes(q) ||
+          inq.serviceName?.toLowerCase().includes(q) ||
+          inq.location?.toLowerCase().includes(q) ||
+          inq.id?.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        if (inquirySort === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      });
+  }, [inquiries, inquiryStatusFilter, inquirySearch, inquirySort]);
+
+  const filteredGallery = useMemo(() => {
+    return gallery.filter((m) => {
+      if (galleryFilter === 'YOUTUBE') return m.type === 'YOUTUBE';
+      if (galleryFilter === 'IMAGE') return m.type === 'IMAGE';
+      if (galleryFilter === 'DRONE') return m.category === 'DRONE_AERIAL';
+      return true;
+    });
+  }, [gallery, galleryFilter]);
+
+  // Overall KPI counts
+  const availablePlotsCount = plots.filter((p) => p.status === 'AVAILABLE').length;
+  const bookedPlotsCount = plots.filter((p) => p.status === 'BOOKED').length;
+  const soldPlotsCount = plots.filter((p) => p.status === 'SOLD').length;
+  const pendingInquiriesCount = inquiries.filter((i) => i.status?.toLowerCase() === 'pending').length;
 
   return (
     <div style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', color: '#1e293b', background: '#f8fafc', minHeight: '100vh', width: '100%' }}>
-      {/* ── Top Header matching screenshot ── */}
+      {/* ── Top Header with Branding, Live Status & Quick Tabs ── */}
       <header
         style={{
           background: '#ffffff',
@@ -133,410 +780,379 @@ export default function PlottingDashboard() {
           alignItems: 'center',
           position: 'sticky',
           top: 0,
-          zIndex: 30,
+          zIndex: 40,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}
       >
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#064e3b', letterSpacing: '-0.02em' }}>
-            Dashboard
-          </h1>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>
-            Welcome to Kashi Plotting Services Admin Panel
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Trees size={22} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#064e3b', letterSpacing: '-0.02em' }}>
+                Kashi Plotting & Real Estate Master
+              </h1>
+              <span style={{ fontSize: '11px', background: '#16a34a', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                VDA Approved 143
+              </span>
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              Colony Masterplans, Land Inquiries, Plot Inventory & Media Gallery
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          {/* Last 30 Days Dropdown */}
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: '#334155',
-              background: '#f8fafc',
-              outline: 'none',
-            }}
-          >
-            <option value="30_DAYS">Last 30 Days</option>
-            <option value="7_DAYS">Last 7 Days</option>
-            <option value="90_DAYS">Last Quarter</option>
-          </select>
-
-          {/* Website Link */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => navigate('/plotting')}
             style={{
-              padding: '6px 12px',
+              padding: '7px 14px',
               borderRadius: '8px',
               border: '1px solid #a7f3d0',
               background: '#ecfdf5',
               color: '#047857',
-              fontSize: '12px',
+              fontSize: '12.5px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
+              gap: 6,
             }}
           >
-            <Globe size={13} />
-            <span>View Website</span>
+            <Globe size={14} />
+            <span>View Public Storefront</span>
           </button>
 
-          {/* Notification with Badge */}
-          <div style={{ position: 'relative', cursor: 'pointer', padding: 6, borderRadius: '50%', background: '#f8fafc' }}>
-            <Bell size={18} color="#64748b" />
-            <span
-              style={{
-                position: 'absolute',
-                top: 2,
-                right: 2,
-                background: '#ef4444',
-                color: '#fff',
-                fontSize: '10px',
-                fontWeight: 900,
-                width: 15,
-                height: 15,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              3
-            </span>
-          </div>
-
-          {/* Admin Avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-            <img
-              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80"
-              alt="Admin"
-              style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #a7f3d0' }}
-            />
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '13px', color: '#0f172a', lineHeight: 1.2 }}>Admin</div>
-              <div style={{ fontSize: '10.5px', color: '#64748b' }}>Super Admin</div>
-            </div>
-          </div>
+          <button
+            onClick={handleOpenAddPlot}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: '#ffffff',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
+            }}
+          >
+            <Plus size={15} />
+            <span>+ Add New Plot</span>
+          </button>
         </div>
       </header>
 
-      {/* ── Main Dashboard Body Content ── */}
+      {/* ── Top Horizontal View Navigation Switcher ── */}
+      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0.6rem 1.75rem' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
+          {[
+            { id: 'overview', label: '📊 Plotting Overview', count: null },
+            { id: 'requests', label: '📑 Plot Inquiries & Leads', count: pendingInquiriesCount, badgeColor: '#ef4444' },
+            { id: 'inventory', label: '🏗️ Plots & Land Inventory', count: plots.length, badgeColor: '#059669' },
+            { id: 'gallery', label: '🎥 Project Video & YouTube Gallery', count: gallery.length, badgeColor: '#dc2626' },
+            { id: 'users', label: '👥 Plot Buyers & Clients', count: null },
+          ].map((tab) => {
+            const isActive = activeView === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (tab.id === 'users') {
+                    navigate('/admin/plotting-users');
+                  } else {
+                    handleTabSwitch(tab.id);
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 16px',
+                  borderRadius: '8px',
+                  border: `1.5px solid ${isActive ? '#059669' : 'transparent'}`,
+                  background: isActive ? '#ecfdf5' : 'transparent',
+                  color: isActive ? '#065f46' : '#475569',
+                  fontSize: '13px',
+                  fontWeight: isActive ? 800 : 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>{tab.label}</span>
+                {tab.count !== null && (
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 900,
+                      background: tab.badgeColor || '#059669',
+                      color: '#ffffff',
+                      padding: '1px 6px',
+                      borderRadius: '999px',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Toast Notification ── */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '24px',
+            zIndex: 99999,
+            background: '#064e3b',
+            color: '#a7f3d0',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '13.5px',
+            fontWeight: 800,
+            border: '1px solid #059669',
+          }}
+        >
+          <Sparkles size={16} color="#34d399" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* ── Content View Switcher ── */}
       <main style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {/* 1. Top 4 KPI Metric Cards (Matching Screenshot) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-          {/* Card 1: Total Plots */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Trees size={22} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>Total Plots</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-                  <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>245</span>
-                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 800 }}>↑ 12%</span>
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 1: OVERVIEW DASHBOARD
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'overview' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* 4 Top KPI Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trees size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>TOTAL PLOTS MANAGED</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>{plots.length}</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>🟢 {availablePlotsCount} Available Now</div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Card 2: Total Bookings */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Calendar size={22} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>Total Bookings</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-                  <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>128</span>
-                  <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 800 }}>↑ 18%</span>
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>INCOMING INQUIRIES</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>{inquiries.length}</div>
+                  <div style={{ fontSize: '11px', color: '#d97706', fontWeight: 700 }}>⏳ {pendingInquiriesCount} Pending Site Visits</div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Card 3: Total Customers */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#ffedd5', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={22} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>Total Customers</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-                  <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>3,560</span>
-                  <span style={{ fontSize: '11px', color: '#ea580c', fontWeight: 800 }}>↑ 10%</span>
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Film size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>DRONE & VIDEO TOURS</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>{gallery.length}</div>
+                  <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: 700 }}>🎥 Interactive YouTube Embeds</div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Card 4: Total Revenue */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#fae8ff', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900 }}>
-                ₹
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>Total Revenue</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-                  <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>₹45,80,000</span>
-                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 800 }}>↑ 22%</span>
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fdf2f8', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <DollarSign size={24} />
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Middle Section: Bookings Overview Chart (Left 2/3) + Top Locations (Right 1/3) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(0, 1.15fr)', gap: '1.25rem', alignItems: 'stretch' }}>
-          {/* Left: Bookings Overview Chart */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BarChart3 size={18} color="#059669" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Bookings Overview</h3>
-              </div>
-
-              {/* Legend */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px', fontWeight: 700 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
-                  <span style={{ color: '#475569' }}>Bookings</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0284c7' }} />
-                  <span style={{ color: '#475569' }}>Inquiries</span>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>TOTAL PLOT REVENUE</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>₹1.85 Cr</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>🪙 {bookedPlotsCount + soldPlotsCount} Booked / Sold</div>
                 </div>
               </div>
             </div>
 
-            {/* Area Chart SVG (Jan - Jul) */}
-            <div style={{ position: 'relative', width: '100%', height: '220px' }}>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
-                {['200', '150', '100', '50', '0'].map((label, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <span style={{ fontSize: '10.5px', color: '#94a3b8', width: '32px' }}>{label}</span>
-                    <div style={{ flex: 1, height: '1px', background: '#f1f5f9' }} />
-                  </div>
-                ))}
-              </div>
-
-              <svg width="100%" height="100%" viewBox="0 0 600 200" preserveAspectRatio="none" style={{ position: 'absolute', left: 34, right: 0, top: 0, bottom: 0, width: 'calc(100% - 34px)' }}>
-                <defs>
-                  <linearGradient id="plotGreenGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#16a34a" stopOpacity="0.2" />
-                    <stop offset="100%" stopColor="#16a34a" stopOpacity="0.0" />
-                  </linearGradient>
-                  <linearGradient id="plotBlueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0284c7" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#0284c7" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                {/* Blue Inquiries Curve */}
-                <path
-                  d="M0 140 C 90 120, 150 150, 220 110 C 300 80, 360 140, 440 90 C 500 130, 560 110, 600 70"
-                  fill="none"
-                  stroke="#0284c7"
-                  strokeWidth="2.5"
-                />
-
-                {/* Green Bookings Curve */}
-                <path
-                  d="M0 115 C 90 95, 150 125, 220 80 C 300 50, 360 110, 440 60 C 500 100, 560 85, 600 40"
-                  fill="none"
-                  stroke="#16a34a"
-                  strokeWidth="2.5"
-                />
-              </svg>
-            </div>
-
-            {/* X Axis Months */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '34px', marginTop: '10px', fontSize: '11px', color: '#94a3b8' }}>
-              <span>Jan</span>
-              <span>Feb</span>
-              <span>Mar</span>
-              <span>Apr</span>
-              <span>May</span>
-              <span>Jun</span>
-              <span>Jul</span>
-            </div>
-          </div>
-
-          {/* Right: Top Locations (Matching Screenshot) */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.5rem' }}>
-                <MapPin size={18} color="#059669" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Top Locations</h3>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {[
-                  { name: 'Varanasi', pct: 38, color: '#16a34a' },
-                  { name: 'Sarnath', pct: 32, color: '#0284c7' },
-                  { name: 'Bhaisodi', pct: 20, color: '#ea580c' },
-                  { name: 'Others', pct: 10, color: '#9333ea' },
-                ].map((loc, idx) => (
-                  <div key={idx}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: loc.color }} />
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>{loc.name}</span>
-                      </div>
-                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{loc.pct}%</span>
-                    </div>
-                    <div style={{ width: '100%', height: '7px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
-                      <div style={{ width: `${loc.pct}%`, height: '100%', background: loc.color, borderRadius: '999px' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Lower Section: Recent Bookings Table (Left 2/3) + Quick Actions (Right 1/3) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(0, 1.15fr)', gap: '1.25rem', alignItems: 'stretch' }}>
-          {/* Left: Recent Bookings Table */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Calendar size={18} color="#059669" />
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Recent Bookings</h3>
+            {/* Quick Navigation Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              <div
+                onClick={() => handleTabSwitch('requests')}
+                style={{
+                  background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 4px 14px rgba(4, 120, 87, 0.25)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#6ee7b7' }}>Customer Portal</div>
+                  <h3 style={{ margin: '6px 0', fontSize: '1.25rem', fontWeight: 900 }}>Customer Inquiries & Site Visits</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#d1fae5', lineHeight: 1.4 }}>
+                    Review customer applications for land plots, schedule site visits, call prospective buyers, and log discussion remarks.
+                  </p>
                 </div>
+                <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13px', color: '#6ee7b7' }}>
+                  <span>Open {pendingInquiriesCount} Pending Leads</span>
+                  <ArrowRight size={15} />
+                </div>
+              </div>
+
+              <div
+                onClick={() => handleTabSwitch('inventory')}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#059669' }}>Land Inventory</div>
+                  <h3 style={{ margin: '6px 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Plots Catalog & Rate Master</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.4 }}>
+                    Manage Lakh per Biswa rates, 25-40ft road widths, front & depth dimensions, landmark tags, family amenities, and live automation pricing.
+                  </p>
+                </div>
+                <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13px', color: '#059669' }}>
+                  <span>Manage {plots.length} Plots</span>
+                  <ArrowRight size={15} />
+                </div>
+              </div>
+
+              <div
+                onClick={() => handleTabSwitch('gallery')}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#dc2626' }}>Media & Video</div>
+                  <h3 style={{ margin: '6px 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>YouTube Drone & Video Player</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.4 }}>
+                    Embed full YouTube drone shoot walkthroughs, client review videos, entrance photos, and VDA approved master layout plans.
+                  </p>
+                </div>
+                <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13px', color: '#dc2626' }}>
+                  <span>Watch & Embed Videos</span>
+                  <ArrowRight size={15} />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Preview Table: Recent Inquiries */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem 1.5rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Latest Customer Inquiries for Plots</h3>
                 <button
-                  onClick={() => setModalType('BOOKINGS')}
-                  style={{ background: 'none', border: 'none', color: '#059669', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  onClick={() => handleTabSwitch('requests')}
+                  style={{ background: 'none', border: 'none', color: '#059669', fontWeight: 800, fontSize: '12.5px', cursor: 'pointer' }}
                 >
-                  <span>View All</span>
-                  <ArrowRight size={13} />
+                  View All ({inquiries.length}) →
                 </button>
               </div>
 
-              {/* Table */}
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontWeight: 700 }}>
-                      <th style={{ padding: '8px 10px' }}>#</th>
-                      <th style={{ padding: '8px 10px' }}>Customer</th>
-                      <th style={{ padding: '8px 10px' }}>Plot</th>
-                      <th style={{ padding: '8px 10px' }}>Amount</th>
-                      <th style={{ padding: '8px 10px' }}>Status</th>
+                    <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ padding: '10px 12px' }}>Customer</th>
+                      <th style={{ padding: '10px 12px' }}>Plot Requested</th>
+                      <th style={{ padding: '10px 12px' }}>Location</th>
+                      <th style={{ padding: '10px 12px' }}>Budget</th>
+                      <th style={{ padding: '10px 12px' }}>Status</th>
+                      <th style={{ padding: '10px 12px' }}>Quick Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {recentBookings.map((b, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #f8fafc' }}>
-                        <td style={{ padding: '10px', fontWeight: 800, color: '#64748b' }}>{b.id}</td>
-                        <td style={{ padding: '10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <img src={b.img} alt={b.customer} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
-                            <span style={{ fontWeight: 800, color: '#0f172a' }}>{b.customer}</span>
-                          </div>
+                    {inquiries.slice(0, 4).map((inq) => (
+                      <tr key={inq.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: 800, color: '#0f172a' }}>{inq.customerName}</div>
+                          <div style={{ fontSize: '11.5px', color: '#64748b' }}>📞 {inq.customerPhone}</div>
                         </td>
-                        <td style={{ padding: '10px', color: '#475569' }}>{b.plot}</td>
-                        <td style={{ padding: '10px', fontWeight: 900, color: '#064e3b' }}>{b.amount}</td>
-                        <td style={{ padding: '10px' }}>
+                        <td style={{ padding: '12px', fontWeight: 600 }}>{inq.serviceName}</td>
+                        <td style={{ padding: '12px', color: '#64748b' }}>{inq.location || 'Varanasi Corridor'}</td>
+                        <td style={{ padding: '12px', fontWeight: 700, color: '#059669' }}>{inq.budget || '₹20,00,000'}</td>
+                        <td style={{ padding: '12px' }}>
                           <span
                             style={{
-                              padding: '3px 10px',
-                              borderRadius: '999px',
                               fontSize: '11px',
                               fontWeight: 800,
-                              background: b.statusBg,
-                              color: b.statusColor,
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: inq.status === 'Approved' ? '#dcfce7' : '#fef3c7',
+                              color: inq.status === 'Approved' ? '#16a34a' : '#d97706',
                             }}
                           >
-                            {b.status}
+                            {inq.status}
                           </span>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <a
+                              href={`tel:${inq.customerPhone}`}
+                              style={{
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                background: '#ecfdf5',
+                                color: '#059669',
+                                textDecoration: 'none',
+                                fontWeight: 800,
+                                fontSize: '11.5px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                              }}
+                            >
+                              <Phone size={12} />
+                              <span>Call</span>
+                            </a>
+                            <button
+                              onClick={() => handleOpenApproveModal(inq)}
+                              style={{
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                background: '#fff',
+                                color: '#0f172a',
+                                fontWeight: 700,
+                                fontSize: '11.5px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Approve
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -545,293 +1161,1667 @@ export default function PlottingDashboard() {
               </div>
             </div>
           </div>
+        )}
 
-          {/* Right: Quick Actions (4 Tiles Matching Screenshot) */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.25rem' }}>
-              <TrendingUp size={18} color="#059669" />
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Quick Actions</h3>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {/* Tile 1: Add Plot */}
-              <div
-                onClick={() => setModalType('ADD_PLOT')}
-                style={{
-                  background: '#f0fdf4',
-                  borderRadius: '14px',
-                  padding: '1.2rem 0.75rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  border: '1px solid #dcfce7',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Home size={20} />
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 2: INQUIRIES & CUSTOMER LEADS LIST (WITH APPROVE & CALL OPTIONS)
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'requests' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Header Card */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '1.25rem 1.5rem',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#064e3b', margin: 0 }}>
+                    Plot Inquiries & Booking Applications
+                  </h2>
+                  <span style={{ fontSize: '11px', background: '#059669', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                    {inquiries.length} Inquiries
+                  </span>
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#064e3b' }}>Add Plot</span>
+                <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px' }}>
+                  Review prospective plot buyers, schedule site visits, dial directly, and record discussion notes.
+                </div>
               </div>
 
-              {/* Tile 2: View Bookings */}
-              <div
-                onClick={() => setModalType('BOOKINGS')}
-                style={{
-                  background: '#f0f9ff',
-                  borderRadius: '14px',
-                  padding: '1.2rem 0.75rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  border: '1px solid #e0f2fe',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Calendar size={20} />
-                </div>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#0369a1' }}>View Bookings</span>
-              </div>
-
-              {/* Tile 3: Manage Customers */}
-              <div
-                onClick={() => navigate('/admin/plotting-users')}
-                style={{
-                  background: '#faf5ff',
-                  borderRadius: '14px',
-                  padding: '1.2rem 0.75rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  border: '1px solid #f3e8ff',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f3e8ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Users size={20} />
-                </div>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#7e22ce' }}>Manage Customers</span>
-              </div>
-
-              {/* Tile 4: View Reports */}
-              <div
-                onClick={() => setModalType('REPORTS')}
-                style={{
-                  background: '#fff7ed',
-                  borderRadius: '14px',
-                  padding: '1.2rem 0.75rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  border: '1px solid #ffedd5',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#ffedd5', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <TrendingUp size={20} />
-                </div>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#c2410c' }}>View Reports</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Bottom Section: Plot Listings (Left 2/3) + Grow Your Business Promo (Right 1/3) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(0, 1.15fr)', gap: '1.25rem', alignItems: 'stretch' }}>
-          {/* Left: Plot Listings (Matching Screenshot) */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Trees size={18} color="#059669" />
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Plot Listings</h3>
-                </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
-                  onClick={() => navigate('/plotting')}
-                  style={{ background: 'none', border: 'none', color: '#059669', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  onClick={() => {
+                    const name = window.prompt('Enter customer name:');
+                    if (!name) return;
+                    const phone = window.prompt('Enter customer phone:');
+                    const plot = window.prompt('Enter plot/project name:', 'Kashi Green Valley City - Plot #A-108');
+                    const budget = window.prompt('Enter budget (e.g. ₹20,00,000):', '₹20,00,000');
+                    const newReq = {
+                      id: `PLT-WALK-${Date.now().toString().slice(-4)}`,
+                      customerName: name,
+                      customerPhone: phone || '9876543210',
+                      customerEmail: '',
+                      serviceName: plot || 'Residential Land Plot',
+                      location: 'Varanasi',
+                      preferredDate: new Date().toISOString().slice(0, 10),
+                      budget: budget || '₹20,00,000',
+                      notes: 'Walk-in / Phone inquiry registered by Admin.',
+                      status: 'Pending',
+                      createdAt: new Date().toISOString(),
+                    };
+                    setInquiries((prev) => [newReq, ...prev]);
+                    showToast(`Inquiry added for ${name}`);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#059669',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
                 >
-                  <span>View All</span>
-                  <ArrowRight size={13} />
+                  <Plus size={14} />
+                  <span>+ Add Walk-In Lead</span>
                 </button>
               </div>
+            </div>
 
-              {/* 3 Plot Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                {plotListings.map((p, idx) => (
-                  <div key={idx} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-                    <div style={{ height: '95px', position: 'relative' }}>
-                      <img src={p.img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {/* Filter & Search Bar */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '14px',
+                padding: '1rem',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', gap: '10px', flex: 1, minWidth: '260px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={16} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
+                  <input
+                    type="text"
+                    value={inquirySearch}
+                    onChange={(e) => setInquirySearch(e.target.value)}
+                    placeholder="Search by customer name, phone, plot or location..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 36px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <select
+                  value={inquiryStatusFilter}
+                  onChange={(e) => setInquiryStatusFilter(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontWeight: 600, color: '#334155' }}
+                >
+                  <option value="ALL">All Statuses ({inquiries.length})</option>
+                  <option value="PENDING">Pending Approval ({pendingInquiriesCount})</option>
+                  <option value="APPROVED">Approved / Visit Scheduled</option>
+                  <option value="CONTACTED">Contacted</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+
+                <select
+                  value={inquirySort}
+                  onChange={(e) => setInquirySort(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontWeight: 600, color: '#334155' }}
+                >
+                  <option value="newest">Sort: Newest First</option>
+                  <option value="oldest">Sort: Oldest First</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Inquiries List Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {filteredInquiries.length === 0 ? (
+                <div style={{ background: '#ffffff', borderRadius: '16px', padding: '3rem', textAlign: 'center', color: '#64748b', border: '1px dashed #cbd5e1' }}>
+                  <FileText size={40} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
+                  <div style={{ fontWeight: 800, fontSize: '15px' }}>No Plot Inquiries Found</div>
+                  <div style={{ fontSize: '13px' }}>Try clearing your search query or status filter.</div>
+                </div>
+              ) : (
+                filteredInquiries.map((inq) => {
+                  const isApproved = inq.status === 'Approved';
+                  const isPending = inq.status === 'Pending';
+
+                  return (
+                    <div
+                      key={inq.id}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '14px',
+                        padding: '1.25rem',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        flexWrap: 'wrap',
+                        gap: '1rem',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '280px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 900, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '6px' }}>
+                            {inq.id}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: isApproved ? '#dcfce7' : isPending ? '#fef3c7' : '#f1f5f9',
+                              color: isApproved ? '#15803d' : isPending ? '#d97706' : '#475569',
+                            }}
+                          >
+                            {inq.status}
+                          </span>
+                          <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                            {new Date(inq.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+
+                        <h3 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                          {inq.customerName}
+                        </h3>
+
+                        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: '#475569', marginBottom: '8px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Phone size={13} color="#059669" />
+                            <strong>{inq.customerPhone}</strong>
+                          </span>
+                          {inq.customerEmail && <span>✉️ {inq.customerEmail}</span>}
+                          <span>📍 {inq.location || 'Varanasi Corridor'}</span>
+                        </div>
+
+                        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', fontSize: '12.5px', color: '#334155', border: '1px solid #f1f5f9' }}>
+                          <div>
+                            <strong>Interested In:</strong> {inq.serviceName}
+                          </div>
+                          <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
+                            <span><strong>Budget:</strong> {inq.budget || '₹20,00,000'}</span>
+                            {inq.preferredDate && <span><strong>Preferred Date:</strong> {inq.preferredDate}</span>}
+                          </div>
+                          {inq.notes && (
+                            <div style={{ marginTop: '4px', color: '#64748b', fontStyle: 'italic' }}>
+                              "{inq.notes}"
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Approved Site Visit details if approved */}
+                        {isApproved && (
+                          <div style={{ marginTop: '8px', background: '#ecfdf5', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#065f46', border: '1px solid #a7f3d0' }}>
+                            <div>✅ <strong>Site Visit Scheduled:</strong> {inq.visitDate} ({inq.timeSlot || '11:00 AM'})</div>
+                            <div>👤 <strong>Assigned Consultant:</strong> {inq.assignedStaff || 'Senior Property Lead'}</div>
+                            {inq.approvalRemarks && <div>📝 <em>{inq.approvalRemarks}</em></div>}
+                          </div>
+                        )}
+
+                        {/* Call Discussion Log if recorded */}
+                        {inq.callNotes && (
+                          <div style={{ marginTop: '6px', fontSize: '12px', color: '#0369a1', background: '#f0f9ff', padding: '6px 10px', borderRadius: '6px' }}>
+                            📞 <strong>Last Call Note:</strong> {inq.callNotes}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons: Call, WhatsApp, Approve, Reject */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '160px' }}>
+                        {/* Direct Call Button ("call karenge") */}
+                        <a
+                          href={`tel:${inq.customerPhone}`}
+                          onClick={() => setCallModalInquiry(inq)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            background: '#059669',
+                            color: '#ffffff',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                            fontWeight: 800,
+                            fontSize: '12.5px',
+                            boxShadow: '0 2px 6px rgba(5, 150, 105, 0.2)',
+                          }}
+                        >
+                          <PhoneCall size={14} />
+                          <span>Call Buyer Now</span>
+                        </a>
+
+                        {/* WhatsApp Message Button */}
+                        <a
+                          href={`https://wa.me/91${inq.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                            `Namaste ${inq.customerName}, this is regarding your inquiry for ${inq.serviceName} at Kashi Plotting & Real Estate. We have prime VDA approved plots ready. Would you like to schedule a site visit?`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            background: '#25D366',
+                            color: '#ffffff',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                            fontWeight: 800,
+                            fontSize: '12.5px',
+                          }}
+                        >
+                          <MessageCircle size={14} />
+                          <span>WhatsApp Chat</span>
+                        </a>
+
+                        {/* Approve Button */}
+                        {!isApproved ? (
+                          <button
+                            onClick={() => handleOpenApproveModal(inq)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              background: '#ffffff',
+                              border: '1.5px solid #059669',
+                              color: '#059669',
+                              padding: '8px 14px',
+                              borderRadius: '8px',
+                              fontWeight: 800,
+                              fontSize: '12.5px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Check size={14} />
+                            <span>Approve & Schedule</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenApproveModal(inq)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              color: '#475569',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              fontWeight: 700,
+                              fontSize: '11.5px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Edit3 size={13} />
+                            <span>Update Visit Plan</span>
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleRejectInquiry(inq.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                          }}
+                        >
+                          Cancel / Archive
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ padding: '8px 10px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{p.title}</div>
-                      <div style={{ fontSize: '12px', fontWeight: 900, color: '#059669', marginTop: 2 }}>{p.price}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>{p.location}</span>
-                        <span style={{ background: '#dcfce7', color: '#16a34a', fontSize: '10px', fontWeight: 800, padding: '1px 6px', borderRadius: '4px' }}>
-                          {p.status}
-                        </span>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 3: PLOTS & LAND INVENTORY (WITH AUTOMATION CALCULATOR & SPECS)
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'inventory' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Header Card */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '1.25rem 1.5rem',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#064e3b', margin: 0 }}>
+                    Plots & Land Inventory Master
+                  </h2>
+                  <span style={{ fontSize: '11px', background: '#059669', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                    {plots.length} Plots Total
+                  </span>
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px' }}>
+                  Rate per Biswa, Road Widths, Front & Height Dimensions, Landmarks, Family Gated Amenities, and Automation Pricing.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={handleOpenAddPlot}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '9px 18px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(5, 150, 105, 0.25)',
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>+ Add New Plot</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>TOTAL PLOTS</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>{plots.length}</div>
+              </div>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#059669' }}>🟢 AVAILABLE FOR SALE</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#059669' }}>{availablePlotsCount}</div>
+              </div>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#d97706' }}>🟡 BOOKED / ADVANCE PAID</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#d97706' }}>{bookedPlotsCount}</div>
+              </div>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#dc2626' }}>🔴 SOLD & REGISTERED</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#dc2626' }}>{soldPlotsCount}</div>
+              </div>
+            </div>
+
+            {/* Search & Filters */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '14px',
+                padding: '1rem',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                <Search size={16} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
+                <input
+                  type="text"
+                  value={plotSearch}
+                  onChange={(e) => setPlotSearch(e.target.value)}
+                  placeholder="Search by plot number, colony, landmark or road width..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 36px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <select
+                  value={plotStatusFilter}
+                  onChange={(e) => setPlotStatusFilter(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontWeight: 600, color: '#334155' }}
+                >
+                  <option value="ALL">All Status ({plots.length})</option>
+                  <option value="AVAILABLE">Available Only ({availablePlotsCount})</option>
+                  <option value="BOOKED">Booked ({bookedPlotsCount})</option>
+                  <option value="SOLD">Sold ({soldPlotsCount})</option>
+                </select>
+
+                <select
+                  value={plotRoadFilter}
+                  onChange={(e) => setPlotRoadFilter(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontWeight: 600, color: '#334155' }}
+                >
+                  <option value="ALL">All Road Widths</option>
+                  <option value="25 Ft">25 Ft Road</option>
+                  <option value="30 Ft">30 Ft Road</option>
+                  <option value="40 Ft">40 Ft Main Boulevard</option>
+                  <option value="60 Ft">60 Ft Commercial Highway</option>
+                </select>
+
+                <select
+                  value={plotSort}
+                  onChange={(e) => setPlotSort(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontWeight: 600, color: '#334155' }}
+                >
+                  <option value="newest">Sort: Newest First</option>
+                  <option value="price_low">Price: Low to High</option>
+                  <option value="price_high">Price: High to Low</option>
+                  <option value="size_high">Area: Largest First</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Plots Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+              {filteredPlots.map((p) => {
+                const isAvail = p.status === 'AVAILABLE';
+                const isBooked = p.status === 'BOOKED';
+                const isSold = p.status === 'SOLD';
+
+                return (
+                  <div
+                    key={p.id}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      border: '1px solid #e2e8f0',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                    }}
+                  >
+                    {/* Plot Image Preview with Status Badge */}
+                    <div style={{ position: 'relative', height: '170px', background: '#0f172a' }}>
+                      <img
+                        src={p.images?.[0] || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80'}
+                        alt={p.number}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          left: 10,
+                          background: 'rgba(15, 23, 42, 0.85)',
+                          color: '#ffffff',
+                          padding: '4px 10px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 900,
+                          backdropFilter: 'blur(4px)',
+                        }}
+                      >
+                        Plot #{p.number}
+                      </div>
+
+                      <div
+                        onClick={() => handleTogglePlotStatus(p.id)}
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          right: 10,
+                          background: isAvail ? '#16a34a' : isBooked ? '#d97706' : '#dc2626',
+                          color: '#ffffff',
+                          padding: '4px 10px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                        }}
+                        title="Click to toggle status"
+                      >
+                        {p.status}
+                      </div>
+
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 10,
+                          left: 10,
+                          background: 'rgba(0, 0, 0, 0.75)',
+                          color: '#a7f3d0',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        🛣️ {p.roadWidth}
+                      </div>
+                    </div>
+
+                    {/* Plot Details Content */}
+                    <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                      <div>
+                        <h4 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                          {p.colonyName}
+                        </h4>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>
+                          📍 {p.location}
+                        </div>
+
+                        {/* Specs Grid: Biswa, Rate/Biswa, Dimensions, Facing */}
+                        <div
+                          style={{
+                            background: '#f8fafc',
+                            borderRadius: '10px',
+                            padding: '10px 12px',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '8px',
+                            fontSize: '12px',
+                            border: '1px solid #f1f5f9',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <div>
+                            <span style={{ color: '#64748b' }}>Plot Area:</span>
+                            <div style={{ fontWeight: 800, color: '#065f46' }}>
+                              {p.biswa} Biswa ({p.sizeSqFt || p.biswa * 900} sq.ft)
+                            </div>
+                          </div>
+
+                          <div>
+                            <span style={{ color: '#64748b' }}>Rate per Biswa:</span>
+                            <div style={{ fontWeight: 800, color: '#0f172a' }}>
+                              ₹{(p.ratePerBiswa / 100000).toFixed(1)} Lakh / Biswa
+                            </div>
+                          </div>
+
+                          <div>
+                            <span style={{ color: '#64748b' }}>Front × Depth:</span>
+                            <div style={{ fontWeight: 800, color: '#0f172a' }}>{p.dimensions}</div>
+                          </div>
+
+                          <div>
+                            <span style={{ color: '#64748b' }}>Facing:</span>
+                            <div style={{ fontWeight: 800, color: '#0f172a' }}>{p.facing || 'East'}</div>
+                          </div>
+                        </div>
+
+                        {/* Landmark and Family Selection */}
+                        {p.landmark && (
+                          <div style={{ fontSize: '11.5px', color: '#475569', marginBottom: '6px' }}>
+                            🏛️ <strong>Landmark:</strong> {p.landmark}
+                          </div>
+                        )}
+                        {p.familyZone && (
+                          <div style={{ fontSize: '11.5px', color: '#047857', marginBottom: '8px' }}>
+                            🏡 <strong>Society:</strong> {p.familyZone}
+                          </div>
+                        )}
+
+                        {/* Price & Discount */}
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '6px' }}>
+                          <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#059669' }}>
+                            ₹{Number(p.price).toLocaleString('en-IN')}
+                          </span>
+                          {p.discount > 0 && (
+                            <span style={{ fontSize: '11.5px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                              ₹{Number(p.grossPrice).toLocaleString('en-IN')}
+                            </span>
+                          )}
+                          {p.discount > 0 && (
+                            <span style={{ fontSize: '10.5px', color: '#dc2626', fontWeight: 800, background: '#fee2e2', padding: '1px 6px', borderRadius: '4px' }}>
+                              ₹{(p.discount / 1000).toFixed(0)}k Off
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                        <button
+                          onClick={() => handleOpenEditPlot(p)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            background: '#fff',
+                            color: '#334155',
+                            fontWeight: 700,
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <Edit3 size={13} />
+                          <span>Edit</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleTogglePlotStatus(p.id)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: isAvail ? '#ecfdf5' : '#f8fafc',
+                            color: isAvail ? '#047857' : '#475569',
+                            fontWeight: 800,
+                            fontSize: '11.5px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {isAvail ? 'Mark Booked' : isBooked ? 'Mark Sold' : 'Make Available'}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeletePlot(p.id)}
+                          style={{
+                            padding: '8px',
+                            borderRadius: '8px',
+                            border: '1px solid #fee2e2',
+                            background: '#fff1f2',
+                            color: '#dc2626',
+                            cursor: 'pointer',
+                          }}
+                          title="Delete plot"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
+        )}
 
-          {/* Right: Grow Your Business Promo Card (Matching Screenshot) */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              border: '1.5px solid #d1fae5',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#064e3b', margin: '0 0 6px', lineHeight: 1.25 }}>
-                Grow Your Business with Ploting Services
-              </h3>
-              <p style={{ fontSize: '12.5px', color: '#475569', margin: '0 0 1.25rem', lineHeight: 1.5 }}>
-                Manage plots, bookings and customers easily with Kashi Service enterprise real estate suite.
-              </p>
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 4: PROJECT MEDIA & VIDEO GALLERY (WITH YOUTUBE VIDEO PLAYER)
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'gallery' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Header Card */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '1.25rem 1.5rem',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#991b1b', margin: 0 }}>
+                    Project Video & YouTube Drone Gallery
+                  </h2>
+                  <span style={{ fontSize: '11px', background: '#dc2626', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                    {gallery.length} Media Items
+                  </span>
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px' }}>
+                  Embed and play YouTube drone site tour videos, client testimonials, 40ft road photos, and VDA layout blueprints.
+                </div>
+              </div>
 
               <button
-                onClick={() => navigate('/admin/billing')}
+                onClick={() => {
+                  setMediaForm({
+                    type: 'YOUTUBE',
+                    title: '',
+                    youtubeUrl: '',
+                    imageUrl: '',
+                    colonyName: 'Kashi Green Valley City (Phase 1)',
+                    category: 'DRONE_AERIAL',
+                    description: '',
+                  });
+                  setMediaModalOpen(true);
+                }}
                 style={{
-                  padding: '9px 18px',
-                  borderRadius: '10px',
-                  background: '#059669',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 800,
-                  fontSize: '12.5px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
-                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+                  gap: '6px',
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 10px rgba(220, 38, 38, 0.25)',
                 }}
               >
-                <span>Upgrade Plan</span>
-                <ArrowRight size={13} />
+                <Plus size={16} />
+                <span>+ Embed Video / Add Photo</span>
               </button>
             </div>
 
-            {/* Modern Villa with Red Pin Image matching screenshot */}
-            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', position: 'relative' }}>
-              <img
-                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=300&q=80"
-                alt="Plotted Villa"
-                style={{ width: '130px', height: '80px', objectFit: 'cover', borderRadius: '12px' }}
-              />
-              <div style={{ position: 'absolute', top: -10, right: 20, width: 28, height: 28, borderRadius: '50%', background: '#ef4444', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <MapPin size={16} />
-              </div>
+            {/* Filter Tabs */}
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
+              {[
+                { id: 'ALL', label: 'All Media' },
+                { id: 'YOUTUBE', label: '🎥 YouTube Drone & Tours' },
+                { id: 'IMAGE', label: '📷 High-Res Site Photos' },
+                { id: 'DRONE', label: '🚁 Aerial Shoots' },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setGalleryFilter(f.id)}
+                  style={{
+                    padding: '7px 16px',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${galleryFilter === f.id ? '#dc2626' : '#cbd5e1'}`,
+                    background: galleryFilter === f.id ? '#fef2f2' : '#ffffff',
+                    color: galleryFilter === f.id ? '#991b1b' : '#475569',
+                    fontSize: '12.5px',
+                    fontWeight: galleryFilter === f.id ? 800 : 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Media Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
+              {filteredGallery.map((m) => {
+                const isYouTube = m.type === 'YOUTUBE';
+
+                return (
+                  <div
+                    key={m.id}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      border: '1px solid #e2e8f0',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                    }}
+                  >
+                    {/* Media Player / Image Area */}
+                    <div style={{ position: 'relative', width: '100%', height: '220px', background: '#000000' }}>
+                      {isYouTube && m.youtubeId ? (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${m.youtubeId}`}
+                          title={m.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={{ width: '100%', height: '100%', border: 'none' }}
+                        />
+                      ) : (
+                        <img
+                          src={m.imageUrl || m.thumbnail}
+                          alt={m.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => setPreviewMedia(m)}
+                        />
+                      )}
+
+                      {/* Tag Badge */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          left: 10,
+                          background: isYouTube ? '#dc2626' : 'rgba(15, 23, 42, 0.85)',
+                          color: '#ffffff',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 900,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {isYouTube ? <span>▶ YouTube Video</span> : <span>📷 Photo</span>}
+                      </div>
+                    </div>
+
+                    {/* Media Information */}
+                    <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
+                          {m.colonyName}
+                        </div>
+                        <h4 style={{ margin: '4px 0 6px', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
+                          {m.title}
+                        </h4>
+                        {m.description && (
+                          <p style={{ margin: 0, fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
+                            {m.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                        {isYouTube && m.youtubeUrl && (
+                          <a
+                            href={m.youtubeUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              color: '#dc2626',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <span>Open on YouTube</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+
+                        <button
+                          onClick={() => handleDeleteMedia(m.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: '12px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
+        )}
       </main>
 
-      {/* ── Interactive Modals ── */}
-      {modalType && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', width: '100%', maxWidth: '440px', padding: '1.75rem', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#064e3b' }}>
-                {modalType === 'ADD_PLOT' && '🏡 Add New Plot to Inventory'}
-                {modalType === 'BOOKINGS' && '📅 Plot Bookings Master List'}
-                {modalType === 'REPORTS' && '📊 Plotting Revenue & Sales Report'}
-              </h3>
-              <button onClick={() => setModalType(null)} style={{ border: 'none', background: '#f1f5f9', borderRadius: '8px', padding: 6, cursor: 'pointer' }}>
-                <X size={18} />
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 1: ADD / EDIT PLOT WITH AUTOMATION MODE CALCULATOR
+          ════════════════════════════════════════════════════════════════════════ */}
+      {plotModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '750px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#064e3b' }}>
+                  {editingPlot ? `Edit Plot #${editingPlot.number}` : '+ Add New Plot to Inventory'}
+                </h3>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  Real-time automation mode for rate per biswa, dimensions, road width and net pricing.
+                </div>
+              </div>
+              <button
+                onClick={() => setPlotModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
-            {modalSuccessMsg ? (
-              <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-                <CheckCircle2 size={36} color="#16a34a" style={{ margin: '0 auto 8px' }} />
-                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>{modalSuccessMsg}</div>
+            <form onSubmit={handleSavePlot} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              {/* Row 1: Plot Number & Colony Project */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Plot Number *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={plotForm.number}
+                    onChange={(e) => setPlotForm({ ...plotForm, number: e.target.value })}
+                    placeholder="e.g. A-101"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Colony / Township Project *
+                  </label>
+                  <select
+                    value={plotForm.colonyName}
+                    onChange={(e) => setPlotForm({ ...plotForm, colonyName: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  >
+                    <option value="Kashi Green Valley City (Phase 1)">Kashi Green Valley City (Phase 1)</option>
+                    <option value="Ganga Enclave SCO Commercial Plaza">Ganga Enclave SCO Commercial Plaza</option>
+                    <option value="Royal Orchid Township">Royal Orchid Township</option>
+                    <option value="Kashi Vihar Smart City Corridor">Kashi Vihar Smart City Corridor</option>
+                  </select>
+                </div>
               </div>
-            ) : (
+
+              {/* Row 2: Location ("kha ka hai") */}
               <div>
-                {modalType === 'ADD_PLOT' && (
-                  <form onSubmit={handleAddPlotSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <input type="text" required placeholder="Colony / Project (e.g. Kashi Green Valley)" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-                    <input type="text" required placeholder="Plot Title & Number (e.g. Plot B-205)" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-                    <input type="number" required placeholder="Price (₹)" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-                    <input type="text" placeholder="Dimensions (e.g. 1500 Sq Ft - 30x50)" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-                      <button type="button" onClick={() => setModalType(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>Cancel</button>
-                      <button type="submit" style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Save Plot</button>
-                    </div>
-                  </form>
-                )}
-
-                {modalType === 'BOOKINGS' && (
-                  <div>
-                    <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '1rem' }}>Showing latest verified plot reservations across Varanasi colonies:</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
-                      {recentBookings.map((b, i) => (
-                        <div key={i} style={{ padding: '10px', borderRadius: '10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: '13px' }}>{b.customer}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>{b.plot} • {b.amount}</div>
-                          </div>
-                          <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', background: b.statusBg, color: b.statusColor }}>{b.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {modalType === 'REPORTS' && (
-                  <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-                    <BarChart3 size={44} color="#059669" style={{ margin: '0 auto 10px' }} />
-                    <h4 style={{ margin: '0 0 6px', fontWeight: 900 }}>Total Quarterly Revenue: ₹45,80,000</h4>
-                    <p style={{ fontSize: '13px', color: '#64748b' }}>128 active plot bookings processed across Varanasi, Sarnath & Bhaisodi corridors.</p>
-                  </div>
-                )}
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Location Address ("Zameen Kahan Ka Hai") *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={plotForm.location}
+                  onChange={(e) => setPlotForm({ ...plotForm, location: e.target.value })}
+                  placeholder="e.g. Varanasi-Prayagraj 6-Lane Expressway Corridor, UP"
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
               </div>
-            )}
+
+              {/* AUTOMATION MODE BOX: Biswa, Rate/Biswa, Discount & Live Price */}
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  border: '1.5px solid #86efac',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#166534' }}>
+                  <Sparkles size={15} color="#16a34a" />
+                  <span>AUTOMATION PRICING CALCULATOR (Live Real-Time Calculations)</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      Area in Biswa *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      value={plotForm.biswa}
+                      onChange={(e) => setPlotForm({ ...plotForm, biswa: e.target.value })}
+                      placeholder="e.g. 1.5"
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                    />
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
+                      ≈ {autoCalculations.sqft} Sq.Ft
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      Rate per Biswa (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={plotForm.ratePerBiswa}
+                      onChange={(e) => setPlotForm({ ...plotForm, ratePerBiswa: e.target.value })}
+                      placeholder="e.g. 1500000"
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                    />
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
+                      ₹{(Number(plotForm.ratePerBiswa) / 100000).toFixed(1)} Lakh / Biswa
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      Discount Offer (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={plotForm.discount}
+                      onChange={(e) => setPlotForm({ ...plotForm, discount: e.target.value })}
+                      placeholder="e.g. 50000"
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: '#166534', display: 'block', marginBottom: '4px' }}>
+                      Calculated Net Price
+                    </label>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#047857', padding: '6px 0' }}>
+                      ₹{autoCalculations.net.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 4: Road Width & Dimensions (Front & Depth/Height) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Road Width ("Sadak Chaurai") *
+                  </label>
+                  <select
+                    value={plotForm.roadWidth}
+                    onChange={(e) => setPlotForm({ ...plotForm, roadWidth: e.target.value })}
+                    style={{ width: '100%', padding: '9px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  >
+                    <option value="20 Ft Wide Interlocking Road">20 Ft Road</option>
+                    <option value="25 Ft Interlocking Road">25 Ft Road</option>
+                    <option value="30 Ft Wide Blacktop Road">30 Ft Wide Blacktop Road</option>
+                    <option value="40 Ft Main Boulevard Road">40 Ft Main Boulevard</option>
+                    <option value="60 Ft Commercial Highway">60 Ft Commercial Corridor</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Front Width (Ft)
+                  </label>
+                  <input
+                    type="number"
+                    value={plotForm.frontFt}
+                    onChange={(e) => setPlotForm({ ...plotForm, frontFt: e.target.value })}
+                    placeholder="e.g. 30"
+                    style={{ width: '100%', padding: '9px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Depth / Height (Ft)
+                  </label>
+                  <input
+                    type="number"
+                    value={plotForm.depthFt}
+                    onChange={(e) => setPlotForm({ ...plotForm, depthFt: e.target.value })}
+                    placeholder="e.g. 45"
+                    style={{ width: '100%', padding: '9px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Row 5: Facing & Landmark */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Facing / Vastu Orientation
+                  </label>
+                  <select
+                    value={plotForm.facing}
+                    onChange={(e) => setPlotForm({ ...plotForm, facing: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  >
+                    <option value="East Facing (Vastu Compliant)">East Facing (Vastu Compliant)</option>
+                    <option value="North Facing Corner">North Facing Corner</option>
+                    <option value="North-East Facing (Ishan Kon)">North-East Facing (Ishan Kon)</option>
+                    <option value="West Facing Park View">West Facing Park View</option>
+                    <option value="Highway Frontage Commercial SCO">Highway Frontage Commercial SCO</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Landmark Nearby ("Landmark Details")
+                  </label>
+                  <input
+                    type="text"
+                    value={plotForm.landmark}
+                    onChange={(e) => setPlotForm({ ...plotForm, landmark: e.target.value })}
+                    placeholder="e.g. 500m from NH-19 Highway, Near DPS School"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Row 6: Family Selection & Status */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Family / Society Selection
+                  </label>
+                  <input
+                    type="text"
+                    value={plotForm.familyZone}
+                    onChange={(e) => setPlotForm({ ...plotForm, familyZone: e.target.value })}
+                    placeholder="e.g. Gated Family Residential Township (Park Facing)"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Plot Availability Status
+                  </label>
+                  <select
+                    value={plotForm.status}
+                    onChange={(e) => setPlotForm({ ...plotForm, status: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  >
+                    <option value="AVAILABLE">AVAILABLE (For Sale)</option>
+                    <option value="BOOKED">BOOKED (Advance Token Received)</option>
+                    <option value="SOLD">SOLD & REGISTERED</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 7: Plot Image URL */}
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Plot Photo / Layout Blueprint URL
+                </label>
+                <input
+                  type="url"
+                  value={plotForm.imageUrl}
+                  onChange={(e) => setPlotForm({ ...plotForm, imageUrl: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPlotModalOpen(false)}
+                  style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(5, 150, 105, 0.3)',
+                  }}
+                >
+                  {editingPlot ? 'Save Changes' : 'Add Plot to Inventory'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 2: APPROVE INQUIRY & SCHEDULE SITE VISIT
+          ════════════════════════════════════════════════════════════════════════ */}
+      {approveModalInquiry && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '520px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#064e3b' }}>
+                  Approve Plot Inquiry & Schedule Visit
+                </h3>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  Customer: <strong>{approveModalInquiry.customerName}</strong> ({approveModalInquiry.customerPhone})
+                </div>
+              </div>
+              <button onClick={() => setApproveModalInquiry(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmApproval} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Site Visit Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={approveForm.visitDate}
+                  onChange={(e) => setApproveForm({ ...approveForm, visitDate: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Time Slot *
+                </label>
+                <select
+                  value={approveForm.timeSlot}
+                  onChange={(e) => setApproveForm({ ...approveForm, timeSlot: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                >
+                  <option value="10:00 AM">10:00 AM (Morning Shift)</option>
+                  <option value="11:30 AM">11:30 AM</option>
+                  <option value="02:30 PM">02:30 PM (Afternoon Shift)</option>
+                  <option value="04:30 PM">04:30 PM (Evening Sunset Tour)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Assigned Field Consultant
+                </label>
+                <input
+                  type="text"
+                  value={approveForm.assignedStaff}
+                  onChange={(e) => setApproveForm({ ...approveForm, assignedStaff: e.target.value })}
+                  placeholder="e.g. Vinod Tiwari (Senior Consultant)"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Approval Remarks & Instructions
+                </label>
+                <textarea
+                  rows={2}
+                  value={approveForm.remarks}
+                  onChange={(e) => setApproveForm({ ...approveForm, remarks: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setApproveModalInquiry(null)}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Confirm & Schedule
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 3: LOG CALL DISCUSSION
+          ════════════════════════════════════════════════════════════════════════ */}
+      {callModalInquiry && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                  Log Call with {callModalInquiry.customerName}
+                </h3>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  Dialed number: <strong>{callModalInquiry.customerPhone}</strong>
+                </div>
+              </div>
+              <button onClick={() => setCallModalInquiry(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCallLog} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Discussion Notes & Customer Remarks
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={callNote}
+                  onChange={(e) => setCallNote(e.target.value)}
+                  placeholder="e.g. Spoke with buyer. They are looking for 2 Biswa East-facing plot on 30ft road, budget 25L. Will visit with family Sunday."
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setCallModalInquiry(null)}
+                  style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700 }}
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Save Call Log
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 4: EMBED YOUTUBE VIDEO OR ADD PROJECT PHOTO
+          ════════════════════════════════════════════════════════════════════════ */}
+      {mediaModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '580px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#991b1b' }}>
+                  + Embed YouTube Video or Add Site Photo
+                </h3>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  Drone shoots, customer reviews, layout walkthroughs and colony entrance photos.
+                </div>
+              </div>
+              <button onClick={() => setMediaModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMedia} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Type Switcher */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setMediaForm({ ...mediaForm, type: 'YOUTUBE' })}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: `2px solid ${mediaForm.type === 'YOUTUBE' ? '#dc2626' : '#cbd5e1'}`,
+                    background: mediaForm.type === 'YOUTUBE' ? '#fef2f2' : '#fff',
+                    color: mediaForm.type === 'YOUTUBE' ? '#991b1b' : '#475569',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🎥 YouTube Video Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMediaForm({ ...mediaForm, type: 'IMAGE' })}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: `2px solid ${mediaForm.type === 'IMAGE' ? '#059669' : '#cbd5e1'}`,
+                    background: mediaForm.type === 'IMAGE' ? '#ecfdf5' : '#fff',
+                    color: mediaForm.type === 'IMAGE' ? '#065f46' : '#475569',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📷 High-Res Photo
+                </button>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Media Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={mediaForm.title}
+                  onChange={(e) => setMediaForm({ ...mediaForm, title: e.target.value })}
+                  placeholder="e.g. 4K Drone Shoot - Kashi Green Valley 40ft Entrance Road"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {mediaForm.type === 'YOUTUBE' ? (
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626', display: 'block', marginBottom: '4px' }}>
+                    YouTube Video URL *
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={mediaForm.youtubeUrl}
+                    onChange={(e) => setMediaForm({ ...mediaForm, youtubeUrl: e.target.value })}
+                    placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #fca5a5', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
+                    Paste standard YouTube link. It will automatically play directly in the gallery!
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#059669', display: 'block', marginBottom: '4px' }}>
+                    Photo Image URL *
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={mediaForm.imageUrl}
+                    onChange={(e) => setMediaForm({ ...mediaForm, imageUrl: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #86efac', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Colony / Project
+                  </label>
+                  <select
+                    value={mediaForm.colonyName}
+                    onChange={(e) => setMediaForm({ ...mediaForm, colonyName: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
+                  >
+                    <option value="Kashi Green Valley City (Phase 1)">Kashi Green Valley City (Phase 1)</option>
+                    <option value="Ganga Enclave SCO Commercial Plaza">Ganga Enclave SCO Commercial Plaza</option>
+                    <option value="Royal Orchid Township">Royal Orchid Township</option>
+                    <option value="Kashi Vihar Smart City Corridor">Kashi Vihar Smart City Corridor</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Media Category
+                  </label>
+                  <select
+                    value={mediaForm.category}
+                    onChange={(e) => setMediaForm({ ...mediaForm, category: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
+                  >
+                    <option value="DRONE_AERIAL">Drone Aerial Shoot</option>
+                    <option value="SITE_TOUR">Site Walkthrough & Tour</option>
+                    <option value="ROAD_CONSTRUCTION">Road & Drainage Work</option>
+                    <option value="MASTERPLAN">Masterplan Layout Map</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Description / Caption
+                </label>
+                <textarea
+                  rows={2}
+                  value={mediaForm.description}
+                  onChange={(e) => setMediaForm({ ...mediaForm, description: e.target.value })}
+                  placeholder="e.g. 4K site review showing completed blacktop roads and transformer installation."
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setMediaModalOpen(false)}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 22px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: mediaForm.type === 'YOUTUBE' ? '#dc2626' : '#059669',
+                    color: '#fff',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {mediaForm.type === 'YOUTUBE' ? 'Embed YouTube Video' : 'Add Site Photo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL 5: PHOTO LIGHTBOX PREVIEW
+          ════════════════════════════════════════════════════════════════════════ */}
+      {previewMedia && (
+        <div
+          onClick={() => setPreviewMedia(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem',
+          }}
+        >
+          <div style={{ maxWidth: '900px', width: '100%', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <img
+              src={previewMedia.imageUrl || previewMedia.thumbnail}
+              alt={previewMedia.title}
+              style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
+            />
+            <div style={{ marginTop: '1rem', color: '#ffffff', fontWeight: 800, fontSize: '1.1rem' }}>
+              {previewMedia.title}
+            </div>
+            <div style={{ color: '#a7f3d0', fontSize: '13px' }}>
+              📍 {previewMedia.colonyName}
+            </div>
           </div>
         </div>
       )}
