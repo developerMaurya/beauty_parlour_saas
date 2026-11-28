@@ -20,5 +20,16 @@ router.post('/plots', plottingController.createPlot);
 router.put('/plots/:plotId', plottingController.updatePlot);
 router.delete('/plots/:plotId', plottingController.deletePlot);
 
+// ── Plot Inquiries & Requests Endpoints ──
+router.get('/inquiries', plottingController.listInquiries);
+router.post('/inquiries', plottingController.createInquiry);
+router.put('/inquiries/:inquiryId', plottingController.updateInquiry);
+router.delete('/inquiries/:inquiryId', plottingController.deleteInquiry);
+
+// ── Plot Media & Gallery Endpoints ──
+router.get('/gallery', plottingController.listGallery);
+router.post('/gallery', plottingController.createGalleryItem);
+router.delete('/gallery/:galleryId', plottingController.deleteGalleryItem);
+
 export default router;
 

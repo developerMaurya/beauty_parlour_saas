@@ -66,7 +66,7 @@ import { uploadImageToCloudflare } from '../../../services/uploadService.js';
 import axios from 'axios';
 
 // Helper to format dates strictly as DD/MM/YYYY (Indian/UK Standard)
-export const formatDateDDMMYYYY = (dateVal) => {
+const formatDateDDMMYYYY = (dateVal) => {
   if (!dateVal) return '-';
   try {
     if (typeof dateVal === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(dateVal.trim())) {

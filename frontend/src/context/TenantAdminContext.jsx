@@ -242,4 +242,4 @@ export const useTenantAdmin = () => {
   return context;
 };
 
-export { TenantAdminContext };
+export default TenantAdminContext;

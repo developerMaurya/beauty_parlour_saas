@@ -72,7 +72,7 @@ export const PLAN_TIERS = [
 ];
 
 // Initial Database Sub-Services Master List
-export const INITIAL_MASTER_SUBSERVICES = [
+const INITIAL_MASTER_SUBSERVICES = [
   // Nail Design
   { id: 'sub_nail_1', serviceName: 'Nail Design', name: 'Simple Nail Design', description: 'Minimalist line, dot, chrome accent & single color art', status: 'active' },
   { id: 'sub_nail_2', serviceName: 'Nail Design', name: 'French Nail Design', description: 'Classic white smile-line & modern ombre French tips', status: 'active' },

@@ -70,6 +70,7 @@ const VERTICAL_SUBMODULES = {
     { label: 'Parlour Overview', path: '/admin/golden-beauty-parlour', icon: LayoutDashboard },
     { label: 'Customer Inquiries & Requests', path: '/admin/parlour-inquiries', icon: MessageSquare },
     { label: 'Appointment Requests & Meet', path: '/admin/parlour-appointments', icon: Calendar },
+    { label: 'Salon Photo & Video Gallery', path: '/admin/parlour-gallery', icon: Video },
     { label: 'Sale (POS Billing)', path: '/admin/parlour-sales', icon: ShoppingBag },
     { label: 'Products & Inventory', path: '/admin/parlour-products', icon: Package },
     { label: 'Academy Students', path: '/admin/parlour-students', icon: GraduationCap },
@@ -79,6 +80,7 @@ const VERTICAL_SUBMODULES = {
   'event-decoration': [
     { label: 'Events Overview', path: '/admin/event-decoration', icon: LayoutDashboard },
     { label: 'Events & Packages Catalog', path: '/admin/event-decoration?tab=EVENTS', icon: Sparkles },
+    { label: 'Event Photo & Video Gallery', path: '/admin/event-decoration?tab=GALLERY', icon: Video },
     { label: 'Stage & Aadiyogi Inventory', path: '/admin/event-decoration?tab=STAGES', icon: Layers },
     { label: 'Proposals & Quotes', path: '/admin/event-decoration?tab=PROPOSALS', icon: FileText },
     { label: 'Wedding Couples & Ledger', path: '/admin/event-decoration?tab=CLIENTS', icon: Users },

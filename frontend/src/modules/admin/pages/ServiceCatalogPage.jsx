@@ -208,7 +208,7 @@ const INITIAL_PARLOUR_SERVICES = [
 ];
 
 // Helper to format duration in Hours (e.g. 1 Hour, 1.5 Hours, 2 Hours)
-export const formatDurationHours = (durationInHoursOrMins) => {
+const formatDurationHours = (durationInHoursOrMins) => {
   if (durationInHoursOrMins === undefined || durationInHoursOrMins === null || durationInHoursOrMins === '') {
     return 'Flexible / On Demand';
   }

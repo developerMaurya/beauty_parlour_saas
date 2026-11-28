@@ -58,6 +58,7 @@ import {
   PhoneCall,
   UserCheck,
   DollarSign,
+  Upload,
   Camera,
   Film,
 } from 'lucide-react';
@@ -356,7 +357,7 @@ export default function PlottingDashboard({ defaultTab }) {
   };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 1. PLOTS INVENTORY STATE (Synchronized with localStorage + backend fallback)
+  // 1. PLOTS INVENTORY STATE (Synchronized with Backend REST DB + localStorage fallback)
   // ══════════════════════════════════════════════════════════════════════════
   const [plots, setPlots] = useState(() => {
     try {
@@ -367,6 +368,29 @@ export default function PlottingDashboard({ defaultTab }) {
     }
     return INITIAL_PLOTS;
   });
+
+  const [isLoadingPlots, setIsLoadingPlots] = useState(false);
+  const [plotsPage, setPlotsPage] = useState(1);
+  const [plotsLimit, setPlotsLimit] = useState(6);
+
+  const fetchPlotsFromDb = async () => {
+    try {
+      setIsLoadingPlots(true);
+      const res = await plottingFetcher.listPlots({ status: plotStatusFilter });
+      if (res?.data?.plots && Array.isArray(res.data.plots)) {
+        setPlots(res.data.plots);
+        localStorage.setItem('kashi_plotting_plots', JSON.stringify(res.data.plots));
+      }
+    } catch (err) {
+      console.warn('Backend fetch plots fallback:', err?.message);
+    } finally {
+      setIsLoadingPlots(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlotsFromDb();
+  }, [plotStatusFilter]);
 
   useEffect(() => {
     try {
@@ -531,7 +555,7 @@ export default function PlottingDashboard({ defaultTab }) {
   };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 2. INQUIRIES & CUSTOMER BOOKING REQUESTS STATE
+  // 2. INQUIRIES & CUSTOMER BOOKING REQUESTS STATE (Synchronized with Backend DB)
   // ══════════════════════════════════════════════════════════════════════════
   const [inquiries, setInquiries] = useState(() => {
     try {
@@ -547,10 +571,33 @@ export default function PlottingDashboard({ defaultTab }) {
     return INITIAL_INQUIRIES;
   });
 
+  const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
+  const [inquiriesPage, setInquiriesPage] = useState(1);
+  const [inquiriesLimit, setInquiriesLimit] = useState(5);
+
+  const fetchInquiriesFromDb = async () => {
+    try {
+      setIsLoadingInquiries(true);
+      const res = await plottingFetcher.listInquiries({ status: inquiryStatusFilter });
+      if (res?.data?.inquiries && Array.isArray(res.data.inquiries)) {
+        setInquiries(res.data.inquiries);
+      }
+    } catch (err) {
+      console.warn('Backend fetch inquiries fallback:', err?.message);
+    } finally {
+      setIsLoadingInquiries(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInquiriesFromDb();
+  }, [inquiryStatusFilter]);
+
   // Inquiries Filters
   const [inquirySearch, setInquirySearch] = useState('');
   const [inquiryStatusFilter, setInquiryStatusFilter] = useState('ALL');
   const [inquirySort, setInquirySort] = useState('newest');
+  const [expandedInquiryId, setExpandedInquiryId] = useState(null);
 
   // Approval Modal State
   const [approveModalInquiry, setApproveModalInquiry] = useState(null);
@@ -626,7 +673,7 @@ export default function PlottingDashboard({ defaultTab }) {
   };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 3. MEDIA & VIDEO GALLERY STATE (Photos, Drone Shoots & Embedded YouTube Player)
+  // 3. MEDIA & VIDEO GALLERY STATE (Synchronized with Backend DB)
   // ══════════════════════════════════════════════════════════════════════════
   const [gallery, setGallery] = useState(() => {
     try {
@@ -637,6 +684,28 @@ export default function PlottingDashboard({ defaultTab }) {
     }
     return INITIAL_GALLERY;
   });
+
+  const [isLoadingGallery, setIsLoadingGallery] = useState(false);
+  const [galleryPage, setGalleryPage] = useState(1);
+  const [galleryLimit, setGalleryLimit] = useState(6);
+
+  const fetchGalleryFromDb = async () => {
+    try {
+      setIsLoadingGallery(true);
+      const res = await plottingFetcher.listGallery({ type: galleryFilter });
+      if (res?.data?.items && Array.isArray(res.data.items)) {
+        setGallery(res.data.items);
+      }
+    } catch (err) {
+      console.warn('Backend fetch gallery fallback:', err?.message);
+    } finally {
+      setIsLoadingGallery(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGalleryFromDb();
+  }, [galleryFilter]);
 
   useEffect(() => {
     try {
@@ -761,6 +830,27 @@ export default function PlottingDashboard({ defaultTab }) {
     });
   }, [gallery, galleryFilter]);
 
+  const paginatedInquiries = useMemo(() => {
+    const startIndex = (inquiriesPage - 1) * inquiriesLimit;
+    return filteredInquiries.slice(startIndex, startIndex + inquiriesLimit);
+  }, [filteredInquiries, inquiriesPage, inquiriesLimit]);
+
+  const totalInquiriesPages = Math.max(1, Math.ceil(filteredInquiries.length / inquiriesLimit));
+
+  const paginatedPlots = useMemo(() => {
+    const startIndex = (plotsPage - 1) * plotsLimit;
+    return filteredPlots.slice(startIndex, startIndex + plotsLimit);
+  }, [filteredPlots, plotsPage, plotsLimit]);
+
+  const totalPlotsPages = Math.max(1, Math.ceil(filteredPlots.length / plotsLimit));
+
+  const paginatedGallery = useMemo(() => {
+    const startIndex = (galleryPage - 1) * galleryLimit;
+    return filteredGallery.slice(startIndex, startIndex + galleryLimit);
+  }, [filteredGallery, galleryPage, galleryLimit]);
+
+  const totalGalleryPages = Math.max(1, Math.ceil(filteredGallery.length / galleryLimit));
+
   // Overall KPI counts
   const availablePlotsCount = plots.filter((p) => p.status === 'AVAILABLE').length;
   const bookedPlotsCount = plots.filter((p) => p.status === 'BOOKED').length;
@@ -846,64 +936,6 @@ export default function PlottingDashboard({ defaultTab }) {
           </button>
         </div>
       </header>
-
-      {/* ── Top Horizontal View Navigation Switcher ── */}
-      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0.6rem 1.75rem' }}>
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
-          {[
-            { id: 'overview', label: '📊 Plotting Overview', count: null },
-            { id: 'requests', label: '📑 Plot Inquiries & Leads', count: pendingInquiriesCount, badgeColor: '#ef4444' },
-            { id: 'inventory', label: '🏗️ Plots & Land Inventory', count: plots.length, badgeColor: '#059669' },
-            { id: 'gallery', label: '🎥 Project Video & YouTube Gallery', count: gallery.length, badgeColor: '#dc2626' },
-            { id: 'users', label: '👥 Plot Buyers & Clients', count: null },
-          ].map((tab) => {
-            const isActive = activeView === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  if (tab.id === 'users') {
-                    navigate('/admin/plotting-users');
-                  } else {
-                    handleTabSwitch(tab.id);
-                  }
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 16px',
-                  borderRadius: '8px',
-                  border: `1.5px solid ${isActive ? '#059669' : 'transparent'}`,
-                  background: isActive ? '#ecfdf5' : 'transparent',
-                  color: isActive ? '#065f46' : '#475569',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 800 : 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>{tab.label}</span>
-                {tab.count !== null && (
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: 900,
-                      background: tab.badgeColor || '#059669',
-                      color: '#ffffff',
-                      padding: '1px 6px',
-                      borderRadius: '999px',
-                    }}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* ── Toast Notification ── */}
       {toastMessage && (
@@ -1299,216 +1331,333 @@ export default function PlottingDashboard({ defaultTab }) {
               </div>
             </div>
 
-            {/* Inquiries List Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Modern, Space-Saving Inquiries Table Format */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
               {filteredInquiries.length === 0 ? (
-                <div style={{ background: '#ffffff', borderRadius: '16px', padding: '3rem', textAlign: 'center', color: '#64748b', border: '1px dashed #cbd5e1' }}>
-                  <FileText size={40} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+                  <FileText size={38} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
                   <div style={{ fontWeight: 800, fontSize: '15px' }}>No Plot Inquiries Found</div>
                   <div style={{ fontSize: '13px' }}>Try clearing your search query or status filter.</div>
                 </div>
               ) : (
-                filteredInquiries.map((inq) => {
-                  const isApproved = inq.status === 'Approved';
-                  const isPending = inq.status === 'Pending';
+                <>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        <th style={{ padding: '12px 14px' }}>Lead ID & Date</th>
+                        <th style={{ padding: '12px 14px' }}>Buyer Name & Contact</th>
+                        <th style={{ padding: '12px 14px' }}>Interested Plot / Township</th>
+                        <th style={{ padding: '12px 14px' }}>Budget & Preferred Date</th>
+                        <th style={{ padding: '12px 14px' }}>Status</th>
+                        <th style={{ padding: '12px 14px', textAlign: 'right' }}>Quick Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedInquiries.map((inq) => {
+                        const isApproved = inq.status === 'Approved';
+                        const isPending = inq.status === 'Pending';
+                        const isExpanded = expandedInquiryId === inq.id;
 
-                  return (
-                    <div
-                      key={inq.id}
+                        return (
+                          <React.Fragment key={inq.id}>
+                            <tr
+                              style={{
+                                borderBottom: '1px solid #f1f5f9',
+                                background: isExpanded ? '#f8fafc' : '#ffffff',
+                                transition: 'background 0.15s ease',
+                              }}
+                            >
+                              {/* Lead ID & Date */}
+                              <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '12px' }}>
+                                  {inq.id}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                                  {new Date(inq.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </div>
+                              </td>
+
+                              {/* Customer Contact */}
+                              <td style={{ padding: '12px 14px' }}>
+                                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>
+                                  {inq.customerName}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                                  <Phone size={12} />
+                                  <span>{inq.customerPhone}</span>
+                                </div>
+                                {inq.customerEmail && (
+                                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                    {inq.customerEmail}
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Interested Plot & Location */}
+                              <td style={{ padding: '12px 14px', maxWidth: '240px' }}>
+                                <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                                  {inq.serviceName}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                  📍 {inq.location || 'Varanasi Corridor'}
+                                </div>
+                              </td>
+
+                              {/* Budget & Date */}
+                              <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontWeight: 800, color: '#047857' }}>
+                                  {inq.budget || '₹20,00,000'}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                  Date: {inq.preferredDate || 'Flexible'}
+                                </div>
+                              </td>
+
+                              {/* Status Badge */}
+                              <td style={{ padding: '12px 14px' }}>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 800,
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    background: isApproved ? '#ecfdf5' : isPending ? '#fef3c7' : '#f1f5f9',
+                                    color: isApproved ? '#047857' : isPending ? '#b45309' : '#475569',
+                                    display: 'inline-block',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {inq.status}
+                                </span>
+                              </td>
+
+                              {/* Quick Action Buttons */}
+                              <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                  {/* Call */}
+                                  <a
+                                    href={`tel:${inq.customerPhone}`}
+                                    onClick={() => setCallModalInquiry(inq)}
+                                    title="Call Buyer"
+                                    style={{
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      background: '#ecfdf5',
+                                      color: '#047857',
+                                      border: '1px solid #a7f3d0',
+                                      textDecoration: 'none',
+                                      fontWeight: 800,
+                                      fontSize: '11.5px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                    }}
+                                  >
+                                    <PhoneCall size={13} />
+                                    <span>Call</span>
+                                  </a>
+
+                                  {/* WhatsApp */}
+                                  <a
+                                    href={`https://wa.me/91${inq.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                      `Namaste ${inq.customerName}, this is regarding your inquiry for ${inq.serviceName} at Kashi Plotting & Real Estate. We have prime VDA approved plots ready. Would you like to schedule a site visit?`
+                                    )}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="WhatsApp Chat"
+                                    style={{
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      background: '#25D366',
+                                      color: '#ffffff',
+                                      textDecoration: 'none',
+                                      fontWeight: 800,
+                                      fontSize: '11.5px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                    }}
+                                  >
+                                    <MessageCircle size={13} />
+                                    <span>WhatsApp</span>
+                                  </a>
+
+                                  {/* Approve / Schedule */}
+                                  {!isApproved ? (
+                                    <button
+                                      onClick={() => handleOpenApproveModal(inq)}
+                                      title="Approve & Schedule Site Visit"
+                                      style={{
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        background: '#047857',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        fontWeight: 800,
+                                        fontSize: '11.5px',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                      }}
+                                    >
+                                      <Check size={13} />
+                                      <span>Approve</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleOpenApproveModal(inq)}
+                                      title="Update Visit Schedule"
+                                      style={{
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        background: '#f1f5f9',
+                                        color: '#334155',
+                                        border: '1px solid #cbd5e1',
+                                        fontWeight: 700,
+                                        fontSize: '11.5px',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                      }}
+                                    >
+                                      <Edit3 size={13} />
+                                      <span>Edit Visit</span>
+                                    </button>
+                                  )}
+
+                                  {/* Toggle Details */}
+                                  <button
+                                    onClick={() => setExpandedInquiryId(isExpanded ? null : inq.id)}
+                                    style={{
+                                      padding: '6px 8px',
+                                      borderRadius: '6px',
+                                      border: '1px solid #cbd5e1',
+                                      background: isExpanded ? '#0f172a' : '#ffffff',
+                                      color: isExpanded ? '#ffffff' : '#475569',
+                                      cursor: 'pointer',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {isExpanded ? 'Hide' : 'Details'}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Expandable Details Row */}
+                            {isExpanded && (
+                              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <td colSpan={6} style={{ padding: '12px 18px' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {inq.notes && (
+                                      <div style={{ fontSize: '12px', color: '#475569', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                        <strong>Inquiry Remarks:</strong> "{inq.notes}"
+                                      </div>
+                                    )}
+
+                                    {isApproved && (
+                                      <div style={{ fontSize: '12px', color: '#065f46', background: '#ecfdf5', padding: '8px 12px', borderRadius: '8px', border: '1px solid #a7f3d0', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                                        <span>✅ <strong>Site Visit:</strong> {inq.visitDate} ({inq.timeSlot || '11:00 AM'})</span>
+                                        <span>👤 <strong>Consultant:</strong> {inq.assignedStaff || 'Senior Property Lead'}</span>
+                                        {inq.approvalRemarks && <span>📝 <em>{inq.approvalRemarks}</em></span>}
+                                      </div>
+                                    )}
+
+                                    {inq.callNotes && (
+                                      <div style={{ fontSize: '12px', color: '#0369a1', background: '#f0f9ff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                                        📞 <strong>Last Call Note:</strong> {inq.callNotes}
+                                      </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+                                      <button
+                                        onClick={() => handleRejectInquiry(inq.id)}
+                                        style={{
+                                          background: 'transparent',
+                                          border: 'none',
+                                          color: '#ef4444',
+                                          fontSize: '11.5px',
+                                          fontWeight: 700,
+                                          cursor: 'pointer',
+                                          padding: 0,
+                                        }}
+                                      >
+                                        Cancel / Archive Inquiry
+                                      </button>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Inquiries Pagination Bar */}
+                <div
+                  style={{
+                    padding: '12px 18px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    fontSize: '12px',
+                    color: '#64748b',
+                  }}
+                >
+                  <div style={{ fontWeight: 600 }}>
+                    Showing {(inquiriesPage - 1) * inquiriesLimit + 1} to {Math.min(inquiriesPage * inquiriesLimit, filteredInquiries.length)} of {filteredInquiries.length} Inquiries
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      disabled={inquiriesPage <= 1}
+                      onClick={() => setInquiriesPage((p) => Math.max(1, p - 1))}
                       style={{
-                        background: '#ffffff',
-                        borderRadius: '14px',
-                        padding: '1.25rem',
-                        border: '1px solid #e2e8f0',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        flexWrap: 'wrap',
-                        gap: '1rem',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: inquiriesPage <= 1 ? '#f1f5f9' : '#ffffff',
+                        color: inquiriesPage <= 1 ? '#94a3b8' : '#0f172a',
+                        fontWeight: 700,
+                        cursor: inquiriesPage <= 1 ? 'not-allowed' : 'pointer',
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: '280px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 900, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '6px' }}>
-                            {inq.id}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              background: isApproved ? '#dcfce7' : isPending ? '#fef3c7' : '#f1f5f9',
-                              color: isApproved ? '#15803d' : isPending ? '#d97706' : '#475569',
-                            }}
-                          >
-                            {inq.status}
-                          </span>
-                          <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                            {new Date(inq.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </span>
-                        </div>
-
-                        <h3 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-                          {inq.customerName}
-                        </h3>
-
-                        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: '#475569', marginBottom: '8px' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Phone size={13} color="#059669" />
-                            <strong>{inq.customerPhone}</strong>
-                          </span>
-                          {inq.customerEmail && <span>✉️ {inq.customerEmail}</span>}
-                          <span>📍 {inq.location || 'Varanasi Corridor'}</span>
-                        </div>
-
-                        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', fontSize: '12.5px', color: '#334155', border: '1px solid #f1f5f9' }}>
-                          <div>
-                            <strong>Interested In:</strong> {inq.serviceName}
-                          </div>
-                          <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
-                            <span><strong>Budget:</strong> {inq.budget || '₹20,00,000'}</span>
-                            {inq.preferredDate && <span><strong>Preferred Date:</strong> {inq.preferredDate}</span>}
-                          </div>
-                          {inq.notes && (
-                            <div style={{ marginTop: '4px', color: '#64748b', fontStyle: 'italic' }}>
-                              "{inq.notes}"
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Approved Site Visit details if approved */}
-                        {isApproved && (
-                          <div style={{ marginTop: '8px', background: '#ecfdf5', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#065f46', border: '1px solid #a7f3d0' }}>
-                            <div>✅ <strong>Site Visit Scheduled:</strong> {inq.visitDate} ({inq.timeSlot || '11:00 AM'})</div>
-                            <div>👤 <strong>Assigned Consultant:</strong> {inq.assignedStaff || 'Senior Property Lead'}</div>
-                            {inq.approvalRemarks && <div>📝 <em>{inq.approvalRemarks}</em></div>}
-                          </div>
-                        )}
-
-                        {/* Call Discussion Log if recorded */}
-                        {inq.callNotes && (
-                          <div style={{ marginTop: '6px', fontSize: '12px', color: '#0369a1', background: '#f0f9ff', padding: '6px 10px', borderRadius: '6px' }}>
-                            📞 <strong>Last Call Note:</strong> {inq.callNotes}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Buttons: Call, WhatsApp, Approve, Reject */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '160px' }}>
-                        {/* Direct Call Button ("call karenge") */}
-                        <a
-                          href={`tel:${inq.customerPhone}`}
-                          onClick={() => setCallModalInquiry(inq)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            background: '#059669',
-                            color: '#ffffff',
-                            padding: '8px 14px',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                            fontWeight: 800,
-                            fontSize: '12.5px',
-                            boxShadow: '0 2px 6px rgba(5, 150, 105, 0.2)',
-                          }}
-                        >
-                          <PhoneCall size={14} />
-                          <span>Call Buyer Now</span>
-                        </a>
-
-                        {/* WhatsApp Message Button */}
-                        <a
-                          href={`https://wa.me/91${inq.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                            `Namaste ${inq.customerName}, this is regarding your inquiry for ${inq.serviceName} at Kashi Plotting & Real Estate. We have prime VDA approved plots ready. Would you like to schedule a site visit?`
-                          )}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            background: '#25D366',
-                            color: '#ffffff',
-                            padding: '8px 14px',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                            fontWeight: 800,
-                            fontSize: '12.5px',
-                          }}
-                        >
-                          <MessageCircle size={14} />
-                          <span>WhatsApp Chat</span>
-                        </a>
-
-                        {/* Approve Button */}
-                        {!isApproved ? (
-                          <button
-                            onClick={() => handleOpenApproveModal(inq)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '6px',
-                              background: '#ffffff',
-                              border: '1.5px solid #059669',
-                              color: '#059669',
-                              padding: '8px 14px',
-                              borderRadius: '8px',
-                              fontWeight: 800,
-                              fontSize: '12.5px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <Check size={14} />
-                            <span>Approve & Schedule</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleOpenApproveModal(inq)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '6px',
-                              background: '#f8fafc',
-                              border: '1px solid #cbd5e1',
-                              color: '#475569',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              fontWeight: 700,
-                              fontSize: '11.5px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <Edit3 size={13} />
-                            <span>Update Visit Plan</span>
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => handleRejectInquiry(inq.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#94a3b8',
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                          }}
-                        >
-                          Cancel / Archive
-                        </button>
-                      </div>
+                      Previous
+                    </button>
+                    <div style={{ padding: '0 8px', fontWeight: 800, color: '#0f172a' }}>
+                      Page {inquiriesPage} of {totalInquiriesPages}
                     </div>
-                  );
-                })
-              )}
+                    <button
+                      type="button"
+                      disabled={inquiriesPage >= totalInquiriesPages}
+                      onClick={() => setInquiriesPage((p) => Math.min(totalInquiriesPages, p + 1))}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: inquiriesPage >= totalInquiriesPages ? '#f1f5f9' : '#ffffff',
+                        color: inquiriesPage >= totalInquiriesPages ? '#94a3b8' : '#0f172a',
+                        fontWeight: 700,
+                        cursor: inquiriesPage >= totalInquiriesPages ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
             </div>
           </div>
         )}
@@ -1662,7 +1811,7 @@ export default function PlottingDashboard({ defaultTab }) {
 
             {/* Plots Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-              {filteredPlots.map((p) => {
+              {paginatedPlots.map((p) => {
                 const isAvail = p.status === 'AVAILABLE';
                 const isBooked = p.status === 'BOOKED';
                 const isSold = p.status === 'SOLD';
@@ -1881,6 +2030,65 @@ export default function PlottingDashboard({ defaultTab }) {
                 );
               })}
             </div>
+
+            {/* Gallery Pagination Bar */}
+            <div
+              style={{
+                padding: '12px 18px',
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+                fontSize: '12.5px',
+                color: '#64748b',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>
+                Showing {(galleryPage - 1) * galleryLimit + 1} to {Math.min(galleryPage * galleryLimit, filteredGallery.length)} of {filteredGallery.length} Media Items
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  disabled={galleryPage <= 1}
+                  onClick={() => setGalleryPage((p) => Math.max(1, p - 1))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: galleryPage <= 1 ? '#f1f5f9' : '#ffffff',
+                    color: galleryPage <= 1 ? '#94a3b8' : '#0f172a',
+                    fontWeight: 700,
+                    cursor: galleryPage <= 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Previous
+                </button>
+                <div style={{ padding: '0 8px', fontWeight: 800, color: '#0f172a' }}>
+                  Page {galleryPage} of {totalGalleryPages}
+                </div>
+                <button
+                  type="button"
+                  disabled={galleryPage >= totalGalleryPages}
+                  onClick={() => setGalleryPage((p) => Math.min(totalGalleryPages, p + 1))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: galleryPage >= totalGalleryPages ? '#f1f5f9' : '#ffffff',
+                    color: galleryPage >= totalGalleryPages ? '#94a3b8' : '#0f172a',
+                    fontWeight: 700,
+                    cursor: galleryPage >= totalGalleryPages ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1979,7 +2187,7 @@ export default function PlottingDashboard({ defaultTab }) {
 
             {/* Media Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
-              {filteredGallery.map((m) => {
+              {paginatedGallery.map((m) => {
                 const isYouTube = m.type === 'YOUTUBE';
 
                 return (
@@ -2095,6 +2303,65 @@ export default function PlottingDashboard({ defaultTab }) {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Gallery Pagination Bar */}
+            <div
+              style={{
+                padding: '12px 18px',
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+                fontSize: '12.5px',
+                color: '#64748b',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>
+                Showing {(galleryPage - 1) * galleryLimit + 1} to {Math.min(galleryPage * galleryLimit, filteredGallery.length)} of {filteredGallery.length} Media Items
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  disabled={galleryPage <= 1}
+                  onClick={() => setGalleryPage((p) => Math.max(1, p - 1))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: galleryPage <= 1 ? '#f1f5f9' : '#ffffff',
+                    color: galleryPage <= 1 ? '#94a3b8' : '#0f172a',
+                    fontWeight: 700,
+                    cursor: galleryPage <= 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Previous
+                </button>
+                <div style={{ padding: '0 8px', fontWeight: 800, color: '#0f172a' }}>
+                  Page {galleryPage} of {totalGalleryPages}
+                </div>
+                <button
+                  type="button"
+                  disabled={galleryPage >= totalGalleryPages}
+                  onClick={() => setGalleryPage((p) => Math.min(totalGalleryPages, p + 1))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: galleryPage >= totalGalleryPages ? '#f1f5f9' : '#ffffff',
+                    color: galleryPage >= totalGalleryPages ? '#94a3b8' : '#0f172a',
+                    fontWeight: 700,
+                    cursor: galleryPage >= totalGalleryPages ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2382,18 +2649,130 @@ export default function PlottingDashboard({ defaultTab }) {
                 </div>
               </div>
 
-              {/* Row 7: Plot Image URL */}
+              {/* Row 7: Plot Image / Blueprint Picker */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                  Plot Photo / Layout Blueprint URL
+                  Plot Photo / Layout Blueprint (Upload File or Enter URL)
                 </label>
-                <input
-                  type="url"
-                  value={plotForm.imageUrl}
-                  onChange={(e) => setPlotForm({ ...plotForm, imageUrl: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
-                />
+                
+                {/* Clean, Simple Image Picker Box */}
+                <div
+                  style={{
+                    border: '1.5px dashed #cbd5e1',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    cursor: 'pointer',
+                    marginBottom: '8px',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => document.getElementById('plot-layout-file-input')?.click()}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#16a34a';
+                    e.currentTarget.style.background = '#f0fdf4';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                    e.currentTarget.style.background = '#f8fafc';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <Upload size={18} color="#16a34a" />
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+                      Click to choose plot photo / blueprint from device
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: 2 }}>
+                    Auto-resizes & fits smoothly (PNG, JPG, WebP)
+                  </div>
+                  <input
+                    id="plot-layout-file-input"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setPlotForm((prev) => ({ ...prev, imageUrl: event.target.result }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    type="url"
+                    value={plotForm.imageUrl.startsWith('data:image') ? 'Uploaded from device (Image Ready)' : plotForm.imageUrl}
+                    onChange={(e) => {
+                      if (!e.target.value.startsWith('Uploaded')) {
+                        setPlotForm({ ...plotForm, imageUrl: e.target.value });
+                      }
+                    }}
+                    placeholder="Or enter image URL: https://images.unsplash.com/..."
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '12.5px',
+                      boxSizing: 'border-box',
+                      color: plotForm.imageUrl.startsWith('data:image') ? '#16a34a' : '#0f172a',
+                      fontWeight: plotForm.imageUrl.startsWith('data:image') ? 700 : 500,
+                    }}
+                  />
+                  {plotForm.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setPlotForm({ ...plotForm, imageUrl: '' })}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        fontSize: '11.5px',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {plotForm.imageUrl && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      border: '1px solid #e2e8f0',
+                      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <div style={{ maxHeight: '180px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '8px' }}>
+                      <img
+                        src={plotForm.imageUrl}
+                        alt="Plot Blueprint Preview"
+                        style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                      />
+                    </div>
+                    <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                      Preview ready • Auto-scaled to natural proportions
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -2704,17 +3083,128 @@ export default function PlottingDashboard({ defaultTab }) {
                 </div>
               ) : (
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#059669', display: 'block', marginBottom: '4px' }}>
-                    Photo Image URL *
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#047857', display: 'block', marginBottom: '4px' }}>
+                    Photo Selection (Device File or Web URL) *
                   </label>
-                  <input
-                    type="url"
-                    required
-                    value={mediaForm.imageUrl}
-                    onChange={(e) => setMediaForm({ ...mediaForm, imageUrl: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #86efac', fontSize: '13px', boxSizing: 'border-box' }}
-                  />
+
+                  {/* Clean, Simple Image Picker Box */}
+                  <div
+                    style={{
+                      border: '1.5px dashed #cbd5e1',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      textAlign: 'center',
+                      background: '#f8fafc',
+                      cursor: 'pointer',
+                      marginBottom: '8px',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onClick={() => document.getElementById('plotting-photo-file-input')?.click()}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#16a34a';
+                      e.currentTarget.style.background = '#f0fdf4';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                      e.currentTarget.style.background = '#f8fafc';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <Upload size={18} color="#16a34a" />
+                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+                        Click to choose image file from device
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: 2 }}>
+                      Auto-resizes & fits smoothly (PNG, JPG, WebP)
+                    </div>
+                    <input
+                      id="plotting-photo-file-input"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setMediaForm((prev) => ({ ...prev, imageUrl: event.target.result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="url"
+                      value={mediaForm.imageUrl.startsWith('data:image') ? 'Uploaded from device (Image Ready)' : mediaForm.imageUrl}
+                      onChange={(e) => {
+                        if (!e.target.value.startsWith('Uploaded')) {
+                          setMediaForm({ ...mediaForm, imageUrl: e.target.value });
+                        }
+                      }}
+                      placeholder="Or enter image URL: https://images.unsplash.com/..."
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '12.5px',
+                        boxSizing: 'border-box',
+                        color: mediaForm.imageUrl.startsWith('data:image') ? '#16a34a' : '#0f172a',
+                        fontWeight: mediaForm.imageUrl.startsWith('data:image') ? 700 : 500,
+                      }}
+                    />
+                    {mediaForm.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setMediaForm({ ...mediaForm, imageUrl: '' })}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '11.5px',
+                          cursor: 'pointer',
+                          color: '#ef4444',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  {mediaForm.imageUrl && (
+                    <div
+                      style={{
+                        marginTop: '10px',
+                        borderRadius: '10px',
+                        padding: '10px',
+                        border: '1px solid #e2e8f0',
+                        background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      <div style={{ maxHeight: '180px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '8px' }}>
+                        <img
+                          src={mediaForm.imageUrl}
+                          alt="Preview"
+                          style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                        />
+                      </div>
+                      <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                        Photo loaded • Fits proportionally
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

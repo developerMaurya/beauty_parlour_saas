@@ -67,7 +67,53 @@ import {
 import { ParlourProductAssignments } from '../components/parlour/ParlourProductAssignments.jsx';
 import { ParlourStaffSalaryManager } from '../components/parlour/ParlourStaffSalaryManager.jsx';
 import { ParlourProductSalesManager } from '../components/parlour/ParlourProductSalesManager.jsx';
+import { MasterBusinessGalleryManager } from '../components/MasterBusinessGalleryManager.jsx';
 import { productFetcher, inquiryFetcher, appointmentFetcher, staffFetcher, userFetcher } from '../../../services/api/admin/adminApi.js';
+
+const INITIAL_PARLOUR_GALLERY = [
+  {
+    id: 'par_gal_1',
+    type: 'YOUTUBE',
+    title: '💄 Royal Bridal HD Airbrush Makeup Masterclass & Transformation',
+    category: 'BRIDAL_MAKEUP',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    youtubeId: 'dQw4w9WgXcQ',
+    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+    caption: 'Full bridal makeover demonstration with Kryolan & MAC international HD products by senior educator.',
+    tags: ['bridal', 'hd-makeup', 'airbrush', 'varanasi'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'par_gal_2',
+    type: 'IMAGE',
+    title: '✨ 3D Russian Floral Hair Artistry & Pearl Bun',
+    category: 'HAIR_STYLING',
+    imageUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
+    caption: 'Intricate Russian technique floral bridal bun designed for reception and engagement look.',
+    tags: ['hair-styling', 'russian-bun', 'bridal'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'par_gal_3',
+    type: 'IMAGE',
+    title: '💅 Gel French Nails with Swarovski Crystal Extensions',
+    category: 'NAIL_ART',
+    imageUrl: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=1200&q=80',
+    caption: 'UV cured 30-day lasting acrylic and gel extension with Swarovski crystals.',
+    tags: ['nail-art', 'gel-nails', 'extensions'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'par_gal_4',
+    type: 'IMAGE',
+    title: '🎓 Academy Student Practical Training Session',
+    category: 'ACADEMY',
+    imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=80',
+    caption: 'Live student batch practicing facial contours, draping, and skin tones with live models.',
+    tags: ['academy', 'student-training', 'certification'],
+    createdAt: new Date().toISOString(),
+  },
+];
 
 export function GoldenBeautyAdminDashboard({ defaultTab }) {
   const navigate = useNavigate();
@@ -94,6 +140,8 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
     activeView = 'assignments';
   } else if (location.pathname.includes('salary') || location.pathname.includes('payroll')) {
     activeView = 'salary';
+  } else if (location.pathname.includes('parlour-gallery') || location.pathname.includes('gallery')) {
+    activeView = 'gallery';
   } else if (defaultTab) {
     activeView = defaultTab === 'billing' || defaultTab === 'payments' || defaultTab === 'attendance' ? 'overview' : defaultTab;
   }
@@ -3633,6 +3681,29 @@ export function GoldenBeautyAdminDashboard({ defaultTab }) {
         {activeView === 'salary' && (
           <ParlourStaffSalaryManager
             showToast={showToast}
+          />
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            VIEW 8: SALON PHOTO & VIDEO SHOWCASE GALLERY
+            ══════════════════════════════════════════════════════════════════════ */}
+        {activeView === 'gallery' && (
+          <MasterBusinessGalleryManager
+            businessKey="parlour"
+            title="Golden Beauty Parlour Showcase & Video Gallery"
+            subtitle="HD Bridal Makeups, Russian Floral Hairstyles, Nail Art extensions & Academy YouTube Masterclasses"
+            storageKey="golden_beauty_parlour_gallery"
+            themeColor="#7e22ce"
+            themeBg="#faf5ff"
+            categories={[
+              { id: 'ALL', label: 'All Parlour Media' },
+              { id: 'BRIDAL_MAKEUP', label: '💄 Bridal & Airbrush Makeups' },
+              { id: 'HAIR_STYLING', label: '✨ Russian Hairstyles & Draping' },
+              { id: 'NAIL_ART', label: '💅 Nail Art & Extensions' },
+              { id: 'SKIN_SPA', label: '💆‍♀️ Hydrafacial & Skin Spa' },
+              { id: 'ACADEMY', label: '🎓 Student Masterclasses & Demos' },
+            ]}
+            initialItems={INITIAL_PARLOUR_GALLERY}
           />
         )}
       </main>

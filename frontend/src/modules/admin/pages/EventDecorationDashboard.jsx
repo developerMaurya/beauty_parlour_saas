@@ -57,11 +57,59 @@ import {
   Download,
   AlertTriangle,
   ArrowUpDown,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Film,
+  Video
 } from 'lucide-react';
 import { eventCatalogFetcher } from '../../../services/api/admin/adminApi.js';
+import { MasterBusinessGalleryManager } from '../components/MasterBusinessGalleryManager.jsx';
 
-export const EVENT_CATEGORIES = [
+const INITIAL_EVENT_GALLERY = [
+  {
+    id: 'evt_gal_1',
+    type: 'YOUTUBE',
+    title: '🔱 Grand 20ft Aadiyogi Mahadev Stage & 3D Aura Lighting',
+    category: 'STAGE_DECORATION',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    youtubeId: 'dQw4w9WgXcQ',
+    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+    caption: '20ft fiberglass Mahadev bust with dynamic laser projection and hydraulic smoke pedestal.',
+    tags: ['aadiyogi', 'mahadev-stage', 'wedding2026', 'varanasi'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt_gal_2',
+    type: 'IMAGE',
+    title: '👑 Royal Bridal Entrance: 15ft Illuminated Floral Tunnel',
+    category: 'BRIDAL_ENTRY',
+    imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
+    caption: '15ft tall fresh orchid & rose arches with fairy warm tungsten lighting for royal bride entry.',
+    tags: ['bridal-entry', 'flower-tunnel', 'royal'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt_gal_3',
+    type: 'IMAGE',
+    title: '🎆 Cold Pyro Jets & Heavy Dry Ice Cloud Fog Machine',
+    category: 'SPECIAL_EFFECTS',
+    imageUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80',
+    caption: 'Safe electronic cold spark fountain with zero smoke for grand stage entries and varmala celebrations.',
+    tags: ['cold-pyro', 'dry-ice', 'fireworks'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt_gal_4',
+    type: 'IMAGE',
+    title: '💍 360-Degree Revolving Hydraulic Varmala Stage',
+    category: 'VARMALA_STAGE',
+    imageUrl: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=1200&q=80',
+    caption: 'Remote controlled hydraulic revolving stage with flower petals shower cannon.',
+    tags: ['varmala', 'hydraulic', 'revolving-stage'],
+    createdAt: new Date().toISOString(),
+  },
+];
+
+const EVENT_CATEGORIES = [
   { id: 'STAGE_DECORATION', label: 'Stage Decoration & Setup', icon: '🏛️', short: 'Stage' },
   { id: 'BRIDAL_ENTRY', label: 'Royal Bridal Entry & Walkways', icon: '👑', short: 'Bridal Entry' },
   { id: 'VARMALA_STAGE', label: 'Hydraulic & Revolving Varmala Stage', icon: '💍', short: 'Varmala Stage' },
@@ -100,6 +148,9 @@ export function EventDecorationDashboard({ defaultTab }) {
     }
     if (location.pathname.includes('event-bookings') || location.pathname.includes('bookings')) {
       return 'BOOKINGS';
+    }
+    if (location.pathname.includes('event-gallery') || location.pathname.includes('gallery')) {
+      return 'GALLERY';
     }
     if (defaultTab) return defaultTab.toUpperCase();
     return 'DASHBOARD';
@@ -1165,6 +1216,7 @@ export function EventDecorationDashboard({ defaultTab }) {
               {activeTab === 'BOOKINGS' && 'Bookings & Inventory Billing'}
               {activeTab === 'PROPOSALS' && 'Customer Requests & Proposals'}
               {activeTab === 'STAGES' && 'Stage Blueprint'}
+              {activeTab === 'GALLERY' && 'Photo & Video Gallery'}
             </span>
           </div>
           <p style={{ margin: '3px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
@@ -3197,6 +3249,32 @@ Call: 76519 72973`;
           </div>
         );
       })()}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TAB 7: JAY GURUDEV EVENT MEDIA & VIDEO GALLERY (PHOTOS & YOUTUBE SHOWCASE)
+         ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'GALLERY' && (
+        <div style={{ padding: '0 2rem 2rem' }}>
+          <MasterBusinessGalleryManager
+            businessKey="events"
+            title="Jay Gurudev Production & Event Gallery"
+            subtitle="Showcase 20ft Aadiyogi themes, Royal Bridal Arches, Drone shoots, and Cold Pyro YouTube videos"
+            storageKey="jaygurudev_event_gallery"
+            themeColor="#ca8a04"
+            themeBg="#fefce8"
+            categories={[
+              { id: 'ALL', label: 'All Event Media' },
+              { id: 'STAGE_DECORATION', label: '🔱 Aadiyogi & Grand Stages' },
+              { id: 'BRIDAL_ENTRY', label: '👑 Royal Bridal Tunnels' },
+              { id: 'VARMALA_STAGE', label: '💍 Revolving Varmala Stage' },
+              { id: 'SPECIAL_EFFECTS', label: '🎆 Cold Pyro & Cloud Fog' },
+              { id: 'HALDI_MEHENDI', label: '🌸 Haldi & Sangeet Decor' },
+              { id: 'COMPLETE_THEME', label: '🏰 Royal Palace Theme' },
+            ]}
+            initialItems={INITIAL_EVENT_GALLERY}
+          />
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
           7. MODAL: 20ft BLUEPRINT & TECHNICAL SPECIFICATIONS

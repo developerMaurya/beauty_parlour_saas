@@ -56,7 +56,7 @@ import axios from 'axios';
 import { customerFetcher, studentFetcher, staffFetcher, userFetcher } from '../../../../services/api/admin/adminApi.js';
 
 // Safely format an address (object or string) into a display string
-export const formatAddressString = (addr) => {
+const formatAddressString = (addr) => {
   if (!addr) return '';
   if (typeof addr === 'string') return addr;
   if (typeof addr === 'object') {

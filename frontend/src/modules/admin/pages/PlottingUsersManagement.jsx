@@ -1,12 +1,14 @@
 /**
  * @file PlottingUsersManagement.jsx
  * @description Real Estate Plotting - Plot Buyers & Sales Agents Management.
- * Stored in single Customer & Staff DB tables with businessVertical="PLOTTING" & verticalRole ("BUYER" / "AGENT").
- * Supports Full CRUD: Create, Read, Update, Delete, and Status Toggle via backend APIs + offline resilience.
+ * Supports dedicated separate views for Plot Buyers & Sales Agents & Commission,
+ * comprehensive contact details (phone, email, full address / notes, assigned township),
+ * and clean corporate theme design.
  * @module frontend/src/modules/admin/pages/PlottingUsersManagement
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { customerFetcher, staffFetcher } from '../../../services/api/admin/adminApi.js';
 import {
   Compass,
@@ -26,6 +28,10 @@ import {
   RefreshCw,
   Edit2,
   Filter,
+  FileText,
+  Mail,
+  Home,
+  Check,
 } from 'lucide-react';
 
 const SEED_BUYERS = [
@@ -44,6 +50,7 @@ const SEED_BUYERS = [
       downPayment: 500000,
       emi: '₹28,500/mo (36 Months)',
       registryStatus: 'Active EMI',
+      address: 'Flat 402, Shivam Enclave, Sigra, Varanasi, UP - 221002',
     },
   },
   {
@@ -61,6 +68,7 @@ const SEED_BUYERS = [
       downPayment: 3100000,
       emi: 'Full Cash Paid',
       registryStatus: 'Registered',
+      address: 'Shop No. 12, Chowk Main Market, Varanasi, UP - 221001',
     },
   },
   {
@@ -78,6 +86,7 @@ const SEED_BUYERS = [
       downPayment: 1200000,
       emi: '₹45,000/mo (48 Months)',
       registryStatus: 'Registry In Progress',
+      address: 'Opposite Gate 2, BHU Campus Road, Lanka, Varanasi, UP - 221005',
     },
   },
 ];
@@ -97,6 +106,7 @@ const SEED_AGENTS = [
       plotsSold: 14,
       commissionRate: '2.5%',
       totalCommission: 485000,
+      address: 'House No. 45/B, Anand Nagar Colony, Shivpur, Varanasi, UP - 221003',
     },
   },
   {
@@ -113,12 +123,43 @@ const SEED_AGENTS = [
       plotsSold: 8,
       commissionRate: '2.0%',
       totalCommission: 240000,
+      address: 'Ward 18, Near Ring Road Phase 2 Crossing, Sarnath, Varanasi, UP - 221007',
     },
   },
 ];
 
-export default function PlottingUsersManagement() {
-  const [activeTab, setActiveTab] = useState('BUYERS'); // 'BUYERS' | 'AGENTS'
+export default function PlottingUsersManagement({ defaultTab }) {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Evaluate initial tab from route, query param or defaultTab prop
+  const getInitialTab = () => {
+    const tabQ = searchParams.get('tab');
+    if (tabQ) return tabQ.toUpperCase() === 'AGENTS' ? 'AGENTS' : 'BUYERS';
+    if (location.pathname.includes('plotting-agents') || location.pathname.includes('agents')) {
+      return 'AGENTS';
+    }
+    if (defaultTab) {
+      return defaultTab.toUpperCase() === 'AGENTS' ? 'AGENTS' : 'BUYERS';
+    }
+    return 'BUYERS';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  useEffect(() => {
+    const tabQ = searchParams.get('tab');
+    if (tabQ) {
+      setActiveTab(tabQ.toUpperCase() === 'AGENTS' ? 'AGENTS' : 'BUYERS');
+    } else if (location.pathname.includes('plotting-agents') || location.pathname.includes('agents')) {
+      setActiveTab('AGENTS');
+    } else if (location.pathname.includes('plotting-users')) {
+      setActiveTab('BUYERS');
+    } else if (defaultTab) {
+      setActiveTab(defaultTab.toUpperCase() === 'AGENTS' ? 'AGENTS' : 'BUYERS');
+    }
+  }, [location.pathname, searchParams, defaultTab]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -135,6 +176,7 @@ export default function PlottingUsersManagement() {
     name: '',
     phone: '',
     email: '',
+    address: '',
     plot: '',
     colony: 'Kashi Green Valley City',
     price: '',
@@ -147,6 +189,7 @@ export default function PlottingUsersManagement() {
     name: '',
     phone: '',
     email: '',
+    address: '',
     designation: 'Colony Sales Executive',
     colony: 'Kashi Green Valley City',
     plotsSold: '',
@@ -204,6 +247,7 @@ export default function PlottingUsersManagement() {
         downPayment: Number(buyerForm.downPayment) || 500000,
         emi: buyerForm.emi || '₹25,000/mo (36 Months)',
         registryStatus: buyerForm.registryStatus,
+        address: buyerForm.address || '',
       },
     };
 
@@ -230,6 +274,7 @@ export default function PlottingUsersManagement() {
       name: '',
       phone: '',
       email: '',
+      address: '',
       plot: '',
       colony: 'Kashi Green Valley City',
       price: '',
@@ -243,7 +288,7 @@ export default function PlottingUsersManagement() {
   const handleSaveAgent = async (e) => {
     e.preventDefault();
     if (!agentForm.name || !agentForm.phone) {
-      alert('Please fill out Name and Phone.');
+      alert('Please fill out Name and Phone Number.');
       return;
     }
 
@@ -252,7 +297,7 @@ export default function PlottingUsersManagement() {
       phone: agentForm.phone,
       email: agentForm.email,
       designation: agentForm.designation,
-      branchId: '6af306ecf23b7a6c694f8b7c', // Flagship Branch ID
+      branchId: '6af306ecf23b7a6c694f8b7c',
       businessVertical: 'PLOTTING',
       verticalRole: 'AGENT',
       customFields: {
@@ -260,6 +305,7 @@ export default function PlottingUsersManagement() {
         plotsSold: Number(agentForm.plotsSold) || 1,
         commissionRate: agentForm.commissionRate,
         totalCommission: Number(agentForm.totalCommission) || 50000,
+        address: agentForm.address || '',
       },
     };
 
@@ -277,7 +323,7 @@ export default function PlottingUsersManagement() {
     } catch (err) {
       console.warn('Local state update:', err);
       const fallback = { _id: editingItem?._id || `plt_agt_${Date.now()}`, ...payload };
-      setAgents((prev) => (editingItem ? prev.map((a) => (a._id === editingItem._id ? fallback : a)) : [fallback, ...prev]));
+      setAgents((prev) => (editingItem ? prev.map((a) => (a._id === editingItem._id ? fallback : b)) : [fallback, ...prev]));
     }
 
     setAgentModalOpen(false);
@@ -286,6 +332,7 @@ export default function PlottingUsersManagement() {
       name: '',
       phone: '',
       email: '',
+      address: '',
       designation: 'Colony Sales Executive',
       colony: 'Kashi Green Valley City',
       plotsSold: '',
@@ -322,7 +369,7 @@ export default function PlottingUsersManagement() {
 
   // Status Toggle for Agent
   const handleToggleAgentStatus = async (agent) => {
-    const nextStatus = agent.status === 'active' ? 'inactive' : 'active';
+    const nextStatus = agent.status?.toLowerCase() === 'active' ? 'inactive' : 'active';
     try {
       await staffFetcher.update(agent._id, { status: nextStatus }).catch(() => null);
     } catch (ign) {}
@@ -336,6 +383,7 @@ export default function PlottingUsersManagement() {
       name: buyer.name || '',
       phone: buyer.phone || '',
       email: buyer.email || '',
+      address: buyer.customFields?.address || '',
       plot: buyer.customFields?.plot || '',
       colony: buyer.customFields?.colony || 'Kashi Green Valley City',
       price: buyer.customFields?.price || '',
@@ -352,6 +400,7 @@ export default function PlottingUsersManagement() {
       name: agent.name || '',
       phone: agent.phone || '',
       email: agent.email || '',
+      address: agent.customFields?.address || '',
       designation: agent.designation || 'Colony Sales Executive',
       colony: agent.customFields?.colony || 'Kashi Green Valley City',
       plotsSold: agent.customFields?.plotsSold || '',
@@ -367,7 +416,14 @@ export default function PlottingUsersManagement() {
       const q = searchQuery.toLowerCase();
       const plot = b.customFields?.plot || '';
       const colony = b.customFields?.colony || '';
-      return b.name?.toLowerCase().includes(q) || b.phone?.includes(q) || plot.toLowerCase().includes(q) || colony.toLowerCase().includes(q);
+      const address = b.customFields?.address || '';
+      return (
+        b.name?.toLowerCase().includes(q) ||
+        b.phone?.includes(q) ||
+        plot.toLowerCase().includes(q) ||
+        colony.toLowerCase().includes(q) ||
+        address.toLowerCase().includes(q)
+      );
     });
   }, [buyers, searchQuery]);
 
@@ -375,98 +431,134 @@ export default function PlottingUsersManagement() {
     return agents.filter((a) => {
       const q = searchQuery.toLowerCase();
       const colony = a.customFields?.colony || '';
-      return a.name?.toLowerCase().includes(q) || a.phone?.includes(q) || colony.toLowerCase().includes(q);
+      const des = a.designation || '';
+      const address = a.customFields?.address || '';
+      return (
+        a.name?.toLowerCase().includes(q) ||
+        a.phone?.includes(q) ||
+        des.toLowerCase().includes(q) ||
+        colony.toLowerCase().includes(q) ||
+        address.toLowerCase().includes(q)
+      );
     });
   }, [agents, searchQuery]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem', maxWidth: '1440px', margin: '0 auto' }}>
-      {/* ── Banner ── */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem', paddingBottom: '3rem', maxWidth: '1440px', margin: '0 auto' }}>
+      {/* ── Corporate Banner ── */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #064e3b 0%, #059669 50%, #047857 100%)',
+          background: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%)',
           color: '#ffffff',
-          padding: '2rem 2.25rem',
-          borderRadius: '18px',
+          padding: '1.75rem 2rem',
+          borderRadius: '16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1.25rem',
-          boxShadow: '0 8px 30px rgba(5, 150, 105, 0.25)',
+          boxShadow: '0 4px 20px rgba(6, 78, 59, 0.2)',
         }}
       >
         <div>
           <span style={{ background: 'rgba(255, 255, 255, 0.15)', color: '#ecfdf5', fontSize: '11px', fontWeight: 800, padding: '4px 12px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
             <Compass size={13} color="#a7f3d0" />
-            REAL ESTATE PLOTTING • SINGLE-TABLE DB INTEGRATED
+            KASHI REAL ESTATE PLOTTING • DIRECT DIRECTORY
           </span>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, margin: '6px 0', color: '#ffffff' }}>
-            🏗️ Plot Buyers & Sales Agents Management
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '6px 0', color: '#ffffff' }}>
+            {activeTab === 'AGENTS' ? '💼 Sales Agents & Commission Management' : '👥 Plot Buyers & Registry Clients'}
           </h1>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#a7f3d0', maxWidth: '720px' }}>
-            Buyers stored in central <strong>Customers</strong> collection & Agents stored in <strong>Staff</strong> collection with dedicated <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: 4 }}>businessVertical="PLOTTING"</code>.
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#a7f3d0', maxWidth: '720px' }}>
+            {activeTab === 'AGENTS'
+              ? 'Manage sales executives, commission rates, assigned colonies, and detailed contact addresses.'
+              : 'Track registered plot buyers, down payments, active 24-month bank EMIs, and registry milestones.'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setBuyerModalOpen(true);
-            }}
-            style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: '#ffffff', color: '#047857', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Plus size={16} />
-            <span>+ Add Plot Buyer (Customer Table)</span>
-          </button>
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setAgentModalOpen(true);
-            }}
-            style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.15)', color: '#ffffff', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Plus size={16} />
-            <span>+ Add Sales Agent (Staff Table)</span>
-          </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {activeTab === 'BUYERS' ? (
+            <button
+              onClick={() => {
+                setEditingItem(null);
+                setBuyerForm({
+                  name: '',
+                  phone: '',
+                  email: '',
+                  address: '',
+                  plot: '',
+                  colony: 'Kashi Green Valley City',
+                  price: '',
+                  downPayment: '',
+                  emi: '',
+                  registryStatus: 'Active EMI',
+                });
+                setBuyerModalOpen(true);
+              }}
+              style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: '#ffffff', color: '#047857', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Plus size={16} />
+              <span>+ Add Plot Buyer</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setEditingItem(null);
+                setAgentForm({
+                  name: '',
+                  phone: '',
+                  email: '',
+                  address: '',
+                  designation: 'Colony Sales Executive',
+                  colony: 'Kashi Green Valley City',
+                  plotsSold: '',
+                  commissionRate: '2.0%',
+                  totalCommission: '',
+                });
+                setAgentModalOpen(true);
+              }}
+              style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: '#ffffff', color: '#047857', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Plus size={16} />
+              <span>+ Add Sales Agent</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── KPI Cards ── */}
+      {/* ── KPI Metrics Strip ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.35rem' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>Plot Buyers (Customer Role)</span>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#047857', marginTop: 4 }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Plot Buyers & Clients</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#047857', marginTop: 4 }}>
             {buyers.length} Registered Buyers
           </div>
           <div style={{ fontSize: '11px', color: '#059669', fontWeight: 700, marginTop: 4 }}>
-            Stored in Customer collection
+            Central Customer DB
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.35rem' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>Sales Agents (Staff Role)</span>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', marginTop: 4 }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Sales Agents & Brokers</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: 4 }}>
             {agents.length} Licensed Agents
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginTop: 4 }}>
-            Stored in Staff collection
+            Staff Commission Table
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.35rem' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>Live Database Status</span>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#2563eb', marginTop: 4 }}>
-            Role-Filtered API
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Township Portfolios</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#2563eb', marginTop: 4 }}>
+            4 Master Colonies
           </div>
           <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: 700, marginTop: 4 }}>
-            Query: ?businessVertical=PLOTTING
+            VDA Approved Corridors
           </div>
         </div>
       </div>
 
-      {/* ── Tabs & Search ── */}
+      {/* ── Navigation Tabs & Search Bar ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
           <button
@@ -483,6 +575,7 @@ export default function PlottingUsersManagement() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
+              boxShadow: activeTab === 'BUYERS' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
             }}
           >
             <Users size={15} />
@@ -502,22 +595,23 @@ export default function PlottingUsersManagement() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
+              boxShadow: activeTab === 'AGENTS' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
             }}
           >
             <Award size={15} />
-            <span>Sales Agents ({agents.length})</span>
+            <span>Sales Agents & Commission ({agents.length})</span>
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <div style={{ position: 'relative', minWidth: '240px' }}>
+          <div style={{ position: 'relative', minWidth: '260px' }}>
             <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: 12, top: 10 }} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, phone or plot..."
-              style={{ padding: '8px 12px 8px 34px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', width: '100%', outline: 'none' }}
+              placeholder="Search by name, phone, address or colony..."
+              style={{ padding: '8px 12px 8px 34px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', width: '100%', outline: 'none' }}
             />
           </div>
           <button onClick={loadData} disabled={loading} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }} title="Sync with MongoDB">
@@ -526,19 +620,20 @@ export default function PlottingUsersManagement() {
         </div>
       </div>
 
-      {/* ── BUYERS TABLE (Customer Model) ── */}
+      {/* ── VIEW 1: PLOT BUYERS TABLE ── */}
       {activeTab === 'BUYERS' && (
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '11.5px', textTransform: 'uppercase' }}>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   <th style={{ padding: '12px 16px' }}>Buyer Name & Contact</th>
+                  <th style={{ padding: '12px 16px' }}>Address & Location</th>
                   <th style={{ padding: '12px 16px' }}>Plot Number</th>
                   <th style={{ padding: '12px 16px' }}>Township Colony</th>
                   <th style={{ padding: '12px 16px' }}>Deal Price</th>
-                  <th style={{ padding: '12px 16px' }}>Payment Mode</th>
-                  <th style={{ padding: '12px 16px' }}>Status</th>
+                  <th style={{ padding: '12px 16px' }}>Payment / EMI Status</th>
+                  <th style={{ padding: '12px 16px' }}>Registry</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -547,43 +642,59 @@ export default function PlottingUsersManagement() {
                   <tr key={b._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ fontWeight: 800, color: '#0f172a' }}>{b.name}</div>
-                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>{b.phone} • {b.email || 'No email'}</div>
+                      <div style={{ fontSize: '11.5px', color: '#047857', fontWeight: 700 }}>{b.phone}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{b.email || 'No email provided'}</div>
                     </td>
-                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#047857' }}>
+                    <td style={{ padding: '14px 16px', maxWidth: '240px' }}>
+                      <div style={{ fontSize: '12px', color: '#334155', lineHeight: 1.35 }}>
+                        {b.customFields?.address || 'Varanasi Local Buyer'}
+                      </div>
+                    </td>
+                    <td style={{ padding: '14px 16px', fontWeight: 800, color: '#047857' }}>
                       {b.customFields?.plot || 'Plot Allocated'}
                     </td>
                     <td style={{ padding: '14px 16px', color: '#334155' }}>
                       {b.customFields?.colony || 'Varanasi Colony'}
                     </td>
-                    <td style={{ padding: '14px 16px', fontWeight: 800, color: '#047857' }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0f172a' }}>
                       ₹{Number(b.customFields?.price || 2000000).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ padding: '14px 16px', color: '#64748b' }}>
-                      {b.customFields?.emi || 'Regular EMI'}
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+                        {b.customFields?.emi || 'Flexible EMI'}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>
+                        Advance: ₹{Number(b.customFields?.downPayment || 500000).toLocaleString('en-IN')}
+                      </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <button
-                        onClick={() => handleToggleBuyerStatus(b)}
+                      <span
                         style={{
-                          padding: '3px 10px',
-                          borderRadius: 999,
-                          border: 'none',
                           fontSize: '11px',
                           fontWeight: 800,
-                          cursor: 'pointer',
-                          background: b.status?.toLowerCase() === 'active' ? '#ecfdf5' : '#fef2f2',
-                          color: b.status?.toLowerCase() === 'active' ? '#047857' : '#dc2626',
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          background: b.customFields?.registryStatus === 'Registered' ? '#ecfdf5' : '#eff6ff',
+                          color: b.customFields?.registryStatus === 'Registered' ? '#047857' : '#1d4ed8',
                         }}
                       >
-                        ● {b.status}
-                      </button>
+                        {b.customFields?.registryStatus || 'Active EMI'}
+                      </span>
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button onClick={() => handleEditBuyer(b)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>
+                        <button
+                          onClick={() => handleEditBuyer(b)}
+                          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}
+                          title="Edit Buyer"
+                        >
                           <Edit2 size={13} color="#475569" />
                         </button>
-                        <button onClick={() => handleDeleteBuyer(b._id)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>
+                        <button
+                          onClick={() => handleDeleteBuyer(b._id)}
+                          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}
+                          title="Delete Record"
+                        >
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -596,18 +707,20 @@ export default function PlottingUsersManagement() {
         </div>
       )}
 
-      {/* ── AGENTS TABLE (Staff Model) ── */}
+      {/* ── VIEW 2: SALES AGENTS & COMMISSION TABLE ── */}
       {activeTab === 'AGENTS' && (
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '11.5px', textTransform: 'uppercase' }}>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   <th style={{ padding: '12px 16px' }}>Agent Name & Phone</th>
+                  <th style={{ padding: '12px 16px' }}>Full Address & Details</th>
                   <th style={{ padding: '12px 16px' }}>Designation</th>
                   <th style={{ padding: '12px 16px' }}>Assigned Colony</th>
                   <th style={{ padding: '12px 16px' }}>Plots Sold</th>
                   <th style={{ padding: '12px 16px' }}>Commission Rate</th>
+                  <th style={{ padding: '12px 16px' }}>Total Earned</th>
                   <th style={{ padding: '12px 16px' }}>Status</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -617,19 +730,28 @@ export default function PlottingUsersManagement() {
                   <tr key={a._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ fontWeight: 800, color: '#0f172a' }}>{a.name}</div>
-                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>{a.phone}</div>
+                      <div style={{ fontSize: '11.5px', color: '#047857', fontWeight: 700 }}>{a.phone}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{a.email || 'No email provided'}</div>
+                    </td>
+                    <td style={{ padding: '14px 16px', maxWidth: '240px' }}>
+                      <div style={{ fontSize: '12px', color: '#334155', lineHeight: 1.35 }}>
+                        {a.customFields?.address || 'Varanasi Office Representative'}
+                      </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: 600, color: '#047857' }}>
-                      {a.designation || 'Colony Agent'}
+                      {a.designation || 'Colony Sales Executive'}
                     </td>
                     <td style={{ padding: '14px 16px', color: '#334155' }}>
                       {a.customFields?.colony || 'All Townships'}
                     </td>
-                    <td style={{ padding: '14px 16px', fontWeight: 700 }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0f172a' }}>
                       {a.customFields?.plotsSold || 0} Plots
                     </td>
-                    <td style={{ padding: '14px 16px', color: '#64748b' }}>
+                    <td style={{ padding: '14px 16px', color: '#047857', fontWeight: 700 }}>
                       {a.customFields?.commissionRate || '2.0%'}
+                    </td>
+                    <td style={{ padding: '14px 16px', fontWeight: 800, color: '#047857' }}>
+                      ₹{Number(a.customFields?.totalCommission || 240000).toLocaleString('en-IN')}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <button
@@ -650,10 +772,18 @@ export default function PlottingUsersManagement() {
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button onClick={() => handleEditAgent(a)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>
+                        <button
+                          onClick={() => handleEditAgent(a)}
+                          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}
+                          title="Edit Agent"
+                        >
                           <Edit2 size={13} color="#475569" />
                         </button>
-                        <button onClick={() => handleDeleteAgent(a._id)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>
+                        <button
+                          onClick={() => handleDeleteAgent(a._id)}
+                          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}
+                          title="Delete Agent"
+                        >
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -666,58 +796,139 @@ export default function PlottingUsersManagement() {
         </div>
       )}
 
-      {/* ── MODAL: BUYER ── */}
+      {/* ── MODAL: ADD / EDIT BUYER ── */}
       {buyerModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '520px', padding: '2rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
-              🏗️ {editingItem ? 'Edit Plot Buyer' : 'Add Plot Buyer'} (Customer Table)
-            </h3>
-            <form onSubmit={handleSaveBuyer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <input type="text" required placeholder="Buyer Full Name *" value={buyerForm.name} onChange={(e) => setBuyerForm({ ...buyerForm, name: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <input type="tel" required placeholder="Phone Number *" value={buyerForm.phone} onChange={(e) => setBuyerForm({ ...buyerForm, phone: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                <input type="email" placeholder="Email Address" value={buyerForm.email} onChange={(e) => setBuyerForm({ ...buyerForm, email: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '540px', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                🏗️ {editingItem ? 'Edit Plot Buyer' : 'Add Plot Buyer'}
+              </h3>
+              <button onClick={() => setBuyerModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveBuyer} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Buyer Full Name *</label>
+                <input type="text" required placeholder="e.g. Ramesh Chandra Verma" value={buyerForm.name} onChange={(e) => setBuyerForm({ ...buyerForm, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
               </div>
-              <input type="text" required placeholder="Plot No. & Area (e.g. Plot E-102, 1,500 Sq Ft) *" value={buyerForm.plot} onChange={(e) => setBuyerForm({ ...buyerForm, plot: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <select value={buyerForm.colony} onChange={(e) => setBuyerForm({ ...buyerForm, colony: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="Kashi Green Valley City">Kashi Green Valley City</option>
-                <option value="Ganga View Enclave">Ganga View Enclave</option>
-                <option value="Royal Orchid Township">Royal Orchid Township</option>
-                <option value="Kashi Expressway Heights">Kashi Expressway Heights</option>
-              </select>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <input type="number" placeholder="Deal Price (₹)" value={buyerForm.price} onChange={(e) => setBuyerForm({ ...buyerForm, price: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                <input type="text" placeholder="EMI Details (e.g. ₹28,000/mo)" value={buyerForm.emi} onChange={(e) => setBuyerForm({ ...buyerForm, emi: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Phone Number *</label>
+                  <input type="tel" required placeholder="+91 98765 43210" value={buyerForm.phone} onChange={(e) => setBuyerForm({ ...buyerForm, phone: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Email Address</label>
+                  <input type="email" placeholder="ramesh@gmail.com" value={buyerForm.email} onChange={(e) => setBuyerForm({ ...buyerForm, email: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
               </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Full Residential / Office Address</label>
+                <textarea rows={2} placeholder="House/Flat No., Colony, Landmark, City, Pincode" value={buyerForm.address} onChange={(e) => setBuyerForm({ ...buyerForm, address: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Plot Number *</label>
+                  <input type="text" required placeholder="Plot A-105 (1,500 sq.ft)" value={buyerForm.plot} onChange={(e) => setBuyerForm({ ...buyerForm, plot: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Township Colony</label>
+                  <select value={buyerForm.colony} onChange={(e) => setBuyerForm({ ...buyerForm, colony: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}>
+                    <option value="Kashi Green Valley City">Kashi Green Valley City</option>
+                    <option value="Ganga View Enclave">Ganga View Enclave</option>
+                    <option value="Royal Orchid Township">Royal Orchid Township</option>
+                    <option value="Kashi Expressway Heights">Kashi Expressway Heights</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Deal Price (₹)</label>
+                  <input type="number" placeholder="2000000" value={buyerForm.price} onChange={(e) => setBuyerForm({ ...buyerForm, price: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>EMI / Payment Mode</label>
+                  <input type="text" placeholder="e.g. ₹28,000/mo (36 Months)" value={buyerForm.emi} onChange={(e) => setBuyerForm({ ...buyerForm, emi: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-                <button type="button" onClick={() => setBuyerModalOpen(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#047857', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Save to DB</button>
+                <button type="button" onClick={() => setBuyerModalOpen(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700 }}>Cancel</button>
+                <button type="submit" style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#047857', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Save Buyer Details</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ── MODAL: AGENT ── */}
+      {/* ── MODAL: ADD / EDIT SALES AGENT ── */}
       {agentModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '480px', padding: '2rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
-              💼 {editingItem ? 'Edit Sales Agent' : 'Add Sales Agent'} (Staff Table)
-            </h3>
-            <form onSubmit={handleSaveAgent} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <input type="text" required placeholder="Agent Full Name *" value={agentForm.name} onChange={(e) => setAgentForm({ ...agentForm, name: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <input type="tel" required placeholder="Phone Number *" value={agentForm.phone} onChange={(e) => setAgentForm({ ...agentForm, phone: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <input type="text" placeholder="Designation" value={agentForm.designation} onChange={(e) => setAgentForm({ ...agentForm, designation: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <select value={agentForm.colony} onChange={(e) => setAgentForm({ ...agentForm, colony: e.target.value })} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="Kashi Green Valley City">Kashi Green Valley City</option>
-                <option value="Ganga View Enclave">Ganga View Enclave</option>
-                <option value="Royal Orchid Township">Royal Orchid Township</option>
-              </select>
+          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '520px', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                💼 {editingItem ? 'Edit Sales Agent' : 'Add Sales Agent'}
+              </h3>
+              <button onClick={() => setAgentModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveAgent} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Agent Full Name *</label>
+                <input type="text" required placeholder="e.g. Vinod Tiwari" value={agentForm.name} onChange={(e) => setAgentForm({ ...agentForm, name: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Phone Number *</label>
+                  <input type="tel" required placeholder="+91 98111 88772" value={agentForm.phone} onChange={(e) => setAgentForm({ ...agentForm, phone: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Email Address</label>
+                  <input type="email" placeholder="vinod.tiwari@kashirealty.in" value={agentForm.email} onChange={(e) => setAgentForm({ ...agentForm, email: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Detailed Residential / Office Address</label>
+                <textarea rows={2} placeholder="House/Flat No., Road, Landmark, Area, Varanasi, UP - 22100X" value={agentForm.address} onChange={(e) => setAgentForm({ ...agentForm, address: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Designation</label>
+                  <input type="text" placeholder="Colony Sales Executive" value={agentForm.designation} onChange={(e) => setAgentForm({ ...agentForm, designation: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Assigned Township</label>
+                  <select value={agentForm.colony} onChange={(e) => setAgentForm({ ...agentForm, colony: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}>
+                    <option value="Kashi Green Valley City">Kashi Green Valley City</option>
+                    <option value="Ganga View Enclave">Ganga View Enclave</option>
+                    <option value="Royal Orchid Township">Royal Orchid Township</option>
+                    <option value="All Townships">All Townships</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Commission Rate (%)</label>
+                  <input type="text" placeholder="2.0%" value={agentForm.commissionRate} onChange={(e) => setAgentForm({ ...agentForm, commissionRate: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>Plots Sold</label>
+                  <input type="number" placeholder="5" value={agentForm.plotsSold} onChange={(e) => setAgentForm({ ...agentForm, plotsSold: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-                <button type="button" onClick={() => setAgentModalOpen(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#047857', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Save to DB</button>
+                <button type="button" onClick={() => setAgentModalOpen(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700 }}>Cancel</button>
+                <button type="submit" style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#047857', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Save Agent Details</button>
               </div>
             </form>
           </div>

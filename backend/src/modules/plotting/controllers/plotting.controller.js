@@ -181,6 +181,102 @@ let MASTER_PLOTS_DATABASE = [
   },
 ];
 
+// Master In-Memory Plot Inquiries Database
+let MASTER_INQUIRIES_DATABASE = [
+  {
+    id: 'PLT-REQ-101',
+    customerName: 'Rajesh Verma',
+    customerPhone: '9812345678',
+    customerEmail: 'rajesh.verma@outlook.com',
+    serviceTitle: 'Green Valley Enclave - Plot #A-101 (1.5 Biswa)',
+    location: 'Varanasi-Prayagraj Expressway',
+    budget: '₹20,00,000 - ₹25,00,000',
+    preferredDate: '2026-11-29',
+    details: 'Interested in registry paperwork and 24-month bank loan EMI plan. Wants East-facing plot.',
+    status: 'Pending',
+    createdAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
+  },
+  {
+    id: 'PLT-REQ-102',
+    customerName: 'Sunil Kumar Maurya',
+    customerPhone: '9876543210',
+    customerEmail: 'sk.maurya@gmail.com',
+    serviceTitle: 'Ganga Enclave Commercial SCO Plot',
+    location: 'Ring Road Phase-2, Sarnath',
+    budget: '₹50,00,000+',
+    preferredDate: '2026-11-30',
+    details: 'Looking for main highway road frontage for retail pharmacy & clinic showroom.',
+    status: 'Approved',
+    scheduledVisitDate: '2026-11-30',
+    scheduledVisitTime: '03:30 PM',
+    assignedStaff: 'Vinod Tiwari (Senior Consultant)',
+    approvalNotes: 'Site visit confirmed with buyer. Pick up arranged from Cantt.',
+    createdAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
+  },
+  {
+    id: 'PLT-REQ-103',
+    customerName: 'Smt. Anjali Singh',
+    customerPhone: '9935123456',
+    customerEmail: 'anjali.singh.vns@yahoo.com',
+    serviceTitle: 'Royal Orchid Township - Residential Villa Plot',
+    location: 'Babatpur Airport Road',
+    budget: '₹35,00,000',
+    preferredDate: '2026-12-02',
+    details: 'Family wants gated society with park facing and 24x7 security for building dream house.',
+    status: 'Pending',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'PLT-REQ-104',
+    customerName: 'Vikramaditya Pandey',
+    customerPhone: '9794012345',
+    customerEmail: 'vikram.pandey@gmail.com',
+    serviceTitle: 'Affordable Residential Plot (1 Biswa)',
+    location: 'Mohansarai Ring Road Bypass',
+    budget: '₹15,00,000',
+    preferredDate: '2026-12-05',
+    details: 'Immediate token payment ready if 143 conversion paper is verified.',
+    status: 'Contacted',
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+  },
+];
+
+// Master In-Memory Plot Media & Video Gallery Database
+let MASTER_GALLERY_DATABASE = [
+  {
+    id: 'gal_yt_01',
+    type: 'YOUTUBE',
+    title: 'Drone Aerial Shoot & Complete Site Tour - Kashi Green Valley City',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    youtubeId: 'dQw4w9WgXcQ',
+    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    category: 'Drone Aerial Shoot',
+    description: '4K ultra HD drone survey showcasing completed 40ft blacktop entrance roads, transformer poles, and boundary pillars.',
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+  },
+  {
+    id: 'gal_img_01',
+    type: 'IMAGE',
+    title: 'Colony Main Grand Entrance & Security Arch Gate',
+    imageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80',
+    colonyName: 'Kashi Green Valley City (Phase 1)',
+    category: 'Entrance & Roads',
+    description: 'RCC constructed decorative entrance arch with 24x7 security guard cabin and boom barrier.',
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+  },
+  {
+    id: 'gal_img_02',
+    type: 'IMAGE',
+    title: 'Ganga Enclave Commercial SCO Plaza Site Review',
+    imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80',
+    colonyName: 'Ganga Enclave SCO Commercial Plaza',
+    category: 'Commercial Plaza',
+    description: 'Direct Ring Road frontage commercial complex plot land survey demarcated with RCC boundary.',
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+];
+
 export const plottingController = {
   /**
    * GET /api/v1/plotting/plots
@@ -436,6 +532,177 @@ export const plottingController = {
       };
 
       return sendSuccess(res, `Plot ${plotNumber} at ${colony.name} successfully booked for ${buyerName}!`, bookingReceipt, 201);
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // INQUIRIES & LEADS HANDLERS
+  // ══════════════════════════════════════════════════════════════
+  async listInquiries(req, res) {
+    try {
+      const { status, search, page = 1, limit = 10 } = req.query;
+      let list = [...MASTER_INQUIRIES_DATABASE];
+
+      if (status && status !== 'ALL') {
+        list = list.filter((i) => i.status?.toLowerCase() === status.toLowerCase());
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        list = list.filter(
+          (i) =>
+            i.customerName?.toLowerCase().includes(q) ||
+            i.customerPhone?.toLowerCase().includes(q) ||
+            i.serviceTitle?.toLowerCase().includes(q) ||
+            i.location?.toLowerCase().includes(q)
+        );
+      }
+
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+      const total = list.length;
+      const totalPages = Math.ceil(total / limitNum) || 1;
+      const paginated = list.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      return sendSuccess(res, 'Inquiries retrieved successfully', {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+        inquiries: paginated,
+      });
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  async createInquiry(req, res) {
+    try {
+      const {
+        customerName,
+        customerPhone,
+        customerEmail = '',
+        serviceTitle = 'Residential Plot Inquiry',
+        location = 'Varanasi',
+        budget = '',
+        preferredDate = '',
+        details = '',
+      } = req.body;
+
+      if (!customerName || !customerPhone) {
+        return sendError(res, 'Customer name and phone are required', [], 400);
+      }
+
+      const newInquiry = {
+        id: `PLT-REQ-${Date.now().toString().slice(-4)}`,
+        customerName,
+        customerPhone,
+        customerEmail,
+        serviceTitle,
+        location,
+        budget,
+        preferredDate: preferredDate || new Date().toISOString().split('T')[0],
+        details,
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      MASTER_INQUIRIES_DATABASE.unshift(newInquiry);
+      return sendSuccess(res, 'Plot inquiry submitted successfully', newInquiry, 201);
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  async updateInquiry(req, res) {
+    try {
+      const { inquiryId } = req.params;
+      const idx = MASTER_INQUIRIES_DATABASE.findIndex((i) => i.id === inquiryId);
+      if (idx === -1) {
+        return sendError(res, 'Inquiry not found', [], 404);
+      }
+
+      MASTER_INQUIRIES_DATABASE[idx] = {
+        ...MASTER_INQUIRIES_DATABASE[idx],
+        ...req.body,
+        id: MASTER_INQUIRIES_DATABASE[idx].id,
+      };
+
+      return sendSuccess(res, 'Inquiry updated successfully', MASTER_INQUIRIES_DATABASE[idx]);
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  async deleteInquiry(req, res) {
+    try {
+      const { inquiryId } = req.params;
+      const beforeLen = MASTER_INQUIRIES_DATABASE.length;
+      MASTER_INQUIRIES_DATABASE = MASTER_INQUIRIES_DATABASE.filter((i) => i.id !== inquiryId);
+      if (MASTER_INQUIRIES_DATABASE.length === beforeLen) {
+        return sendError(res, 'Inquiry not found', [], 404);
+      }
+      return sendSuccess(res, 'Inquiry deleted successfully', { id: inquiryId });
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // MEDIA & GALLERY HANDLERS
+  // ══════════════════════════════════════════════════════════════
+  async listGallery(req, res) {
+    try {
+      const { type, page = 1, limit = 12 } = req.query;
+      let list = [...MASTER_GALLERY_DATABASE];
+      if (type && type !== 'ALL') {
+        list = list.filter((g) => g.type?.toUpperCase() === type.toUpperCase());
+      }
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.max(1, parseInt(limit, 10) || 12);
+      const total = list.length;
+      const totalPages = Math.ceil(total / limitNum) || 1;
+      const paginated = list.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      return sendSuccess(res, 'Gallery items retrieved', {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+        items: paginated,
+      });
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  async createGalleryItem(req, res) {
+    try {
+      const { type, title, youtubeUrl, imageUrl, colonyName, category, description } = req.body;
+      const newItem = {
+        id: `gal_${Date.now()}`,
+        type: type || 'IMAGE',
+        title: title || 'Project Site Media',
+        youtubeUrl: youtubeUrl || '',
+        imageUrl: imageUrl || '',
+        colonyName: colonyName || 'Kashi Green Valley City',
+        category: category || 'Drone Aerial Shoot',
+        description: description || '',
+        createdAt: new Date().toISOString(),
+      };
+      MASTER_GALLERY_DATABASE.unshift(newItem);
+      return sendSuccess(res, 'Gallery media item created', newItem, 201);
+    } catch (err) {
+      return sendError(res, err.message, [], 500);
+    }
+  },
+
+  async deleteGalleryItem(req, res) {
+    try {
+      const { galleryId } = req.params;
+      MASTER_GALLERY_DATABASE = MASTER_GALLERY_DATABASE.filter((g) => g.id !== galleryId);
+      return sendSuccess(res, 'Media removed successfully', { id: galleryId });
     } catch (err) {
       return sendError(res, err.message, [], 500);
     }

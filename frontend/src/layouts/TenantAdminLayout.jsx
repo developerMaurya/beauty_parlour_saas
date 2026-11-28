@@ -48,6 +48,7 @@ import {
   ShoppingBag,
   Trees,
   Home,
+  Zap,
   Building,
   HelpCircle,
   Image,
@@ -60,6 +61,7 @@ import {
   Clock,
   DollarSign,
   Award,
+  Maximize2,
 } from 'lucide-react';
 import { useTenantAdmin } from '../context/TenantAdminContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -256,9 +258,9 @@ export const TenantAdminLayout = () => {
       badgeBg: '#ca8a04',
       items: [
         { label: 'Master Overview', path: '/admin/dashboard', icon: LayoutDashboard, badge: 'Overview' },
-        { label: 'All Users Management', path: '/admin/users', icon: Users, badge: 'Users' },
+        { label: 'All Users & Credentials', path: '/admin/users', icon: Key || Users, badge: 'Auth' },
         { label: 'Role Management', path: '/admin/roles', icon: Shield, badge: 'Roles' },
-        { label: 'Staff Attendance', path: '/admin/staff-attendance', icon: Clock, badge: 'HR' },
+        { label: 'Unified Multi-Attendance', path: '/admin/staff-attendance', icon: Clock, badge: 'Punch' },
         { label: 'Leave Management', path: '/admin/leave-management', icon: Calendar, badge: 'Leaves' },
         { label: 'Staff Salary & Payroll', path: '/admin/staff-salary', icon: DollarSign, badge: 'Payroll' },
       ],
@@ -280,6 +282,7 @@ export const TenantAdminLayout = () => {
         { label: 'Issue Salon Product', path: '/admin/parlour-assignments', icon: Package, badge: 'Issue' },
         { label: 'Salary', path: '/admin/parlour-salary', icon: Users, badge: 'Salary' },
         { label: 'Certificate Generator', path: '/admin/parlour-certificates', icon: Award, badge: 'Certificate' },
+        { label: 'Salon Photo & Video Gallery', path: '/admin/parlour-gallery', icon: Video, badge: 'Gallery' },
         { label: 'Parlour Services', path: '/admin/parlour-services', icon: Scissors, badge: 'Services' },
         { label: 'Sub-Services Master', path: '/admin/parlour-subservices', icon: Scissors, badge: 'Master' },
         { label: 'Parlour Plans & Packages', path: '/admin/parlour-plans', icon: Layers, badge: 'Plans' },
@@ -302,6 +305,7 @@ export const TenantAdminLayout = () => {
         { label: 'Event Package', path: '/admin/event-decoration?tab=PACKAGES', icon: Package, badge: 'Packages' },
         { label: 'Bookings & Inventory Billing', path: '/admin/event-decoration?tab=BOOKINGS', icon: Calendar, badge: 'Bookings' },
         { label: 'Customer Requests & Proposals', path: '/admin/event-decoration?tab=PROPOSALS', icon: FileText, badge: 'Requests' },
+        { label: 'Event Photo & Video Gallery', path: '/admin/event-decoration?tab=GALLERY', icon: Video, badge: 'Gallery' },
         { label: 'Event Users', path: '/admin/users?business=EVENTS', icon: Users, badge: 'Users' },
       ],
     },
@@ -331,8 +335,12 @@ export const TenantAdminLayout = () => {
       badge: 'Rent',
       badgeBg: '#b45309',
       items: [
-        { label: 'Office & Rental Overview', path: '/admin/rent-office', icon: LayoutDashboard, badge: 'Overview' },
-        { label: 'Rental Users', path: '/admin/users?business=RENT', icon: Users, badge: 'Users' },
+        { label: 'Commercial Halls (L×W×H)', path: '/admin/rent-halls', icon: Maximize2 || Building, badge: 'Halls' },
+        { label: 'Building Floors Master', path: '/admin/rent-floors', icon: Layers, badge: 'Floors' },
+        { label: 'Residential & Brokerage', path: '/admin/rent-office?tab=residential', icon: Home, badge: 'Brokerage' },
+        { label: '⚡ Electricity (Bijli) Bills', path: '/admin/electricity-billing', icon: Zap, badge: 'Bijli Bill' },
+        { label: '👤 Owner Rent & Payouts', path: '/admin/rental-owner-payments', icon: DollarSign || CreditCard, badge: 'Owner Payout' },
+        { label: 'Rental Tenants & Users', path: '/admin/rent-tenants', icon: Users, badge: 'Tenants' },
       ],
     },
     {
@@ -344,8 +352,14 @@ export const TenantAdminLayout = () => {
       badge: 'Software',
       badgeBg: '#4338ca',
       items: [
-        { label: 'Software & Tech Overview', path: '/admin/rb-software', icon: LayoutDashboard, badge: 'Overview' },
-        { label: 'Software Users', path: '/admin/users?business=SOFTWARE', icon: Users, badge: 'Users' },
+        { label: 'Categories & Services', path: '/admin/rb-software?tab=categories', icon: Code2, badge: 'Catalog' },
+        { label: 'Projects Portfolio', path: '/admin/rb-software?tab=projects', icon: Globe, badge: 'Projects' },
+        { label: 'Client Inquiries', path: '/admin/rb-software?tab=inquiries', icon: MessageSquare, badge: 'Inquiries' },
+        { label: 'Computer Academy & Fees', path: '/admin/rb-software?tab=academy', icon: GraduationCap, badge: 'Academy' },
+        { label: 'Internship CRM & Letters', path: '/admin/rb-software?tab=internship', icon: Award, badge: 'Interns' },
+        { label: 'Trainers & Staff Payroll', path: '/admin/rb-software?tab=staff', icon: DollarSign, badge: 'Payroll' },
+        { label: 'Media & 4K Shoots', path: '/admin/media', icon: Camera, badge: 'Media' },
+        { label: 'Software Clients', path: '/admin/software-clients', icon: Users, badge: 'Clients' },
       ],
     },
     {
@@ -616,6 +630,8 @@ export const TenantAdminLayout = () => {
                           ? location.pathname.includes('appointments') || (location.pathname.includes('golden-beauty-parlour') && location.search.includes('tab=appointments'))
                           : item.path === '/admin/parlour-inquiries'
                           ? location.pathname.includes('inquiries') || (location.pathname.includes('golden-beauty-parlour') && location.search.includes('tab=requests'))
+                          : item.path === '/admin/parlour-gallery'
+                          ? location.pathname.includes('parlour-gallery') || (location.pathname.includes('golden-beauty-parlour') && location.search.includes('tab=gallery'))
                           : item.path === '/admin/golden-beauty-parlour'
                           ? location.pathname === '/admin/golden-beauty-parlour' && (!location.search || location.search === '' || location.search === '?tab=overview')
                           : item.path === '/admin/plotting-inquiries'
@@ -624,6 +640,10 @@ export const TenantAdminLayout = () => {
                           ? location.pathname.includes('plotting-inventory') || (location.pathname === '/admin/plotting' && location.search.includes('tab=inventory'))
                           : item.path === '/admin/plotting-gallery'
                           ? location.pathname.includes('plotting-gallery') || (location.pathname === '/admin/plotting' && location.search.includes('tab=gallery'))
+                          : item.path === '/admin/plotting-agents'
+                          ? location.pathname.includes('plotting-agents') || (location.pathname.includes('plotting-users') && location.search.includes('tab=agents'))
+                          : item.path === '/admin/plotting-users'
+                          ? location.pathname === '/admin/plotting-users' && (!location.search || !location.search.includes('tab=agents'))
                           : item.path === '/admin/plotting'
                           ? location.pathname === '/admin/plotting' && (!location.search || location.search === '' || location.search === '?tab=overview')
                           : item.path.includes('?')

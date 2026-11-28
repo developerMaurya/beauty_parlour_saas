@@ -29,8 +29,12 @@ import PlottingUsersManagement from '../modules/admin/pages/PlottingUsersManagem
 import RentOfficeDashboard, { RentOfficeDashboard as RentOfficeDashboardNamed } from '../modules/admin/pages/RentOfficeDashboard.jsx';
 const AdminRentDashboard = RentOfficeDashboard || RentOfficeDashboardNamed;
 import RentTenantsManagement from '../modules/admin/pages/RentTenantsManagement.jsx';
+import RentalFloorsMasterView from '../modules/admin/pages/RentalFloorsMasterView.jsx';
+import ElectricityBillingMasterPage from '../modules/admin/pages/electricity/ElectricityBillingMasterPage.jsx';
+import OwnerTenantPaymentLedgerPage from '../modules/admin/pages/rental/OwnerTenantPaymentLedgerPage.jsx';
 import RBSoftwareDashboard from '../modules/admin/pages/RBSoftwareDashboard.jsx';
 import SoftwareClientsManagement from '../modules/admin/pages/SoftwareClientsManagement.jsx';
+import SoftwareHubMasterView from '../modules/admin/pages/SoftwareHubMasterView.jsx';
 
 import BranchManagementPage from '../modules/admin/pages/BranchManagementPage.jsx';
 import StructureManagementPage from '../modules/admin/pages/StructureManagementPage.jsx';
@@ -128,6 +132,7 @@ export const AdminRoutes = (
       <Route path="parlour-staff" element={<StaffManagementPage />} />
       <Route path="parlour-students" element={<StudentAcademyPage />} />
       <Route path="parlour-appointments" element={<AdminParlourDashboard defaultTab="appointments" />} />
+      <Route path="parlour-gallery" element={<AdminParlourDashboard defaultTab="gallery" />} />
       <Route path="parlour-services" element={<ServiceCatalogPage />} />
       <Route path="services" element={<ServiceCatalogPage />} />
       <Route path="parlour-offers" element={<AdminOfferCatalogPage />} />
@@ -148,6 +153,7 @@ export const AdminRoutes = (
       <Route path="events" element={<AdminEventDashboard defaultTab="EVENTS" />} />
       <Route path="event-services" element={<AdminEventDashboard defaultTab="EVENTS" />} />
       <Route path="event-packages" element={<AdminEventDashboard defaultTab="PACKAGES" />} />
+      <Route path="event-gallery" element={<AdminEventDashboard defaultTab="GALLERY" />} />
       <Route path="event-catalog" element={<AdminEventDashboard defaultTab="EVENTS" />} />
       <Route path="jay-gurudev" element={<AdminEventDashboard />} />
       <Route path="jay-gurudev-events" element={<AdminEventDashboard />} />
@@ -165,16 +171,28 @@ export const AdminRoutes = (
       <Route path="plotting-agents" element={<PlottingUsersManagement defaultTab="agents" />} />
 
       {/* ── 4. Office & Commercial Rent Sub-Routes ── */}
-      <Route path="rent-office" element={<AdminRentDashboard />} />
-      <Route path="office-rent" element={<AdminRentDashboard />} />
-      <Route path="rent" element={<AdminRentDashboard />} />
-      <Route path="commercial" element={<AdminRentDashboard />} />
+      <Route path="rent-office" element={<RentalFloorsMasterView />} />
+      <Route path="office-rent" element={<RentalFloorsMasterView />} />
+      <Route path="rent" element={<RentalFloorsMasterView />} />
+      <Route path="commercial" element={<RentalFloorsMasterView />} />
+      <Route path="rent-halls" element={<RentalFloorsMasterView defaultTab="halls" />} />
+      <Route path="rent-floors" element={<RentalFloorsMasterView defaultTab="floors" />} />
       <Route path="rent-tenants" element={<RentTenantsManagement />} />
       <Route path="tenants" element={<RentTenantsManagement />} />
+      <Route path="electricity-billing" element={<ElectricityBillingMasterPage />} />
+      <Route path="electricity" element={<ElectricityBillingMasterPage />} />
+      <Route path="bijli-bill" element={<ElectricityBillingMasterPage />} />
+      <Route path="rental-owner-payments" element={<OwnerTenantPaymentLedgerPage />} />
+      <Route path="owner-payments" element={<OwnerTenantPaymentLedgerPage />} />
+      <Route path="owner-ledger" element={<OwnerTenantPaymentLedgerPage />} />
 
       {/* ── 5. RB Software & Media Hub Sub-Routes ── */}
-      <Route path="rb-software" element={<RBSoftwareDashboard />} />
-      <Route path="software" element={<RBSoftwareDashboard />} />
+      <Route path="rb-software" element={<SoftwareHubMasterView />} />
+      <Route path="software" element={<SoftwareHubMasterView />} />
+      <Route path="software-academy" element={<SoftwareHubMasterView defaultTab="academy" />} />
+      <Route path="software-internship" element={<SoftwareHubMasterView defaultTab="internship" />} />
+      <Route path="software-projects" element={<SoftwareHubMasterView defaultTab="projects" />} />
+      <Route path="software-inquiries" element={<SoftwareHubMasterView defaultTab="inquiries" />} />
       <Route path="media" element={<RBSoftwareDashboard />} />
       <Route path="rb-media" element={<RBSoftwareDashboard />} />
       <Route path="photography" element={<RBSoftwareDashboard />} />

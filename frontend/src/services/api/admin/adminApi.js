@@ -742,4 +742,68 @@ export const plottingFetcher = {
   deletePlot: (plotId) => adminAxiosClient.delete(`/plotting/plots/${plotId}`),
   calculateEmi: (data) => adminAxiosClient.post('/plotting/calculate-emi', data),
   bookPlot: (data) => adminAxiosClient.post('/plotting/book-plot', data),
+  listInquiries: (params) => adminAxiosClient.get('/plotting/inquiries', { params: buildParams(params) }),
+  createInquiry: (data) => adminAxiosClient.post('/plotting/inquiries', data),
+  updateInquiry: (inquiryId, data) => adminAxiosClient.put(`/plotting/inquiries/${inquiryId}`, data),
+  deleteInquiry: (inquiryId) => adminAxiosClient.delete(`/plotting/inquiries/${inquiryId}`),
+  listGallery: (params) => adminAxiosClient.get('/plotting/gallery', { params: buildParams(params) }),
+  createGalleryItem: (data) => adminAxiosClient.post('/plotting/gallery', data),
+  deleteGalleryItem: (galleryId) => adminAxiosClient.delete(`/plotting/gallery/${galleryId}`),
+};
+
+// 57. Software Hub, Institute, Internship & Attendance Fetcher
+export const softwareHubFetcher = {
+  // Categories & Services
+  listCategories: () => adminAxiosClient.get('/software/categories'),
+  createCategory: (data) => adminAxiosClient.post('/software/categories', data),
+  deleteCategory: (id) => adminAxiosClient.delete(`/software/categories/${id}`),
+  listServices: () => adminAxiosClient.get('/software/services'),
+  createService: (data) => adminAxiosClient.post('/software/services', data),
+  deleteService: (id) => adminAxiosClient.delete(`/software/services/${id}`),
+
+  // Projects Portfolio
+  listProjects: () => adminAxiosClient.get('/software/projects'),
+  createProject: (data) => adminAxiosClient.post('/software/projects', data),
+  deleteProject: (id) => adminAxiosClient.delete(`/software/projects/${id}`),
+
+  // Client Inquiries
+  listInquiries: () => adminAxiosClient.get('/software/inquiries'),
+  createInquiry: (data) => adminAxiosClient.post('/software/inquiries', data),
+  updateInquiryStatus: (id, data) => adminAxiosClient.patch(`/software/inquiries/${id}/status`, data),
+
+  // Computer Academy
+  listCourses: () => adminAxiosClient.get('/software/courses'),
+  createCourse: (data) => adminAxiosClient.post('/software/courses', data),
+  listStudents: () => adminAxiosClient.get('/software/students'),
+  enrollStudent: (data) => adminAxiosClient.post('/software/students/enroll', data),
+  payStudentFee: (studentId, data) => adminAxiosClient.post(`/software/students/${studentId}/pay-fee`, data),
+  listCertificates: () => adminAxiosClient.get('/software/certificates'),
+  issueCertificate: (data) => adminAxiosClient.post('/software/certificates/issue', data),
+
+  // Internship CRM & Letters
+  listInternshipTracks: () => adminAxiosClient.get('/software/internship-tracks'),
+  createInternshipTrack: (data) => adminAxiosClient.post('/software/internship-tracks', data),
+  listInterns: () => adminAxiosClient.get('/software/interns'),
+  enrollIntern: (data) => adminAxiosClient.post('/software/interns/enroll', data),
+  issueRelievingLetter: (internId, data) => adminAxiosClient.post(`/software/interns/${internId}/relieving-letter`, data),
+
+  // Staff & Salary
+  listStaff: () => adminAxiosClient.get('/software/staff'),
+  payStaffSalary: (staffId, data) => adminAxiosClient.post(`/software/staff/${staffId}/pay-salary`, data),
+
+  // Unified Attendance
+  listAttendance: () => adminAxiosClient.get('/software/attendance'),
+  punchAttendance: (data) => adminAxiosClient.post('/software/attendance/punch', data),
+};
+
+// 58. Rental Floors, Commercial Halls & Residential Brokerage Fetcher
+export const rentalFloorsFetcher = {
+  listFloors: () => adminAxiosClient.get('/rent/floors'),
+  createFloor: (data) => adminAxiosClient.post('/rent/floors', data),
+  listHalls: () => adminAxiosClient.get('/rent/halls'),
+  createHall: (data) => adminAxiosClient.post('/rent/halls', data),
+  deleteHall: (id) => adminAxiosClient.delete(`/rent/halls/${id}`),
+  listResidentialRentals: () => adminAxiosClient.get('/rent/residential-rentals'),
+  createResidentialRental: (data) => adminAxiosClient.post('/rent/residential-rentals', data),
+  recordMonthlyRentalPayment: (propertyId, data) => adminAxiosClient.post(`/rent/residential-rentals/${propertyId}/payment`, data),
 };

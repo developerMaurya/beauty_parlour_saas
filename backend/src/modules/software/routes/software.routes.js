@@ -6,6 +6,7 @@
 
 import { Router } from 'express';
 import { softwareController } from '../controllers/software.controller.js';
+import { softwareHubController } from '../controllers/softwareHub.controller.js';
 import { groceryController } from '../grocery/grocery.controller.js';
 import { instituteController } from '../institute/institute.controller.js';
 import { electronicsController } from '../electronics/electronics.controller.js';
@@ -13,7 +14,50 @@ import { boutiqueController } from '../boutique/boutique.controller.js';
 
 const router = Router();
 
-// Master software suite overview & verticals catalog
+// ── Categories & Services CRUD ──
+router.get('/categories', softwareHubController.listCategories);
+router.post('/categories', softwareHubController.createCategory);
+router.delete('/categories/:id', softwareHubController.deleteCategory);
+
+router.get('/services', softwareHubController.listServices);
+router.post('/services', softwareHubController.createService);
+router.delete('/services/:id', softwareHubController.deleteService);
+
+// ── Projects Portfolio CRUD ──
+router.get('/projects', softwareHubController.listProjects);
+router.post('/projects', softwareHubController.createProject);
+router.delete('/projects/:id', softwareHubController.deleteProject);
+
+// ── Client Inquiries CRUD ──
+router.get('/inquiries', softwareHubController.listInquiries);
+router.post('/inquiries', softwareHubController.createInquiry);
+router.patch('/inquiries/:id/status', softwareHubController.updateInquiryStatus);
+
+// ── Computer Academy Courses & Enrollment ──
+router.get('/courses', softwareHubController.listCourses);
+router.post('/courses', softwareHubController.createCourse);
+router.get('/students', softwareHubController.listStudents);
+router.post('/students/enroll', softwareHubController.enrollStudent);
+router.post('/students/:studentId/pay-fee', softwareHubController.recordStudentFeePayment);
+router.get('/certificates', softwareHubController.listCertificates);
+router.post('/certificates/issue', softwareHubController.issueCertificate);
+
+// ── Professional Internship CRM & Letters ──
+router.get('/internship-tracks', softwareHubController.listInternshipTracks);
+router.post('/internship-tracks', softwareHubController.createInternshipTrack);
+router.get('/interns', softwareHubController.listInterns);
+router.post('/interns/enroll', softwareHubController.enrollIntern);
+router.post('/interns/:internId/relieving-letter', softwareHubController.issueInternRelievingLetter);
+
+// ── Trainers & Staff Salary Ledger ──
+router.get('/staff', softwareHubController.listStaff);
+router.post('/staff/:staffId/pay-salary', softwareHubController.recordStaffSalary);
+
+// ── Unified Multi-Role Attendance ──
+router.get('/attendance', softwareHubController.listAttendance);
+router.post('/attendance/punch', softwareHubController.punchAttendance);
+
+// ── Master software suite overview & legacy sub-verticals ──
 router.get('/overview', softwareController.listVerticals);
 router.get('/verticals', softwareController.listVerticals);
 router.get('/verticals/:id', softwareController.getVerticalDetails);
